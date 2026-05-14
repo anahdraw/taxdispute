@@ -39,6 +39,28 @@ Build production lokal:
 npm run build
 ```
 
+## Test PDF dari Folder TestData
+
+Test case lengkap ada di [`TEST_CASES.md`](TEST_CASES.md).
+
+Jalankan smoke test ingest dari folder `TestData` tanpa mengubah database prototype lokal:
+
+```bash
+python3 scripts/run_testdata_ingest.py --testdata TestData
+```
+
+Buat sample PDF dummy jika folder `TestData` kosong:
+
+```bash
+python3 scripts/run_testdata_ingest.py --testdata TestData --generate-samples
+```
+
+Jalankan unit test otomatis:
+
+```bash
+python3 -m unittest tests/test_testdata_ingest.py
+```
+
 ## Cara Menjalankan
 
 ```bash
