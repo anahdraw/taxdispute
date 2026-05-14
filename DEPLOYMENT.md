@@ -1,6 +1,9 @@
 # GitHub and Vercel Deployment Notes
 
-This repository contains a local Streamlit prototype plus a lightweight Vercel deployment shell.
+This repository contains two app surfaces:
+
+- The preserved local Streamlit prototype for the full Python workflow.
+- A new Next.js app for Vercel deployment, created without changing local Streamlit data, uploads, SQLite files, or PDF sources.
 
 ## Recommended GitHub Repository
 
@@ -14,6 +17,13 @@ Keep the repository private while it may contain tax workflow logic, client exam
 
 Commit the application source and documentation:
 
+- `app/`
+- `lib/`
+- `package.json`
+- `package-lock.json`
+- `next.config.mjs`
+- `tsconfig.json`
+- `next-env.d.ts`
 - `prototype_app.py`
 - `tax_dispute_core.py`
 - `tax_regulation_connector.py`
@@ -23,8 +33,6 @@ Commit the application source and documentation:
 - `.vercelignore`
 - `.python-version`
 - `vercel.json`
-- `api/health.py`
-- `index.html`
 - `README.md`
 - `DEPLOYMENT.md`
 - `assets/rsm_logo.svg`
@@ -39,10 +47,12 @@ Do not commit:
 - `*.sqlite`
 - source PDF decisions
 - generated Word/PDF/Excel/PowerPoint exports
+- `node_modules/`
+- `.next/`
 
 These are already covered by `.gitignore` and `.vercelignore`.
 
-## Local Run
+## Local Run: Streamlit Prototype
 
 ```bash
 python3 -m pip install -r requirements.txt
@@ -53,6 +63,25 @@ Open:
 
 ```text
 http://127.0.0.1:8501
+```
+
+## Local Run: Next.js Vercel App
+
+```bash
+npm install
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Production build check:
+
+```bash
+npm run build
 ```
 
 ## Environment Variables
@@ -68,38 +97,49 @@ TDP_TEXT_VERBOSITY=low
 
 For Vercel, add secrets in Project Settings, not in the repository.
 
-## Vercel Reality Check
+## Vercel Architecture
 
-The full current app is Streamlit. Vercel is excellent for static sites, frontend frameworks, and serverless functions, but Streamlit expects a long-running Python web process with WebSocket-style interaction and local file/session state.
+The Vercel version is now a Next.js application:
 
-This repo therefore includes:
+- `app/page.tsx`: RSM-styled UI with dashboard, guided case analysis, regulations, reports, and language switch.
+- `app/api/health/route.ts`: health endpoint.
+- `app/api/analyze/route.ts`: server-side demo analysis endpoint.
+- `lib/analyze.ts`: simple scoring, comparable decision selection, and draft recommendation generation.
+- `lib/mock-data.ts`: sanitized demo decision and regulation dataset for the Vercel app.
 
-- `index.html`: a public Vercel landing page.
-- `api/health.py`: a small Python Vercel Function at `/api/health`.
-- `vercel.json`: routing, Python runtime, and bundle exclusion rules.
+The old Streamlit app remains in place for local Python workflows. The Next.js app does not read local SQLite data, uploads, or confidential PDFs during Vercel deployment.
 
-For a true live version of the full product, choose one of these paths:
+For a production Vercel-native product, move these parts out of local files:
 
-1. Deploy Streamlit on a serverful Python host such as Streamlit Community Cloud, Render, Railway, Fly.io, Azure App Service, or a VPS.
-2. Convert the frontend to Next.js for Vercel and move the Python logic into API services.
-3. Keep Vercel as the public landing/dashboard shell, then link to the Streamlit app hosted elsewhere.
+1. Store documents in Vercel Blob, S3, GCS, Azure Blob, or another managed object store.
+2. Store extracted metadata and analytics in PostgreSQL, Supabase, Neon, PlanetScale, or another managed database.
+3. Move OCR/PDF extraction into a background worker or Python service.
+4. Call OpenAI/LLM APIs only from server routes or backend services.
+5. Add authentication, authorization, and audit logging before handling taxpayer documents.
 
-## Deploy the Vercel Shell
+## Deploy to Vercel
 
 After the GitHub repository is pushed:
 
 1. Open Vercel Dashboard.
-2. Import `anahdraw/tax-dispute-simple-advisor`.
-3. Framework preset: `Other`.
-4. Build command: leave empty.
-5. Output directory: leave empty.
-6. Add environment variables if needed.
-7. Deploy.
+2. Import `anahdraw/taxdispute`.
+3. Framework preset: `Next.js`.
+4. Build command: `npm run build`.
+5. Install command: `npm install`.
+6. Output directory: leave as the Next.js default.
+7. Add environment variables if needed.
+8. Deploy.
 
 Health endpoint:
 
 ```text
 https://your-project.vercel.app/api/health
+```
+
+Analyze endpoint:
+
+```text
+https://your-project.vercel.app/api/analyze
 ```
 
 ## Push to GitHub
@@ -109,8 +149,8 @@ If using GitHub CLI:
 ```bash
 git init
 git add .
-git commit -m "Initial tax dispute prototype"
-gh repo create anahdraw/tax-dispute-simple-advisor --private --source=. --remote=origin --push
+git commit -m "Add Next.js Vercel app"
+gh repo create anahdraw/taxdispute --private --source=. --remote=origin --push
 ```
 
 If the repository already exists:
@@ -118,9 +158,9 @@ If the repository already exists:
 ```bash
 git init
 git add .
-git commit -m "Initial tax dispute prototype"
+git commit -m "Add Next.js Vercel app"
 git branch -M main
-git remote add origin git@github.com:anahdraw/tax-dispute-simple-advisor.git
+git remote add origin git@github.com:anahdraw/taxdispute.git
 git push -u origin main
 ```
 

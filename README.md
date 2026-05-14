@@ -13,11 +13,31 @@ Repo ini sudah disiapkan agar aman dipush ke GitHub:
 
 - `.env`, database SQLite, folder upload, PDF putusan, dan generated binary files di-ignore.
 - `requirements.txt` berisi dependency Python utama.
-- `vercel.json`, `.vercelignore`, `api/health.py`, dan `index.html` disiapkan untuk Vercel shell.
+- Aplikasi Streamlit lokal tetap disimpan sebagai prototype utama.
+- Folder `app/`, `lib/`, `package.json`, dan konfigurasi Next.js baru disiapkan untuk deployment Vercel.
 
-Catatan penting: aplikasi penuh saat ini adalah Streamlit, sehingga lebih cocok live di host Python serverful. Vercel package di repo ini menyediakan landing page dan health endpoint. Untuk full Vercel-native, UI perlu dimigrasi ke Next.js dan logic Python dipindah ke API/database managed.
+Catatan penting: versi Vercel sekarang adalah aplikasi Next.js terpisah yang meniru alur utama prototype tanpa mengubah data lokal Streamlit. File upload dan analisis di versi Vercel masih bersifat demo/browser-side dengan API mock sederhana; untuk production, storage dokumen, database, OCR, dan LLM perlu dipindah ke service/API managed.
 
 Detail deployment ada di [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
+## Cara Menjalankan Next.js untuk Vercel
+
+```bash
+npm install
+npm run dev
+```
+
+Lalu buka:
+
+```text
+http://localhost:3000
+```
+
+Build production lokal:
+
+```bash
+npm run build
+```
 
 ## Cara Menjalankan
 

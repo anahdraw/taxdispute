@@ -1,11 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "functions": {
-    "api/**/*.py": {
-      "excludeFiles": "{data/**,uploads/**,render_llm_architecture/**,**/*.pdf,**/*.docx,**/*.sqlite,**/*.db,.env,.streamlit/**,__pycache__/**,*.pyc}"
-    }
-  },
+  "framework": "nextjs",
   "headers": [
     {
       "source": "/(.*)",
@@ -19,16 +14,6 @@
           "value": "strict-origin-when-cross-origin"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
     }
   ]
 }

@@ -3,10 +3,16 @@
 !.env.example
 .streamlit/
 .vercel/
+node_modules/
+.next/
+out/
+.turbo/
+tsconfig.tsbuildinfo
 data/
 uploads/
 render_llm_architecture/
 __pycache__/
+api/*.py
 *.pyc
 *.sqlite
 *.sqlite3
