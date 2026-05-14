@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RSM Tax Dispute Simple Advisor</title>
+    <style>
+      :root {
+        --rsm-blue: #009cde;
+        --rsm-green: #43a047;
+        --rsm-gray: #54585a;
+        --soft: #f4f7f9;
+        --border: #d7dde3;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #2f3340;
+        background: linear-gradient(180deg, #fff 0%, var(--soft) 100%);
+      }
+      main {
+        width: min(1040px, calc(100vw - 40px));
+        margin: 0 auto;
+        padding: 56px 0;
+      }
+      .brand-strip {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        margin-bottom: 18px;
+      }
+      .brand-strip span {
+        display: block;
+        height: 14px;
+      }
+      .brand-strip span:nth-child(1) {
+        width: 18px;
+        background: #8a8f93;
+      }
+      .brand-strip span:nth-child(2) {
+        width: 54px;
+        background: var(--rsm-green);
+      }
+      .brand-strip span:nth-child(3) {
+        width: 160px;
+        background: var(--rsm-blue);
+      }
+      h1 {
+        margin: 0;
+        color: var(--rsm-gray);
+        font-size: clamp(2.3rem, 6vw, 4.5rem);
+        line-height: 1;
+        letter-spacing: 0;
+      }
+      .subtitle {
+        margin: 18px 0 0;
+        max-width: 760px;
+        font-size: 1.16rem;
+        line-height: 1.55;
+        color: #54585a;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 34px;
+      }
+      .card {
+        min-height: 158px;
+        padding: 20px;
+        border: 1px solid var(--border);
+        border-top: 5px solid var(--rsm-blue);
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 10px 24px rgba(84, 88, 90, 0.08);
+      }
+      .card:nth-child(2) {
+        border-top-color: var(--rsm-green);
+      }
+      .card:nth-child(3) {
+        border-top-color: var(--rsm-gray);
+      }
+      h2 {
+        margin: 0 0 10px;
+        color: #2f3340;
+        font-size: 1.08rem;
+      }
+      p {
+        margin: 0;
+        line-height: 1.55;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 32px;
+      }
+      a {
+        color: var(--rsm-blue);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 16px;
+        border-radius: 6px;
+        color: #fff;
+        background: var(--rsm-blue);
+      }
+      .button.secondary {
+        background: var(--rsm-gray);
+      }
+      .note {
+        margin-top: 26px;
+        padding: 16px 18px;
+        border-left: 4px solid var(--rsm-green);
+        border-radius: 6px;
+        background: #fff;
+        color: #54585a;
+      }
+      @media (max-width: 760px) {
+        main {
+          width: min(100vw - 28px, 1040px);
+          padding: 32px 0;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand-strip" aria-hidden="true"><span></span><span></span><span></span></div>
+      <h1>RSM Tax Dispute Simple Advisor</h1>
+      <p class="subtitle">
+        A prototype for tax dispute document extraction, comparable decision search, VAT regulation context,
+        risk review, and taxpayer recommendation drafting.
+      </p>
+
+      <section class="grid" aria-label="Deployment status">
+        <article class="card">
+          <h2>Prototype Core</h2>
+          <p>The full application is a Streamlit app designed for a serverful Python runtime with local SQLite and file upload support.</p>
+        </article>
+        <article class="card">
+          <h2>Vercel Shell</h2>
+          <p>This Vercel deployment package provides a public landing page and a lightweight Python health endpoint.</p>
+        </article>
+        <article class="card">
+          <h2>Production Path</h2>
+          <p>For a full Vercel-native app, migrate the UI to Next.js and move analysis, storage, and document processing into APIs and managed databases.</p>
+        </article>
+      </section>
+
+      <div class="actions">
+        <a class="button" href="/api/health">Check API Health</a>
+        <a class="button secondary" href="https://github.com/anahdraw" rel="noreferrer">GitHub: anahdraw</a>
+      </div>
+
+      <p class="note">
+        Do not commit API keys, taxpayer documents, local SQLite databases, or uploaded PDFs. This repository is configured
+        to ignore those local artifacts by default.
+      </p>
+    </main>
+  </body>
+</html>
