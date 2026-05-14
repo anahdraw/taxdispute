@@ -3,7 +3,6 @@
   "framework": null,
   "functions": {
     "api/**/*.py": {
-      "runtime": "python3.12",
       "excludeFiles": "{data/**,uploads/**,render_llm_architecture/**,**/*.pdf,**/*.docx,**/*.sqlite,**/*.db,.env,.streamlit/**,__pycache__/**,*.pyc}"
     }
   },
