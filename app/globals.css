@@ -48,6 +48,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
 main {
   display: grid;
   grid-template-columns: 294px minmax(0, 1fr);
@@ -489,6 +494,29 @@ th {
   font-weight: 800;
 }
 
+.status-banner {
+  border-left: 4px solid var(--rsm-blue);
+  border-radius: 8px;
+  background: #eef9fd;
+  color: var(--rsm-gray);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+}
+
+.status-banner.success {
+  border-left-color: var(--rsm-green);
+  background: #edf8ef;
+}
+
+.status-banner.error {
+  border-left-color: #c2410c;
+  background: #fff7ed;
+  color: #7c2d12;
+}
+
 .case-list {
   display: grid;
   gap: 12px;
@@ -564,8 +592,14 @@ pre {
 }
 
 .chat-preview strong {
+  display: block;
+  margin-bottom: 14px;
   font-size: var(--text-md);
   line-height: 1.3;
+}
+
+.chat-preview .primary-button {
+  margin-bottom: 14px;
 }
 
 @media (max-width: 980px) {

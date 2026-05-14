@@ -125,13 +125,12 @@ review tambahan, isi file `.env`:
 
 ```bash
 OPENAI_API_KEY=sk-...
-TDP_LLM_MODEL=gpt-5.5
+TDP_LLM_MODEL=gpt-5.4-mini
 TDP_REASONING_EFFORT=low
 TDP_TEXT_VERBOSITY=low
 ```
 
-Untuk opsi yang lebih hemat/cepat, ubah `TDP_LLM_MODEL` menjadi `gpt-5.4-mini`
-jika model tersebut tersedia di akun API Anda.
+Untuk Vercel, isi environment variables yang sama di Project Settings. Jangan memasukkan API key ke repository.
 
 Jika API key tidak ada, aplikasi memakai scoring lokal berbasis:
 

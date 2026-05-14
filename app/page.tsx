@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { buildAnalysis, type AnalyzeInput } from "@/lib/analyze";
+import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeInput } from "@/lib/analyze";
 import { dashboardStats, issueDistribution, outcomeDistribution, recentDocuments, regulations } from "@/lib/mock-data";
 
 type Language = "id" | "en";
@@ -46,7 +46,11 @@ const copy = {
     evidenceGaps: "Celah Bukti",
     relatedRules: "Dasar Peraturan",
     recentDocs: "Dokumen Terakhir",
-    health: "Check API Health"
+    health: "Check API Health",
+    analyzing: "Menganalisis dengan LLM...",
+    askRule: "Tanya aturan",
+    ruleQuestion: "Pertanyaan aturan PPN",
+    chatAnswer: "Jawaban chatbot"
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
@@ -80,7 +84,11 @@ const copy = {
     evidenceGaps: "Evidence Gaps",
     relatedRules: "Regulatory Basis",
     recentDocs: "Recent Documents",
-    health: "Check API Health"
+    health: "Check API Health",
+    analyzing: "Analyzing with LLM...",
+    askRule: "Ask regulation",
+    ruleQuestion: "VAT regulation question",
+    chatAnswer: "Chatbot answer"
   }
 };
 
@@ -124,8 +132,16 @@ export default function Home() {
   const [page, setPage] = useState<PageKey>("dashboard");
   const [form, setForm] = useState<AnalyzeInput>({ ...initialInput, language });
   const [uploadedName, setUploadedName] = useState("");
+  const [serverAnalysis, setServerAnalysis] = useState<AnalysisResultType | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState("");
+  const [chatQuestion, setChatQuestion] = useState("Where is input VAT creditability regulated?");
+  const [chatAnswer, setChatAnswer] = useState("");
+  const [chatStatus, setChatStatus] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
   const labels = copy[language];
-  const analysis = useMemo(() => buildAnalysis({ ...form, language }), [form, language]);
+  const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }), [form, language]);
+  const analysis = serverAnalysis ?? localAnalysis;
   const pages: Array<[PageKey, string]> = [
     ["dashboard", labels.dashboard],
     ["guided", labels.guided],
@@ -134,8 +150,20 @@ export default function Home() {
     ["reports", labels.reports]
   ];
 
+  function changeLanguage(nextLanguage: Language) {
+    setLanguage(nextLanguage);
+    setForm((current) => ({ ...current, language: nextLanguage }));
+    setServerAnalysis(null);
+    setAnalysisError("");
+    if (!chatAnswer) {
+      setChatQuestion(nextLanguage === "en" ? "Where is input VAT creditability regulated?" : "Di mana aturan pengkreditan pajak masukan berada?");
+    }
+  }
+
   function updateForm(field: keyof AnalyzeInput, value: string) {
     setForm((current) => ({ ...current, [field]: value, language }));
+    setServerAnalysis(null);
+    setAnalysisError("");
   }
 
   function toggleEvidence(item: string) {
@@ -144,6 +172,53 @@ export default function Home() {
       evidence: current.evidence.includes(item) ? current.evidence.filter((entry) => entry !== item) : [...current.evidence, item],
       language
     }));
+    setServerAnalysis(null);
+    setAnalysisError("");
+  }
+
+  async function runAnalysis() {
+    setAnalysisLoading(true);
+    setAnalysisError("");
+    try {
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, language })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Analysis request failed.");
+      }
+      setServerAnalysis(data as AnalysisResultType);
+      setPage("reports");
+    } catch (error) {
+      setAnalysisError(error instanceof Error ? error.message : "Analysis request failed.");
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }
+
+  async function askRegulation() {
+    setChatLoading(true);
+    setChatStatus("");
+    try {
+      const response = await fetch("/api/regulation-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: chatQuestion, language })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Regulation chat request failed.");
+      }
+      setChatAnswer(data.answer || "");
+      setChatStatus(data.llmStatus?.message || "");
+    } catch (error) {
+      setChatAnswer("");
+      setChatStatus(error instanceof Error ? error.message : "Regulation chat request failed.");
+    } finally {
+      setChatLoading(false);
+    }
   }
 
   return (
@@ -154,7 +229,7 @@ export default function Home() {
         <label className="field-label" htmlFor="language">
           Language
         </label>
-        <select id="language" value={language} onChange={(event) => setLanguage(event.target.value as Language)}>
+        <select id="language" value={language} onChange={(event) => changeLanguage(event.target.value as Language)}>
           <option value="en">English</option>
           <option value="id">Bahasa Indonesia</option>
         </select>
@@ -267,8 +342,9 @@ export default function Home() {
                   </button>
                 ))}
               </div>
-              <button className="primary-button" onClick={() => setPage("reports")}>
-                {labels.startAnalysis}
+              {analysisError && <div className="status-banner error">{analysisError}</div>}
+              <button className="primary-button" onClick={runAnalysis} disabled={analysisLoading}>
+                {analysisLoading ? labels.analyzing : labels.startAnalysis}
               </button>
             </Panel>
             <AnalysisResult labels={labels} analysis={analysis} />
@@ -288,12 +364,16 @@ export default function Home() {
               ))}
             </div>
             <div className="chat-preview">
-              <strong>Chatbot preview</strong>
-              <p>
-                {language === "en"
-                  ? "Ask where a VAT rule is located and the app will answer with the rule title, citation, and relevant section once the production regulation database is connected."
-                  : "Tanyakan lokasi aturan PPN, lalu aplikasi akan menjawab nama aturan, sitasi, dan bagian relevan setelah database production tersambung."}
-              </p>
+              <strong>{labels.chatAnswer}</strong>
+              <label className="control">
+                <span>{labels.ruleQuestion}</span>
+                <textarea value={chatQuestion} onChange={(event) => setChatQuestion(event.target.value)} rows={3} />
+              </label>
+              <button className="primary-button" onClick={askRegulation} disabled={chatLoading}>
+                {chatLoading ? (language === "en" ? "Asking..." : "Menjawab...") : labels.askRule}
+              </button>
+              {chatStatus && <div className="status-banner">{chatStatus}</div>}
+              {chatAnswer && <pre>{chatAnswer}</pre>}
             </div>
           </Panel>
         )}
@@ -340,9 +420,15 @@ function TextArea({ label, value, onChange }: { label: string; value: string; on
   );
 }
 
-function AnalysisResult({ labels, analysis, expanded = false }: { labels: (typeof copy)["en"]; analysis: ReturnType<typeof buildAnalysis>; expanded?: boolean }) {
+function AnalysisResult({ labels, analysis, expanded = false }: { labels: (typeof copy)["en"]; analysis: AnalysisResultType; expanded?: boolean }) {
   return (
     <Panel title={labels.results}>
+      {analysis.llmStatus && (
+        <div className={`status-banner ${analysis.llmStatus.used ? "success" : ""}`}>
+          {analysis.llmStatus.message}
+          {analysis.llmStatus.model ? ` (${analysis.llmStatus.model})` : ""}
+        </div>
+      )}
       <div className="score-row">
         <Kpi label="Score" value={analysis.score.toString()} tone="blue" />
         <Kpi label="Confidence" value={analysis.confidence} tone="green" />

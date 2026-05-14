@@ -97,6 +97,17 @@ TDP_TEXT_VERBOSITY=low
 
 For Vercel, add secrets in Project Settings, not in the repository.
 
+Minimum Vercel environment variables for LLM analysis and the regulation chatbot:
+
+```bash
+OPENAI_API_KEY=sk-...
+TDP_LLM_MODEL=gpt-5.4-mini
+TDP_REASONING_EFFORT=low
+TDP_TEXT_VERBOSITY=low
+```
+
+If `OPENAI_API_KEY` is not configured, `/api/analyze` and `/api/regulation-chat` still return local fallback output and show a status message in the UI.
+
 ## Vercel Architecture
 
 The Vercel version is now a Next.js application:

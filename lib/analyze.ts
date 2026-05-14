@@ -12,6 +12,8 @@ export type AnalyzeInput = {
   language: "id" | "en";
 };
 
+export type AnalysisResult = ReturnType<typeof buildAnalysis>;
+
 export function buildAnalysis(input: AnalyzeInput) {
   const evidenceScore = Math.min(100, 36 + input.evidence.length * 10);
   const issueBoost = input.issueType.toLowerCase().includes("vat") || input.issueType.toLowerCase().includes("ppn") ? 12 : 4;
@@ -58,6 +60,11 @@ export function buildAnalysis(input: AnalyzeInput) {
     topCases,
     evidenceGaps,
     regulations: regulations.slice(0, 3),
-    recommendation
+    recommendation,
+    llmStatus: {
+      used: false,
+      model: "",
+      message: input.language === "en" ? "Local rule-based analysis" : "Analisis lokal berbasis aturan"
+    }
   };
 }
