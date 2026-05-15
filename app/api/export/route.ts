@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ReportPayload & { format?: "docx" | "pdf" };
     const format = body.format === "pdf" ? "pdf" : "docx";
-    const bytes = format === "pdf" ? buildReportPdf(body) : await buildReportDocx(body);
+    const bytes = format === "pdf" ? await buildReportPdf(body) : await buildReportDocx(body);
     const responseBody = new Uint8Array(bytes);
     const contentType =
       format === "pdf"
