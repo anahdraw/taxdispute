@@ -97,8 +97,8 @@ function normalizeExtraction(raw: Partial<ExtractionResult>, filename: string): 
 
 export async function extractPdfWithLlm(file: File, language: "id" | "en"): Promise<ExtractionResult> {
   const bytes = Buffer.from(await file.arrayBuffer());
-  if (bytes.byteLength > 18 * 1024 * 1024) {
-    throw new Error(language === "en" ? "PDF is too large for this prototype upload. Please use a file below 18 MB." : "PDF terlalu besar untuk upload prototype ini. Gunakan file di bawah 18 MB.");
+  if (bytes.byteLength > 4 * 1024 * 1024) {
+    throw new Error(language === "en" ? "PDF is too large for this prototype upload. Please use a file below 4 MB." : "PDF terlalu besar untuk upload prototype ini. Gunakan file di bawah 4 MB.");
   }
   const fileData = `data:application/pdf;base64,${bytes.toString("base64")}`;
   const system =

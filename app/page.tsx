@@ -8,6 +8,7 @@ import { dashboardStats, issueDistribution, outcomeDistribution, recentDocuments
 
 type Language = "id" | "en";
 type PageKey = "dashboard" | "guided" | "analysis" | "regulations" | "reports";
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 const evidenceOptions = {
   id: ["Faktur Pajak", "SPT Masa PPN", "Bukti pembayaran", "Rekonsiliasi", "Konfirmasi Lawan Transaksi", "Surat Kuasa"],
@@ -59,7 +60,8 @@ const copy = {
     exportWord: "Download Word",
     exportPdf: "Download PDF",
     exporting: "Membuat file...",
-    noPdf: "Pilih file PDF terlebih dahulu."
+    noPdf: "Pilih file PDF terlebih dahulu.",
+    fileTooLarge: "File terlalu besar untuk Vercel upload langsung. Gunakan PDF di bawah 4 MB untuk prototype ini, atau kompres/split PDF terlebih dahulu."
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
@@ -105,7 +107,8 @@ const copy = {
     exportWord: "Download Word",
     exportPdf: "Download PDF",
     exporting: "Creating file...",
-    noPdf: "Choose a PDF file first."
+    noPdf: "Choose a PDF file first.",
+    fileTooLarge: "File is too large for direct Vercel upload. Use a PDF below 4 MB for this prototype, or compress/split the PDF first."
   }
 };
 
@@ -211,11 +214,18 @@ export default function Home() {
     setServerAnalysis(null);
     setAnalysisError("");
     setExportError("");
+    if (file && file.size > MAX_UPLOAD_BYTES) {
+      setExtractionError(`${copy[language].fileTooLarge} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+    }
   }
 
   async function runExtraction() {
     if (!uploadedFile) {
       setExtractionError(labels.noPdf);
+      return;
+    }
+    if (uploadedFile.size > MAX_UPLOAD_BYTES) {
+      setExtractionError(`${labels.fileTooLarge} (${(uploadedFile.size / 1024 / 1024).toFixed(1)} MB)`);
       return;
     }
     setExtractionLoading(true);
@@ -226,9 +236,15 @@ export default function Home() {
       payload.append("file", uploadedFile);
       payload.append("language", language);
       const response = await fetch("/api/extract", { method: "POST", body: payload });
-      const data = await response.json();
+      const contentType = response.headers.get("content-type") || "";
+      const data = contentType.includes("application/json") ? await response.json() : { error: await response.text() };
       if (!response.ok) {
-        throw new Error(data.error || "PDF extraction failed.");
+        const rawError = String(data.error || "PDF extraction failed.");
+        const friendly =
+          response.status === 413 || rawError.includes("FUNCTION_PAYLOAD_TOO_LARGE") || rawError.includes("Request Entity Too Large")
+            ? `${labels.fileTooLarge} (${(uploadedFile.size / 1024 / 1024).toFixed(1)} MB)`
+            : rawError;
+        throw new Error(friendly);
       }
       setExtraction(data.extraction as ExtractionResult);
       setForm({ ...(data.analyzeInput as AnalyzeInput), language });
