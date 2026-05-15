@@ -20,6 +20,11 @@ type OpenAITextResponse = {
   };
 };
 
+type PdfInput = {
+  filename: string;
+  fileData: string;
+};
+
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 
 export function configuredModel() {
@@ -91,7 +96,65 @@ export async function callOpenAIText(prompt: string, system: string, model = con
   return outputText;
 }
 
-function extractJsonObject(text: string) {
+export async function callOpenAIWithPdf(prompt: string, system: string, pdf: PdfInput, model = configuredModel()): Promise<string> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not configured.");
+  }
+
+  const response = await fetch(OPENAI_RESPONSES_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      input: [
+        {
+          role: "system",
+          content: [{ type: "input_text", text: system }]
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_file",
+              filename: pdf.filename,
+              file_data: pdf.fileData
+            },
+            {
+              type: "input_text",
+              text: prompt
+            }
+          ]
+        }
+      ],
+      text: { verbosity: process.env.TDP_TEXT_VERBOSITY || "medium" },
+      reasoning: { effort: process.env.TDP_REASONING_EFFORT || "low" }
+    })
+  });
+
+  const payload = (await response.json().catch(() => ({}))) as OpenAITextResponse;
+  if (!response.ok) {
+    throw new Error(payload.error?.message || `OpenAI PDF request failed with status ${response.status}.`);
+  }
+  const directText = payload.output_text?.trim();
+  if (directText) {
+    return directText;
+  }
+  const outputText = payload.output
+    ?.flatMap((item) => item.content || [])
+    .map((content) => content.text || "")
+    .join("\n")
+    .trim();
+  if (!outputText) {
+    throw new Error("OpenAI PDF response did not contain text output.");
+  }
+  return outputText;
+}
+
+export function extractJsonObject(text: string) {
   const cleaned = text
     .trim()
     .replace(/^```(?:json)?/i, "")
@@ -123,8 +186,8 @@ export async function buildLlmAnalysis(input: AnalyzeInput, local: AnalysisResul
     {
       instruction:
         input.language === "en"
-          ? "Improve the local analysis. Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication."
-          : "Perdalam analisis lokal. Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication.",
+          ? "Improve the local analysis into a thorough advisor-grade report. Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. The recommendation must be deep, structured, and practical: executive summary, factual position, risk review, evidence plan, regulation basis, comparable decision strategy, and next steps."
+          : "Perdalam analisis lokal menjadi report advisor yang komprehensif. Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Rekomendasi harus mendalam dan terstruktur: ringkasan eksekutif, posisi fakta, review risiko, rencana bukti, dasar peraturan, strategi putusan pembanding, dan langkah berikutnya.",
       caseInput: input,
       localAnalysis: local,
       comparableDecisionContext: comparableDecisions.slice(0, 2),

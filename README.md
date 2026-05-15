@@ -39,6 +39,13 @@ Build production lokal:
 npm run build
 ```
 
+Fitur Next.js/Vercel yang tersedia:
+
+- Upload PDF dan ekstraksi field kasus via LLM (`/api/extract`).
+- Analisis risiko dan rekomendasi mendalam via LLM (`/api/analyze`).
+- Chatbot aturan PPN (`/api/regulation-chat`).
+- Export hasil analisis ke Word dan PDF (`/api/export`).
+
 ## Test PDF dari Folder TestData
 
 Test case lengkap ada di [`TEST_CASES.md`](TEST_CASES.md).

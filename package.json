@@ -6,9 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "tsc --noEmit --incremental false"
+    "lint": "tsc -p tsconfig.check.json --noEmit --incremental false"
   },
   "dependencies": {
+    "docx": "^9.6.1",
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

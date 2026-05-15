@@ -14,9 +14,15 @@ export type AnalyzeInput = {
 
 export type AnalysisResult = ReturnType<typeof buildAnalysis>;
 
+function hasEvidence(evidence: string[], keywords: string[]) {
+  const joined = evidence.join(" | ").toLowerCase();
+  return keywords.some((keyword) => joined.includes(keyword.toLowerCase()));
+}
+
 export function buildAnalysis(input: AnalyzeInput) {
   const evidenceScore = Math.min(100, 36 + input.evidence.length * 10);
-  const issueBoost = input.issueType.toLowerCase().includes("vat") || input.issueType.toLowerCase().includes("ppn") ? 12 : 4;
+  const issueText = `${input.taxType} ${input.issueType}`.toLowerCase();
+  const issueBoost = issueText.includes("vat") || issueText.includes("ppn") || issueText.includes("pajak pertambahan nilai") ? 12 : 4;
   const score = Math.min(92, Math.round((44 + issueBoost + evidenceScore * 0.32) * 10) / 10);
   const confidence = input.evidence.length >= 4 ? "high" : input.evidence.length >= 2 ? "medium" : "low";
   const indication =
@@ -30,9 +36,9 @@ export function buildAnalysis(input: AnalyzeInput) {
 
   const topCases = comparableDecisions.slice(0, 2);
   const evidenceGaps = [
-    input.evidence.includes("Payment evidence") || input.evidence.includes("Bukti pembayaran") ? null : input.language === "en" ? "Payment evidence" : "Bukti pembayaran",
-    input.evidence.includes("VAT return") || input.evidence.includes("SPT Masa PPN") ? null : input.language === "en" ? "VAT return reconciliation" : "Rekonsiliasi SPT Masa PPN",
-    input.evidence.includes("Counterparty confirmation") || input.evidence.includes("Konfirmasi Lawan Transaksi") ? null : input.language === "en" ? "Counterparty confirmation" : "Konfirmasi lawan transaksi"
+    hasEvidence(input.evidence, ["Payment evidence", "Bukti pembayaran", "payment", "pembayaran"]) ? null : input.language === "en" ? "Payment evidence" : "Bukti pembayaran",
+    hasEvidence(input.evidence, ["VAT return", "SPT Masa PPN", "SPT"]) ? null : input.language === "en" ? "VAT return reconciliation" : "Rekonsiliasi SPT Masa PPN",
+    hasEvidence(input.evidence, ["Counterparty confirmation", "Konfirmasi Lawan Transaksi", "konfirmasi"]) ? null : input.language === "en" ? "Counterparty confirmation" : "Konfirmasi lawan transaksi"
   ].filter(Boolean) as string[];
 
   const recommendation =

@@ -485,6 +485,10 @@ th {
   padding: 0 18px;
 }
 
+.secondary-button {
+  background: var(--rsm-blue);
+}
+
 .indication {
   border-left: 4px solid var(--rsm-green);
   border-radius: 8px;
@@ -528,6 +532,15 @@ th {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+  padding: 16px;
+}
+
+.extraction-summary {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--rsm-blue);
+  border-radius: 8px;
+  background: #fff;
+  margin-bottom: 18px;
   padding: 16px;
 }
 
@@ -600,6 +613,13 @@ pre {
 
 .chat-preview .primary-button {
   margin-bottom: 14px;
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 @media (max-width: 980px) {

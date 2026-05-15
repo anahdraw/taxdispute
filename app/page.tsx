@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeInput } from "@/lib/analyze";
+import type { ExtractionResult } from "@/lib/extraction";
 import { dashboardStats, issueDistribution, outcomeDistribution, recentDocuments, regulations } from "@/lib/mock-data";
 
 type Language = "id" | "en";
@@ -50,7 +51,15 @@ const copy = {
     analyzing: "Menganalisis dengan LLM...",
     askRule: "Tanya aturan",
     ruleQuestion: "Pertanyaan aturan PPN",
-    chatAnswer: "Jawaban chatbot"
+    chatAnswer: "Jawaban chatbot",
+    extractWithLlm: "Ekstrak PDF dengan LLM",
+    extracting: "Mengekstrak PDF...",
+    extractionResult: "Hasil Ekstraksi",
+    extractedEvidence: "Bukti Terdeteksi",
+    exportWord: "Download Word",
+    exportPdf: "Download PDF",
+    exporting: "Membuat file...",
+    noPdf: "Pilih file PDF terlebih dahulu."
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
@@ -88,7 +97,15 @@ const copy = {
     analyzing: "Analyzing with LLM...",
     askRule: "Ask regulation",
     ruleQuestion: "VAT regulation question",
-    chatAnswer: "Chatbot answer"
+    chatAnswer: "Chatbot answer",
+    extractWithLlm: "Extract PDF with LLM",
+    extracting: "Extracting PDF...",
+    extractionResult: "Extraction Result",
+    extractedEvidence: "Detected Evidence",
+    exportWord: "Download Word",
+    exportPdf: "Download PDF",
+    exporting: "Creating file...",
+    noPdf: "Choose a PDF file first."
   }
 };
 
@@ -131,10 +148,16 @@ export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
   const [page, setPage] = useState<PageKey>("dashboard");
   const [form, setForm] = useState<AnalyzeInput>({ ...initialInput, language });
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedName, setUploadedName] = useState("");
+  const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
+  const [extractionLoading, setExtractionLoading] = useState(false);
+  const [extractionError, setExtractionError] = useState("");
   const [serverAnalysis, setServerAnalysis] = useState<AnalysisResultType | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState("");
+  const [exportLoading, setExportLoading] = useState<"docx" | "pdf" | "">("");
+  const [exportError, setExportError] = useState("");
   const [chatQuestion, setChatQuestion] = useState("Where is input VAT creditability regulated?");
   const [chatAnswer, setChatAnswer] = useState("");
   const [chatStatus, setChatStatus] = useState("");
@@ -155,6 +178,7 @@ export default function Home() {
     setForm((current) => ({ ...current, language: nextLanguage }));
     setServerAnalysis(null);
     setAnalysisError("");
+    setExportError("");
     if (!chatAnswer) {
       setChatQuestion(nextLanguage === "en" ? "Where is input VAT creditability regulated?" : "Di mana aturan pengkreditan pajak masukan berada?");
     }
@@ -164,6 +188,7 @@ export default function Home() {
     setForm((current) => ({ ...current, [field]: value, language }));
     setServerAnalysis(null);
     setAnalysisError("");
+    setExportError("");
   }
 
   function toggleEvidence(item: string) {
@@ -174,11 +199,51 @@ export default function Home() {
     }));
     setServerAnalysis(null);
     setAnalysisError("");
+    setExportError("");
+  }
+
+  function onFileChange(fileList: FileList | null) {
+    const file = fileList?.[0] ?? null;
+    setUploadedFile(file);
+    setUploadedName(file?.name || "");
+    setExtraction(null);
+    setExtractionError("");
+    setServerAnalysis(null);
+    setAnalysisError("");
+    setExportError("");
+  }
+
+  async function runExtraction() {
+    if (!uploadedFile) {
+      setExtractionError(labels.noPdf);
+      return;
+    }
+    setExtractionLoading(true);
+    setExtractionError("");
+    setExportError("");
+    try {
+      const payload = new FormData();
+      payload.append("file", uploadedFile);
+      payload.append("language", language);
+      const response = await fetch("/api/extract", { method: "POST", body: payload });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "PDF extraction failed.");
+      }
+      setExtraction(data.extraction as ExtractionResult);
+      setForm({ ...(data.analyzeInput as AnalyzeInput), language });
+      setServerAnalysis(null);
+    } catch (error) {
+      setExtractionError(error instanceof Error ? error.message : "PDF extraction failed.");
+    } finally {
+      setExtractionLoading(false);
+    }
   }
 
   async function runAnalysis() {
     setAnalysisLoading(true);
     setAnalysisError("");
+    setExportError("");
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
@@ -195,6 +260,41 @@ export default function Home() {
       setAnalysisError(error instanceof Error ? error.message : "Analysis request failed.");
     } finally {
       setAnalysisLoading(false);
+    }
+  }
+
+  async function downloadReport(format: "docx" | "pdf") {
+    setExportLoading(format);
+    setExportError("");
+    try {
+      const response = await fetch("/api/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          format,
+          input: { ...form, language },
+          analysis,
+          extraction,
+          language
+        })
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || "Report export failed.");
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `rsm-tax-dispute-report.${format}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Report export failed.");
+    } finally {
+      setExportLoading("");
     }
   }
 
@@ -320,12 +420,17 @@ export default function Home() {
                   {labels.upload}
                   <input
                     type="file"
-                    accept=".pdf,.doc,.docx"
-                    onChange={(event) => setUploadedName(event.target.files?.[0]?.name || "")}
+                    accept=".pdf,application/pdf"
+                    onChange={(event) => onFileChange(event.target.files)}
                   />
                 </label>
                 <p>{uploadedName || labels.uploadHint}</p>
+                {extractionError && <div className="status-banner error">{extractionError}</div>}
+                <button className="primary-button secondary-button" onClick={runExtraction} disabled={extractionLoading || !uploadedFile}>
+                  {extractionLoading ? labels.extracting : labels.extractWithLlm}
+                </button>
               </div>
+              {extraction && <ExtractionSummary labels={labels} extraction={extraction} />}
               <div className="form-grid">
                 <Input label={labels.taxpayer} value={form.taxpayerName} onChange={(value) => updateForm("taxpayerName", value)} />
                 <Input label={labels.taxType} value={form.taxType} onChange={(value) => updateForm("taxType", value)} />
@@ -347,7 +452,14 @@ export default function Home() {
                 {analysisLoading ? labels.analyzing : labels.startAnalysis}
               </button>
             </Panel>
-            <AnalysisResult labels={labels} analysis={analysis} />
+            <AnalysisResult
+              labels={labels}
+              analysis={analysis}
+              canExport={Boolean(serverAnalysis)}
+              exportLoading={exportLoading}
+              exportError={exportError}
+              onDownload={downloadReport}
+            />
           </section>
         )}
 
@@ -378,7 +490,17 @@ export default function Home() {
           </Panel>
         )}
 
-        {page === "reports" && <AnalysisResult labels={labels} analysis={analysis} expanded />}
+        {page === "reports" && (
+          <AnalysisResult
+            labels={labels}
+            analysis={analysis}
+            expanded
+            canExport={Boolean(serverAnalysis)}
+            exportLoading={exportLoading}
+            exportError={exportError}
+            onDownload={downloadReport}
+          />
+        )}
       </section>
     </main>
   );
@@ -420,7 +542,65 @@ function TextArea({ label, value, onChange }: { label: string; value: string; on
   );
 }
 
-function AnalysisResult({ labels, analysis, expanded = false }: { labels: (typeof copy)["en"]; analysis: AnalysisResultType; expanded?: boolean }) {
+function ExtractionSummary({ labels, extraction }: { labels: (typeof copy)["en"]; extraction: ExtractionResult }) {
+  const rows = [
+    ["File", extraction.filename],
+    ["Decision / Putusan", extraction.putusanNumber],
+    ["Taxpayer", extraction.taxpayerName],
+    ["NPWP", extraction.taxpayerNpwp],
+    ["Tax period", extraction.taxPeriod],
+    ["DGT unit", extraction.djpUnit],
+    ["Counsel", extraction.legalCounselName],
+    ["Issue", extraction.issueType || extraction.issueSubtype],
+    ["Amount", extraction.correctionAmount]
+  ].filter((row) => row[1]);
+  return (
+    <div className="extraction-summary">
+      <h3>{labels.extractionResult}</h3>
+      <div className="table-wrap">
+        <table>
+          <tbody>
+            {rows.map(([field, value]) => (
+              <tr key={field}>
+                <th>{field}</th>
+                <td>{value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {extraction.evidence.length > 0 && (
+        <>
+          <h3>{labels.extractedEvidence}</h3>
+          <div className="chips readonly">
+            {extraction.evidence.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+        </>
+      )}
+      {extraction.summary && <p className="muted">{extraction.summary}</p>}
+    </div>
+  );
+}
+
+function AnalysisResult({
+  labels,
+  analysis,
+  expanded = false,
+  canExport = false,
+  exportLoading = "",
+  exportError = "",
+  onDownload
+}: {
+  labels: (typeof copy)["en"];
+  analysis: AnalysisResultType;
+  expanded?: boolean;
+  canExport?: boolean;
+  exportLoading?: "docx" | "pdf" | "";
+  exportError?: string;
+  onDownload?: (format: "docx" | "pdf") => void;
+}) {
   return (
     <Panel title={labels.results}>
       {analysis.llmStatus && (
@@ -461,6 +641,17 @@ function AnalysisResult({ labels, analysis, expanded = false }: { labels: (typeo
       </div>
       <h3>{labels.recommendation}</h3>
       <pre>{analysis.recommendation}</pre>
+      {canExport && onDownload && (
+        <div className="export-actions">
+          <button className="primary-button" onClick={() => onDownload("docx")} disabled={Boolean(exportLoading)}>
+            {exportLoading === "docx" ? labels.exporting : labels.exportWord}
+          </button>
+          <button className="primary-button secondary-button" onClick={() => onDownload("pdf")} disabled={Boolean(exportLoading)}>
+            {exportLoading === "pdf" ? labels.exporting : labels.exportPdf}
+          </button>
+        </div>
+      )}
+      {exportError && <div className="status-banner error">{exportError}</div>}
     </Panel>
   );
 }

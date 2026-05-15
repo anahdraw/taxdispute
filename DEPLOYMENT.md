@@ -115,7 +115,12 @@ The Vercel version is now a Next.js application:
 - `app/page.tsx`: RSM-styled UI with dashboard, guided case analysis, regulations, reports, and language switch.
 - `app/api/health/route.ts`: health endpoint.
 - `app/api/analyze/route.ts`: server-side demo analysis endpoint.
+- `app/api/extract/route.ts`: PDF upload and structured extraction through OpenAI PDF input.
+- `app/api/export/route.ts`: Word/PDF report export.
+- `app/api/regulation-chat/route.ts`: VAT regulation chatbot endpoint.
 - `lib/analyze.ts`: simple scoring, comparable decision selection, and draft recommendation generation.
+- `lib/extraction.ts`: maps extracted PDF fields into analysis input.
+- `lib/report.ts`: builds branded Word/PDF report files.
 - `lib/mock-data.ts`: sanitized demo decision and regulation dataset for the Vercel app.
 
 The old Streamlit app remains in place for local Python workflows. The Next.js app does not read local SQLite data, uploads, or confidential PDFs during Vercel deployment.
