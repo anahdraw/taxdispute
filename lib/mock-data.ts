@@ -80,6 +80,76 @@ export const comparableDecisions: ComparableDecision[] = [
     implication:
       "Useful as a supporting comparator if the taxpayer can show the same evidentiary chain and avoid relying on outcome alone.",
     matchPoints: ["VAT issue", "evidence reconciliation", "partial taxpayer success", "documentary consistency"]
+  },
+  {
+    id: "put-012093",
+    number: "PUT-012093.16.2023.PP.M.XIIIA Tahun 2025",
+    taxType: "VAT",
+    issue: "Input VAT",
+    outcome: "WP_FULL_WIN",
+    score: 67.4,
+    amount: "Rp421,860,000",
+    reasoning:
+      "The panel focused on whether input VAT was supported by valid tax invoices, reporting consistency, and counterparty confirmation that tied the purchase to taxable business activity.",
+    implication:
+      "Useful as a positive comparator when the taxpayer has complete invoices, VAT return reconciliation, and third-party confirmation.",
+    matchPoints: ["input VAT", "tax invoice validity", "VAT return reconciliation", "counterparty confirmation"]
+  },
+  {
+    id: "put-012088",
+    number: "PUT-012088.16.2023.PP.M.XIIIA Tahun 2025",
+    taxType: "VAT",
+    issue: "Input VAT",
+    outcome: "WP_FULL_WIN",
+    score: 66.9,
+    amount: "Rp279,259,144",
+    reasoning:
+      "The taxpayer succeeded because the disputed input VAT could be traced through invoices, payments, bookkeeping, and VAT reporting records.",
+    implication:
+      "Use as a comparator for evidence-chain arguments, especially where the tax authority questions whether documents reflect real transactions.",
+    matchPoints: ["input VAT", "payment evidence", "bookkeeping", "transaction reality"]
+  },
+  {
+    id: "put-011729",
+    number: "PUT-011729.16.2021.PP.M.XVIA Tahun 2025",
+    taxType: "VAT",
+    issue: "VAT tax base",
+    outcome: "WP_PARTIAL_WIN",
+    score: 61.2,
+    amount: "Rp580,000,000",
+    reasoning:
+      "The panel partially maintained the correction where only part of the tax base was supported by a coherent sales ledger, payment trail, and delivery evidence.",
+    implication:
+      "Helpful for partial-grant strategy: concede weak transaction lines and defend the portion supported by complete reconciliation.",
+    matchPoints: ["VAT tax base", "partial correction", "sales ledger", "payment trail"]
+  },
+  {
+    id: "put-011803",
+    number: "PUT-011803.19.2024.PP.M.VIIB Tahun 2025",
+    taxType: "Income Tax",
+    issue: "Formal appeal requirement",
+    outcome: "FORMAL_REJECTED",
+    score: 48.5,
+    amount: "-",
+    reasoning:
+      "The panel did not proceed to substance because formal requirements, authority documents, and appeal timing were not sufficiently established.",
+    implication:
+      "Use only as a procedural risk comparator when the uploaded case mentions power of attorney, filing deadline, or incomplete appeal documentation.",
+    matchPoints: ["formal requirement", "power of attorney", "appeal timing", "procedural risk"]
+  },
+  {
+    id: "put-011884",
+    number: "PUT-011884.16.2023.PP.M.XIVA Tahun 2025",
+    taxType: "VAT",
+    issue: "Tax invoice administration",
+    outcome: "DJP_WIN",
+    score: 55.3,
+    amount: "Rp338,750,000",
+    reasoning:
+      "The panel emphasized that administrative defects in VAT invoices can defeat the taxpayer position when not cured by replacement invoices or reliable transaction evidence.",
+    implication:
+      "Treat as a risk comparator for cases involving invoice defects, late correction, or incomplete formal VAT documentation.",
+    matchPoints: ["VAT invoice", "administrative defect", "replacement invoice", "formal documentation"]
   }
 ];
 

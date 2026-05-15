@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeInput } from "@/lib/analyze";
+import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } from "@/lib/case-search";
 import type { ExtractionResult } from "@/lib/extraction";
 import { dashboardStats, issueDistribution, outcomeDistribution, recentDocuments, regulations } from "@/lib/mock-data";
 
@@ -63,7 +64,22 @@ const copy = {
     noPdf: "Pilih file PDF terlebih dahulu.",
     fileTooLarge: "Satu halaman/chunk PDF masih terlalu besar. Kompres PDF atau split bagian tersebut terlebih dahulu.",
     chunking: "PDF besar terdeteksi. Memecah dokumen menjadi chunk halaman...",
-    extractingChunk: "Mengekstrak chunk"
+    extractingChunk: "Mengekstrak chunk",
+    caseSearchTitle: "Pencarian Kasus Mirip",
+    caseSearchIntro: "Cari putusan pembanding berdasarkan narasi sengketa, kata kunci, atau PDF. Hasil menampilkan persentase kemiripan dan alasan mengapa putusan tersebut relevan.",
+    caseQuery: "Kata kunci / narasi kasus",
+    caseQueryPlaceholder: "Contoh: Sengketa PPN atas koreksi DPP, bukti pembayaran lengkap, faktur pajak, SPT Masa PPN, DJP menolak karena rekonsiliasi transaksi.",
+    caseUpload: "Upload dokumen kasus",
+    searchSimilar: "Cari Kasus Mirip",
+    searchingSimilar: "Mencari kasus mirip...",
+    caseResults: "Hasil Kemiripan",
+    similarity: "Kemiripan",
+    whySimilar: "Mengapa mirip",
+    keyOverlap: "Titik kemiripan",
+    differences: "Hal yang perlu dibedakan",
+    useInArgument: "Cara pakai dalam argumentasi",
+    noCaseQuery: "Isi narasi/kata kunci atau upload PDF terlebih dahulu.",
+    extractedForSearch: "Dokumen berhasil diekstrak untuk pencarian."
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
@@ -112,7 +128,22 @@ const copy = {
     noPdf: "Choose a PDF file first.",
     fileTooLarge: "One PDF page/chunk is still too large. Please compress the PDF or split that section first.",
     chunking: "Large PDF detected. Splitting document into page chunks...",
-    extractingChunk: "Extracting chunk"
+    extractingChunk: "Extracting chunk",
+    caseSearchTitle: "Similar Case Search",
+    caseSearchIntro: "Search comparable decisions using a dispute narrative, keywords, or a PDF. Results show similarity percentage and why each decision is relevant.",
+    caseQuery: "Keywords / case narrative",
+    caseQueryPlaceholder: "Example: VAT dispute on tax base correction, complete payment evidence, tax invoices, VAT return, tax authority rejects due to transaction reconciliation.",
+    caseUpload: "Upload case document",
+    searchSimilar: "Find Similar Cases",
+    searchingSimilar: "Finding similar cases...",
+    caseResults: "Similarity Results",
+    similarity: "Similarity",
+    whySimilar: "Why similar",
+    keyOverlap: "Match points",
+    differences: "Points to distinguish",
+    useInArgument: "How to use in argument",
+    noCaseQuery: "Enter a narrative/keyword or upload a PDF first.",
+    extractedForSearch: "Document extracted for search."
   }
 };
 
@@ -185,6 +216,14 @@ export default function Home() {
   const [chatAnswer, setChatAnswer] = useState("");
   const [chatStatus, setChatStatus] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [caseSearchText, setCaseSearchText] = useState("");
+  const [caseSearchFile, setCaseSearchFile] = useState<File | null>(null);
+  const [caseSearchFileName, setCaseSearchFileName] = useState("");
+  const [caseSearchExtraction, setCaseSearchExtraction] = useState<ExtractionResult | null>(null);
+  const [caseSearchResults, setCaseSearchResults] = useState<SimilarCaseResult[]>([]);
+  const [caseSearchLoading, setCaseSearchLoading] = useState(false);
+  const [caseSearchStatus, setCaseSearchStatus] = useState("");
+  const [caseSearchError, setCaseSearchError] = useState("");
   const labels = copy[language];
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }), [form, language]);
   const analysis = serverAnalysis ?? localAnalysis;
@@ -204,6 +243,10 @@ export default function Home() {
     setExportError("");
     if (!chatAnswer) {
       setChatQuestion(nextLanguage === "en" ? "Where is input VAT creditability regulated?" : "Di mana aturan pengkreditan pajak masukan berada?");
+    }
+    if (caseSearchText || caseSearchExtraction) {
+      const query = [caseSearchText, extractionToSearchText(caseSearchExtraction)].filter(Boolean).join("\n");
+      setCaseSearchResults(searchSimilarCases(query, nextLanguage));
     }
   }
 
@@ -237,11 +280,11 @@ export default function Home() {
     setExportError("");
   }
 
-  async function splitPdfForUpload(file: File) {
+  async function splitPdfForUpload(file: File, setProgress = setExtractionProgress) {
     if (file.size <= MAX_UPLOAD_BYTES) {
       return [file];
     }
-    setExtractionProgress(labels.chunking);
+    setProgress(labels.chunking);
     const { PDFDocument } = await import("pdf-lib");
     const sourceBytes = await file.arrayBuffer();
     const sourceDoc = await PDFDocument.load(sourceBytes);
@@ -392,6 +435,53 @@ export default function Home() {
     } finally {
       setExtractionLoading(false);
       setExtractionProgress("");
+    }
+  }
+
+  function onCaseSearchFileChange(fileList: FileList | null) {
+    const file = fileList?.[0] ?? null;
+    setCaseSearchFile(file);
+    setCaseSearchFileName(file?.name || "");
+    setCaseSearchExtraction(null);
+    setCaseSearchResults([]);
+    setCaseSearchStatus("");
+    setCaseSearchError("");
+  }
+
+  function updateCaseSearchText(value: string) {
+    setCaseSearchText(value);
+    setCaseSearchResults([]);
+    setCaseSearchError("");
+    setCaseSearchStatus("");
+  }
+
+  async function runCaseSearch() {
+    setCaseSearchLoading(true);
+    setCaseSearchStatus("");
+    setCaseSearchError("");
+    try {
+      let extracted: ExtractionResult | null = caseSearchExtraction;
+      if (caseSearchFile) {
+        const chunks = await splitPdfForUpload(caseSearchFile, setCaseSearchStatus);
+        const extractedParts: ExtractionResult[] = [];
+        for (let index = 0; index < chunks.length; index += 1) {
+          setCaseSearchStatus(`${labels.extractingChunk} ${index + 1}/${chunks.length}`);
+          extractedParts.push(await extractOnePdf(chunks[index]));
+        }
+        extracted = mergeExtractions(extractedParts, caseSearchFile.name);
+        setCaseSearchExtraction(extracted);
+        setCaseSearchStatus(labels.extractedForSearch);
+      }
+
+      const query = [caseSearchText, extractionToSearchText(extracted)].filter(Boolean).join("\n");
+      if (!query.trim()) {
+        throw new Error(labels.noCaseQuery);
+      }
+      setCaseSearchResults(searchSimilarCases(query, language));
+    } catch (error) {
+      setCaseSearchError(error instanceof Error ? error.message : "Case search failed.");
+    } finally {
+      setCaseSearchLoading(false);
     }
   }
 
@@ -566,7 +656,7 @@ export default function Home() {
           </>
         )}
 
-        {(page === "guided" || page === "analysis") && (
+        {page === "guided" && (
           <section className="workbench">
             <Panel title={page === "guided" ? labels.guided : labels.analysis}>
               <div className="upload-box">
@@ -616,6 +706,22 @@ export default function Home() {
               onDownload={downloadReport}
             />
           </section>
+        )}
+
+        {page === "analysis" && (
+          <CaseSearchPanel
+            labels={labels}
+            text={caseSearchText}
+            fileName={caseSearchFileName}
+            extraction={caseSearchExtraction}
+            results={caseSearchResults}
+            loading={caseSearchLoading}
+            status={caseSearchStatus}
+            error={caseSearchError}
+            onTextChange={updateCaseSearchText}
+            onFileChange={onCaseSearchFileChange}
+            onSearch={runCaseSearch}
+          />
         )}
 
         {page === "regulations" && (
@@ -736,6 +842,109 @@ function ExtractionSummary({ labels, extraction }: { labels: (typeof copy)["en"]
       )}
       {extraction.summary && <p className="muted">{extraction.summary}</p>}
     </div>
+  );
+}
+
+function CaseSearchPanel({
+  labels,
+  text,
+  fileName,
+  extraction,
+  results,
+  loading,
+  status,
+  error,
+  onTextChange,
+  onFileChange,
+  onSearch
+}: {
+  labels: (typeof copy)["en"];
+  text: string;
+  fileName: string;
+  extraction: ExtractionResult | null;
+  results: SimilarCaseResult[];
+  loading: boolean;
+  status: string;
+  error: string;
+  onTextChange: (value: string) => void;
+  onFileChange: (fileList: FileList | null) => void;
+  onSearch: () => void;
+}) {
+  return (
+    <section className="case-search-layout">
+      <Panel title={labels.caseSearchTitle}>
+        <p className="muted lead-copy">{labels.caseSearchIntro}</p>
+        <label className="control">
+          <span>{labels.caseQuery}</span>
+          <textarea
+            value={text}
+            onChange={(event) => onTextChange(event.target.value)}
+            placeholder={labels.caseQueryPlaceholder}
+            rows={7}
+          />
+        </label>
+        <div className="upload-box">
+          <label>
+            {labels.caseUpload}
+            <input
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={(event) => onFileChange(event.target.files)}
+            />
+          </label>
+          <p>{fileName || labels.uploadHint}</p>
+        </div>
+        {status && <div className="status-banner success">{status}</div>}
+        {error && <div className="status-banner error">{error}</div>}
+        <button className="primary-button" onClick={onSearch} disabled={loading}>
+          {loading ? labels.searchingSimilar : labels.searchSimilar}
+        </button>
+        {extraction && <ExtractionSummary labels={labels} extraction={extraction} />}
+      </Panel>
+
+      <Panel title={labels.caseResults}>
+        {results.length === 0 ? (
+          <div className="empty-state">{labels.noCaseQuery}</div>
+        ) : (
+          <div className="similarity-list">
+            {results.map((item, index) => (
+              <article key={item.decision.id} className="similarity-card">
+                <div className="similarity-head">
+                  <div>
+                    <span className="rank">{index + 1}</span>
+                    <b>{item.decision.number}</b>
+                    <p>
+                      {item.decision.taxType} | {item.decision.issue} | {item.decision.amount}
+                    </p>
+                  </div>
+                  <div className="similarity-meter" aria-label={`${labels.similarity} ${item.similarity}%`}>
+                    <strong>{item.similarity}%</strong>
+                    <span>{labels.similarity}</span>
+                  </div>
+                </div>
+                <div className="match-bar">
+                  <i style={{ width: `${item.similarity}%` }} />
+                </div>
+                <div className="analysis-block">
+                  <h3>{labels.whySimilar}</h3>
+                  <p>{item.whySimilar}</p>
+                  <h3>{labels.keyOverlap}</h3>
+                  <div className="chips readonly">
+                    {(item.sharedTerms.length ? item.sharedTerms : item.decision.matchPoints).map((point) => (
+                      <span key={point}>{point}</span>
+                    ))}
+                  </div>
+                  <h3>{labels.differences}</h3>
+                  <p>{item.differences}</p>
+                  <h3>{labels.useInArgument}</h3>
+                  <p>{item.useInArgument}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </Panel>
+    </section>
   );
 }
 
