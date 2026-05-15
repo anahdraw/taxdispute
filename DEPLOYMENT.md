@@ -123,6 +123,8 @@ The Vercel version is now a Next.js application:
 - `lib/report.ts`: builds branded Word/PDF report files.
 - `lib/mock-data.ts`: sanitized demo decision and regulation dataset for the Vercel app.
 
+Large PDF handling: the browser splits large PDFs into smaller page-range chunks with `pdf-lib`, sends each chunk to `/api/extract`, then merges the structured extraction before analysis. This avoids direct Vercel request payload limits without committing taxpayer documents to the repository.
+
 The old Streamlit app remains in place for local Python workflows. The Next.js app does not read local SQLite data, uploads, or confidential PDFs during Vercel deployment.
 
 For a production Vercel-native product, move these parts out of local files:

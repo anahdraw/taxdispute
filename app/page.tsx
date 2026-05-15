@@ -8,7 +8,7 @@ import { dashboardStats, issueDistribution, outcomeDistribution, recentDocuments
 
 type Language = "id" | "en";
 type PageKey = "dashboard" | "guided" | "analysis" | "regulations" | "reports";
-const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 3.6 * 1024 * 1024;
 
 const evidenceOptions = {
   id: ["Faktur Pajak", "SPT Masa PPN", "Bukti pembayaran", "Rekonsiliasi", "Konfirmasi Lawan Transaksi", "Surat Kuasa"],
@@ -61,7 +61,9 @@ const copy = {
     exportPdf: "Download PDF",
     exporting: "Membuat file...",
     noPdf: "Pilih file PDF terlebih dahulu.",
-    fileTooLarge: "File terlalu besar untuk Vercel upload langsung. Gunakan PDF di bawah 4 MB untuk prototype ini, atau kompres/split PDF terlebih dahulu."
+    fileTooLarge: "Satu halaman/chunk PDF masih terlalu besar. Kompres PDF atau split bagian tersebut terlebih dahulu.",
+    chunking: "PDF besar terdeteksi. Memecah dokumen menjadi chunk halaman...",
+    extractingChunk: "Mengekstrak chunk"
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
@@ -108,7 +110,9 @@ const copy = {
     exportPdf: "Download PDF",
     exporting: "Creating file...",
     noPdf: "Choose a PDF file first.",
-    fileTooLarge: "File is too large for direct Vercel upload. Use a PDF below 4 MB for this prototype, or compress/split the PDF first."
+    fileTooLarge: "One PDF page/chunk is still too large. Please compress the PDF or split that section first.",
+    chunking: "Large PDF detected. Splitting document into page chunks...",
+    extractingChunk: "Extracting chunk"
   }
 };
 
@@ -147,6 +151,21 @@ function MiniBar({ label, value }: { label: string; value: number }) {
   );
 }
 
+function sanitizeFilePart(value: string) {
+  return (value || "")
+    .replace(/\.[a-z0-9]{2,5}$/i, "")
+    .replace(/[^a-z0-9]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function buildReportFilename(format: "docx" | "pdf", input: AnalyzeInput, extraction: ExtractionResult | null) {
+  const taxpayer = sanitizeFilePart(input.taxpayerName || extraction?.taxpayerName || "taxpayer");
+  const caseNumber = sanitizeFilePart(extraction?.putusanNumber || extraction?.skpNumber || extraction?.djpDecisionNumber || input.issueType || "case");
+  const year = sanitizeFilePart(extraction?.putusanYear || extraction?.taxPeriod || new Date().getFullYear().toString());
+  return `${taxpayer}_${caseNumber}_${year}.${format}`;
+}
+
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
   const [page, setPage] = useState<PageKey>("dashboard");
@@ -156,6 +175,7 @@ export default function Home() {
   const [extraction, setExtraction] = useState<ExtractionResult | null>(null);
   const [extractionLoading, setExtractionLoading] = useState(false);
   const [extractionError, setExtractionError] = useState("");
+  const [extractionProgress, setExtractionProgress] = useState("");
   const [serverAnalysis, setServerAnalysis] = useState<AnalysisResultType | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState("");
@@ -211,12 +231,130 @@ export default function Home() {
     setUploadedName(file?.name || "");
     setExtraction(null);
     setExtractionError("");
+    setExtractionProgress("");
     setServerAnalysis(null);
     setAnalysisError("");
     setExportError("");
-    if (file && file.size > MAX_UPLOAD_BYTES) {
-      setExtractionError(`${copy[language].fileTooLarge} (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+  }
+
+  async function splitPdfForUpload(file: File) {
+    if (file.size <= MAX_UPLOAD_BYTES) {
+      return [file];
     }
+    setExtractionProgress(labels.chunking);
+    const { PDFDocument } = await import("pdf-lib");
+    const sourceBytes = await file.arrayBuffer();
+    const sourceDoc = await PDFDocument.load(sourceBytes);
+    const chunks: File[] = [];
+    let pageIndex = 0;
+    const baseName = file.name.replace(/\.pdf$/i, "");
+
+    while (pageIndex < sourceDoc.getPageCount()) {
+      let pageCount = Math.min(5, sourceDoc.getPageCount() - pageIndex);
+      let chunkBytes: Uint8Array | null = null;
+
+      while (pageCount >= 1) {
+        const chunkDoc = await PDFDocument.create();
+        const indices = Array.from({ length: pageCount }, (_, offset) => pageIndex + offset);
+        const copiedPages = await chunkDoc.copyPages(sourceDoc, indices);
+        copiedPages.forEach((page) => chunkDoc.addPage(page));
+        chunkBytes = await chunkDoc.save();
+        if (chunkBytes.byteLength <= MAX_UPLOAD_BYTES || pageCount === 1) {
+          break;
+        }
+        pageCount = Math.max(1, Math.floor(pageCount / 2));
+      }
+
+      if (!chunkBytes || chunkBytes.byteLength > MAX_UPLOAD_BYTES) {
+        throw new Error(`${labels.fileTooLarge} (${((chunkBytes?.byteLength || 0) / 1024 / 1024).toFixed(1)} MB)`);
+      }
+
+      const startPage = pageIndex + 1;
+      const endPage = pageIndex + pageCount;
+      const chunkBlob = new Blob([chunkBytes.slice().buffer], { type: "application/pdf" });
+      chunks.push(
+        new File([chunkBlob], `${baseName}-pages-${startPage}-${endPage}.pdf`, {
+          type: "application/pdf"
+        })
+      );
+      pageIndex += pageCount;
+    }
+
+    return chunks;
+  }
+
+  async function extractOnePdf(file: File) {
+    const payload = new FormData();
+    payload.append("file", file);
+    payload.append("language", language);
+    const response = await fetch("/api/extract", { method: "POST", body: payload });
+    const contentType = response.headers.get("content-type") || "";
+    const data = contentType.includes("application/json") ? await response.json() : { error: await response.text() };
+    if (!response.ok) {
+      const rawError = String(data.error || "PDF extraction failed.");
+      const friendly =
+        response.status === 413 || rawError.includes("FUNCTION_PAYLOAD_TOO_LARGE") || rawError.includes("Request Entity Too Large")
+          ? `${labels.fileTooLarge} (${(file.size / 1024 / 1024).toFixed(1)} MB)`
+          : rawError;
+      throw new Error(friendly);
+    }
+    return data.extraction as ExtractionResult;
+  }
+
+  function mergeExtractions(parts: ExtractionResult[], originalName: string): ExtractionResult {
+    const first = parts[0];
+    const pick = (field: keyof ExtractionResult) => {
+      const value = parts.map((part) => part[field]).find((item) => typeof item === "string" && item.trim());
+      return typeof value === "string" ? value : "";
+    };
+    const unique = (values: string[][]) => Array.from(new Set(values.flat().map((item) => item.trim()).filter(Boolean))).slice(0, 24);
+    const combined = (field: keyof ExtractionResult) =>
+      parts
+        .map((part, index) => {
+          const value = part[field];
+          return typeof value === "string" && value.trim() ? `Chunk ${index + 1}: ${value.trim()}` : "";
+        })
+        .filter(Boolean)
+        .join("\n\n");
+
+    return {
+      ...first,
+      filename: originalName,
+      documentType: pick("documentType"),
+      putusanNumber: pick("putusanNumber"),
+      putusanYear: pick("putusanYear"),
+      taxpayerName: pick("taxpayerName"),
+      taxpayerNpwp: pick("taxpayerNpwp"),
+      taxpayerAddress: pick("taxpayerAddress"),
+      representativeName: pick("representativeName"),
+      legalCounselName: pick("legalCounselName"),
+      legalCounselLicense: pick("legalCounselLicense"),
+      appelleeName: pick("appelleeName"),
+      djpUnit: pick("djpUnit"),
+      taxType: pick("taxType"),
+      taxPeriod: pick("taxPeriod"),
+      skpNumber: pick("skpNumber"),
+      djpDecisionNumber: pick("djpDecisionNumber"),
+      issueType: pick("issueType"),
+      issueSubtype: pick("issueSubtype"),
+      correctionAmount: pick("correctionAmount"),
+      correctionObject: pick("correctionObject"),
+      correctionReason: combined("correctionReason") || pick("correctionReason"),
+      taxpayerRebuttal: combined("taxpayerRebuttal") || pick("taxpayerRebuttal"),
+      taxAuthorityPosition: combined("taxAuthorityPosition") || pick("taxAuthorityPosition"),
+      taxpayerPosition: combined("taxpayerPosition") || pick("taxpayerPosition"),
+      evidence: unique(parts.map((part) => part.evidence)),
+      legalReferences: unique(parts.map((part) => part.legalReferences)),
+      courtReasoning: combined("courtReasoning") || pick("courtReasoning"),
+      outcome: pick("outcome"),
+      summary: combined("summary") || pick("summary"),
+      extractedAt: new Date().toISOString(),
+      llmStatus: {
+        used: true,
+        model: first.llmStatus.model,
+        message: parts.length > 1 ? `PDF extracted with LLM across ${parts.length} chunks` : first.llmStatus.message
+      }
+    };
   }
 
   async function runExtraction() {
@@ -224,35 +362,36 @@ export default function Home() {
       setExtractionError(labels.noPdf);
       return;
     }
-    if (uploadedFile.size > MAX_UPLOAD_BYTES) {
-      setExtractionError(`${labels.fileTooLarge} (${(uploadedFile.size / 1024 / 1024).toFixed(1)} MB)`);
-      return;
-    }
     setExtractionLoading(true);
     setExtractionError("");
+    setExtractionProgress("");
     setExportError("");
     try {
-      const payload = new FormData();
-      payload.append("file", uploadedFile);
-      payload.append("language", language);
-      const response = await fetch("/api/extract", { method: "POST", body: payload });
-      const contentType = response.headers.get("content-type") || "";
-      const data = contentType.includes("application/json") ? await response.json() : { error: await response.text() };
-      if (!response.ok) {
-        const rawError = String(data.error || "PDF extraction failed.");
-        const friendly =
-          response.status === 413 || rawError.includes("FUNCTION_PAYLOAD_TOO_LARGE") || rawError.includes("Request Entity Too Large")
-            ? `${labels.fileTooLarge} (${(uploadedFile.size / 1024 / 1024).toFixed(1)} MB)`
-            : rawError;
-        throw new Error(friendly);
+      const chunks = await splitPdfForUpload(uploadedFile);
+      const extractedParts: ExtractionResult[] = [];
+      for (let index = 0; index < chunks.length; index += 1) {
+        setExtractionProgress(`${labels.extractingChunk} ${index + 1}/${chunks.length}`);
+        extractedParts.push(await extractOnePdf(chunks[index]));
       }
-      setExtraction(data.extraction as ExtractionResult);
-      setForm({ ...(data.analyzeInput as AnalyzeInput), language });
+      const mergedExtraction = mergeExtractions(extractedParts, uploadedFile.name);
+      setExtraction(mergedExtraction);
+      setForm({
+        taxpayerName: mergedExtraction.taxpayerName,
+        taxType: mergedExtraction.taxType || (language === "en" ? "VAT" : "PPN"),
+        issueType: mergedExtraction.issueType || mergedExtraction.issueSubtype || (language === "en" ? "VAT dispute" : "Sengketa PPN"),
+        stage: mergedExtraction.documentType?.toLowerCase().includes("banding") ? (language === "en" ? "Appeal" : "Banding") : language === "en" ? "Appeal" : "Banding",
+        correctionAmount: mergedExtraction.correctionAmount,
+        taxAuthorityPosition: mergedExtraction.taxAuthorityPosition || mergedExtraction.correctionReason,
+        taxpayerPosition: mergedExtraction.taxpayerPosition || mergedExtraction.taxpayerRebuttal,
+        evidence: mergedExtraction.evidence || [],
+        language
+      });
       setServerAnalysis(null);
     } catch (error) {
       setExtractionError(error instanceof Error ? error.message : "PDF extraction failed.");
     } finally {
       setExtractionLoading(false);
+      setExtractionProgress("");
     }
   }
 
@@ -264,14 +403,13 @@ export default function Home() {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, language })
+        body: JSON.stringify({ input: { ...form, language }, extraction })
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Analysis request failed.");
       }
       setServerAnalysis(data as AnalysisResultType);
-      setPage("reports");
     } catch (error) {
       setAnalysisError(error instanceof Error ? error.message : "Analysis request failed.");
     } finally {
@@ -302,7 +440,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `rsm-tax-dispute-report.${format}`;
+      anchor.download = `${buildReportFilename(format, form, extraction)}`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -442,6 +580,7 @@ export default function Home() {
                 </label>
                 <p>{uploadedName || labels.uploadHint}</p>
                 {extractionError && <div className="status-banner error">{extractionError}</div>}
+                {extractionProgress && <div className="status-banner">{extractionProgress}</div>}
                 <button className="primary-button secondary-button" onClick={runExtraction} disabled={extractionLoading || !uploadedFile}>
                   {extractionLoading ? labels.extracting : labels.extractWithLlm}
                 </button>

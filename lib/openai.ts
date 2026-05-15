@@ -1,4 +1,5 @@
 import type { AnalysisResult, AnalyzeInput } from "./analyze";
+import type { ExtractionResult } from "./extraction";
 import { comparableDecisions, regulations } from "./mock-data";
 
 export type LlmStatus = {
@@ -172,7 +173,7 @@ export function extractJsonObject(text: string) {
   }
 }
 
-export async function buildLlmAnalysis(input: AnalyzeInput, local: AnalysisResult): Promise<AnalysisResult> {
+export async function buildLlmAnalysis(input: AnalyzeInput, local: AnalysisResult, extraction?: ExtractionResult | null): Promise<AnalysisResult> {
   if (!hasOpenAIKey()) {
     return { ...local, llmStatus: missingKeyStatus(input.language) };
   }
@@ -186,9 +187,10 @@ export async function buildLlmAnalysis(input: AnalyzeInput, local: AnalysisResul
     {
       instruction:
         input.language === "en"
-          ? "Improve the local analysis into a thorough advisor-grade report. Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. The recommendation must be deep, structured, and practical: executive summary, factual position, risk review, evidence plan, regulation basis, comparable decision strategy, and next steps."
-          : "Perdalam analisis lokal menjadi report advisor yang komprehensif. Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Rekomendasi harus mendalam dan terstruktur: ringkasan eksekutif, posisi fakta, review risiko, rencana bukti, dasar peraturan, strategi putusan pembanding, dan langkah berikutnya.",
+          ? "Improve the local analysis into a thorough advisor-grade report. Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. The recommendation must be long-form and suitable for an approximately 8-page Word memo: executive summary, document/extraction summary, factual chronology, tax authority position, taxpayer position, disputed amount mapping, legal/regulatory basis, evidence sufficiency review, evidence gaps, risk assessment, comparable decision strategy, argument strategy, recommended document checklist, and next steps. Use clear headings in plain text. Do not use Markdown tables."
+          : "Perdalam analisis lokal menjadi report advisor yang komprehensif. Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Rekomendasi harus long-form dan layak menjadi memo Word sekitar 8 halaman: ringkasan eksekutif, ringkasan dokumen/ekstraksi, kronologi fakta, posisi DJP, posisi WP, pemetaan nilai sengketa, dasar hukum/peraturan, review kecukupan bukti, celah bukti, asesmen risiko, strategi putusan pembanding, strategi argumentasi, checklist dokumen, dan langkah berikutnya. Gunakan heading teks biasa. Jangan gunakan tabel Markdown.",
       caseInput: input,
+      extractedDocument: extraction || null,
       localAnalysis: local,
       comparableDecisionContext: comparableDecisions.slice(0, 2),
       regulationContext: regulations

@@ -42,6 +42,7 @@ npm run build
 Fitur Next.js/Vercel yang tersedia:
 
 - Upload PDF dan ekstraksi field kasus via LLM (`/api/extract`).
+- PDF besar dipecah di browser menjadi chunk halaman kecil sebelum ekstraksi, agar tidak terkena limit payload Vercel.
 - Analisis risiko dan rekomendasi mendalam via LLM (`/api/analyze`).
 - Chatbot aturan PPN (`/api/regulation-chat`).
 - Export hasil analisis ke Word dan PDF (`/api/export`).
