@@ -1,28 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { upload } from "@vercel/blob/client";
 import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeInput } from "@/lib/analyze";
 import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } from "@/lib/case-search";
 import type { ExtractionResult } from "@/lib/extraction";
 import { dashboardStats, issueDistribution, outcomeDistribution, recentDocuments, regulations } from "@/lib/mock-data";
+import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 type Language = "id" | "en";
 type PageKey = "dashboard" | "guided" | "analysis" | "database" | "regulations" | "reports";
 const MAX_UPLOAD_BYTES = 3.6 * 1024 * 1024;
 const STORED_DECISIONS_KEY = "tax-dispute-stored-decisions";
-
-type StoredDecisionFile = {
-  id: string;
-  filename: string;
-  pathname: string;
-  url: string;
-  downloadUrl: string;
-  size: number;
-  uploadedAt: string;
-  status: "uploaded" | "failed";
-};
 
 const evidenceOptions = {
   id: ["Faktur Pajak", "SPT Masa PPN", "Bukti pembayaran", "Rekonsiliasi", "Konfirmasi Lawan Transaksi", "Surat Kuasa"],
@@ -106,7 +96,9 @@ const copy = {
     blobMissing: "BLOB_READ_WRITE_TOKEN belum tersedia di Vercel/project lokal.",
     fileSize: "Ukuran file",
     uploadedAt: "Waktu upload",
-    blobPath: "Path Blob"
+    blobPath: "Path Blob",
+    databaseSaved: "Metadata dokumen tersimpan di database.",
+    databaseFallback: "Upload berhasil, tetapi metadata database belum tersimpan. Data tetap muncul sementara di browser."
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
@@ -184,7 +176,9 @@ const copy = {
     blobMissing: "BLOB_READ_WRITE_TOKEN is not available in Vercel/local project env.",
     fileSize: "File size",
     uploadedAt: "Uploaded at",
-    blobPath: "Blob path"
+    blobPath: "Blob path",
+    databaseSaved: "Document metadata saved to database.",
+    databaseFallback: "Upload succeeded, but database metadata was not saved. The document still appears temporarily in this browser."
   }
 };
 
@@ -308,6 +302,28 @@ export default function Home() {
     ["regulations", labels.regulations],
     ["reports", labels.reports]
   ];
+
+  useEffect(() => {
+    if (page !== "database") return;
+    let cancelled = false;
+    async function loadDatabaseDocuments() {
+      try {
+        const response = await fetch("/api/decisions");
+        if (!response.ok) return;
+        const data = (await response.json()) as { records?: StoredDecisionFile[] };
+        if (!cancelled && Array.isArray(data.records)) {
+          setStoredDocuments(data.records);
+          saveStoredDecisions(data.records);
+        }
+      } catch {
+        // Local browser cache remains the fallback until database connectivity is available.
+      }
+    }
+    loadDatabaseDocuments();
+    return () => {
+      cancelled = true;
+    };
+  }, [page]);
 
   function changeLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage);
@@ -610,7 +626,20 @@ export default function Home() {
       setStoredDocuments(next);
       saveStoredDecisions(next);
       setDatabaseFiles([]);
-      setBlobUploadStatus(`${uploaded.length} ${language === "en" ? "document(s) uploaded to Blob." : "dokumen berhasil diupload ke Blob."}`);
+      let savedToDatabase = 0;
+      for (const item of uploaded) {
+        const response = await fetch("/api/decisions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item)
+        });
+        if (response.ok) savedToDatabase += 1;
+      }
+      setBlobUploadStatus(
+        `${uploaded.length} ${language === "en" ? "document(s) uploaded to Blob." : "dokumen berhasil diupload ke Blob."} ${
+          savedToDatabase === uploaded.length ? labels.databaseSaved : labels.databaseFallback
+        }`
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Blob upload failed.";
       setBlobUploadError(message.includes("BLOB_READ_WRITE_TOKEN") ? labels.blobMissing : message);
