@@ -2,14 +2,27 @@
 
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
+import { upload } from "@vercel/blob/client";
 import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeInput } from "@/lib/analyze";
 import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } from "@/lib/case-search";
 import type { ExtractionResult } from "@/lib/extraction";
 import { dashboardStats, issueDistribution, outcomeDistribution, recentDocuments, regulations } from "@/lib/mock-data";
 
 type Language = "id" | "en";
-type PageKey = "dashboard" | "guided" | "analysis" | "regulations" | "reports";
+type PageKey = "dashboard" | "guided" | "analysis" | "database" | "regulations" | "reports";
 const MAX_UPLOAD_BYTES = 3.6 * 1024 * 1024;
+const STORED_DECISIONS_KEY = "tax-dispute-stored-decisions";
+
+type StoredDecisionFile = {
+  id: string;
+  filename: string;
+  pathname: string;
+  url: string;
+  downloadUrl: string;
+  size: number;
+  uploadedAt: string;
+  status: "uploaded" | "failed";
+};
 
 const evidenceOptions = {
   id: ["Faktur Pajak", "SPT Masa PPN", "Bukti pembayaran", "Rekonsiliasi", "Konfirmasi Lawan Transaksi", "Surat Kuasa"],
@@ -23,6 +36,7 @@ const copy = {
     dashboard: "Dashboard",
     guided: "Alur Terpandu",
     analysis: "Analisis Kasus WP",
+    database: "Database Putusan",
     regulations: "Peraturan",
     reports: "Reports",
     dataSummary: "Ringkasan Data",
@@ -79,7 +93,20 @@ const copy = {
     differences: "Hal yang perlu dibedakan",
     useInArgument: "Cara pakai dalam argumentasi",
     noCaseQuery: "Isi narasi/kata kunci atau upload PDF terlebih dahulu.",
-    extractedForSearch: "Dokumen berhasil diekstrak untuk pencarian."
+    extractedForSearch: "Dokumen berhasil diekstrak untuk pencarian.",
+    databaseTitle: "Database Putusan",
+    databaseIntro: "Upload PDF putusan besar langsung ke Vercel Blob. Tahap ini menyiapkan penyimpanan dokumen; ekstraksi batch dan database Postgres akan ditambahkan setelah env database tersedia.",
+    uploadDecisionPdfs: "Upload PDF Putusan",
+    uploadToBlob: "Upload ke Blob",
+    uploadingToBlob: "Mengupload ke Blob...",
+    blobUploadProgress: "Progress upload",
+    storedDocuments: "Dokumen Tersimpan",
+    noStoredDocuments: "Belum ada dokumen yang diupload dari browser ini.",
+    openPdf: "Buka PDF",
+    blobMissing: "BLOB_READ_WRITE_TOKEN belum tersedia di Vercel/project lokal.",
+    fileSize: "Ukuran file",
+    uploadedAt: "Waktu upload",
+    blobPath: "Path Blob"
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
@@ -87,6 +114,7 @@ const copy = {
     dashboard: "Dashboard",
     guided: "Guided Flow",
     analysis: "Taxpayer Case Analysis",
+    database: "Decision Database",
     regulations: "Regulations",
     reports: "Reports",
     dataSummary: "Data Summary",
@@ -143,7 +171,20 @@ const copy = {
     differences: "Points to distinguish",
     useInArgument: "How to use in argument",
     noCaseQuery: "Enter a narrative/keyword or upload a PDF first.",
-    extractedForSearch: "Document extracted for search."
+    extractedForSearch: "Document extracted for search.",
+    databaseTitle: "Decision Database",
+    databaseIntro: "Upload large decision PDFs directly to Vercel Blob. This step prepares document storage; batch extraction and Postgres persistence will be added after database env vars are available.",
+    uploadDecisionPdfs: "Upload decision PDFs",
+    uploadToBlob: "Upload to Blob",
+    uploadingToBlob: "Uploading to Blob...",
+    blobUploadProgress: "Upload progress",
+    storedDocuments: "Stored Documents",
+    noStoredDocuments: "No documents have been uploaded from this browser yet.",
+    openPdf: "Open PDF",
+    blobMissing: "BLOB_READ_WRITE_TOKEN is not available in Vercel/local project env.",
+    fileSize: "File size",
+    uploadedAt: "Uploaded at",
+    blobPath: "Blob path"
   }
 };
 
@@ -197,6 +238,33 @@ function buildReportFilename(format: "docx" | "pdf", input: AnalyzeInput, extrac
   return `${taxpayer}_${caseNumber}_${year}.${format}`;
 }
 
+function loadStoredDecisions(): StoredDecisionFile[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORED_DECISIONS_KEY);
+    return raw ? (JSON.parse(raw) as StoredDecisionFile[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredDecisions(items: StoredDecisionFile[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORED_DECISIONS_KEY, JSON.stringify(items));
+}
+
+function formatBytes(bytes: number) {
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = bytes;
+  let unit = 0;
+  while (size >= 1024 && unit < units.length - 1) {
+    size /= 1024;
+    unit += 1;
+  }
+  return `${size.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+}
+
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
   const [page, setPage] = useState<PageKey>("dashboard");
@@ -224,6 +292,11 @@ export default function Home() {
   const [caseSearchLoading, setCaseSearchLoading] = useState(false);
   const [caseSearchStatus, setCaseSearchStatus] = useState("");
   const [caseSearchError, setCaseSearchError] = useState("");
+  const [databaseFiles, setDatabaseFiles] = useState<File[]>([]);
+  const [storedDocuments, setStoredDocuments] = useState<StoredDecisionFile[]>(() => loadStoredDecisions());
+  const [blobUploadLoading, setBlobUploadLoading] = useState(false);
+  const [blobUploadStatus, setBlobUploadStatus] = useState("");
+  const [blobUploadError, setBlobUploadError] = useState("");
   const labels = copy[language];
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }), [form, language]);
   const analysis = serverAnalysis ?? localAnalysis;
@@ -231,6 +304,7 @@ export default function Home() {
     ["dashboard", labels.dashboard],
     ["guided", labels.guided],
     ["analysis", labels.analysis],
+    ["database", labels.database],
     ["regulations", labels.regulations],
     ["reports", labels.reports]
   ];
@@ -485,6 +559,66 @@ export default function Home() {
     }
   }
 
+  function onDatabaseFilesChange(fileList: FileList | null) {
+    const files = Array.from(fileList || []).filter((file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"));
+    setDatabaseFiles(files);
+    setBlobUploadStatus("");
+    setBlobUploadError("");
+  }
+
+  async function uploadDatabaseFiles() {
+    if (!databaseFiles.length) {
+      setBlobUploadError(labels.noPdf);
+      return;
+    }
+    setBlobUploadLoading(true);
+    setBlobUploadStatus("");
+    setBlobUploadError("");
+    try {
+      const uploaded: StoredDecisionFile[] = [];
+      for (let index = 0; index < databaseFiles.length; index += 1) {
+        const file = databaseFiles[index];
+        setBlobUploadStatus(`${labels.uploadingToBlob} ${index + 1}/${databaseFiles.length}: ${file.name}`);
+        const pathname = `decisions/${Date.now()}-${sanitizeFilePart(file.name) || "decision"}.pdf`;
+        const blob = await upload(pathname, file, {
+          access: "private",
+          handleUploadUrl: "/api/blob/upload",
+          multipart: file.size > 8 * 1024 * 1024,
+          clientPayload: JSON.stringify({
+            filename: file.name,
+            size: file.size,
+            uploadedFrom: "tax-dispute-prototype"
+          }),
+          onUploadProgress: (event) => {
+            setBlobUploadStatus(
+              `${labels.blobUploadProgress} ${index + 1}/${databaseFiles.length}: ${event.percentage.toFixed(0)}% - ${file.name}`
+            );
+          }
+        });
+        uploaded.push({
+          id: `${blob.pathname}-${Date.now()}`,
+          filename: file.name,
+          pathname: blob.pathname,
+          url: blob.url,
+          downloadUrl: blob.downloadUrl,
+          size: file.size,
+          uploadedAt: new Date().toISOString(),
+          status: "uploaded"
+        });
+      }
+      const next = [...uploaded, ...storedDocuments];
+      setStoredDocuments(next);
+      saveStoredDecisions(next);
+      setDatabaseFiles([]);
+      setBlobUploadStatus(`${uploaded.length} ${language === "en" ? "document(s) uploaded to Blob." : "dokumen berhasil diupload ke Blob."}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Blob upload failed.";
+      setBlobUploadError(message.includes("BLOB_READ_WRITE_TOKEN") ? labels.blobMissing : message);
+    } finally {
+      setBlobUploadLoading(false);
+    }
+  }
+
   async function runAnalysis() {
     setAnalysisLoading(true);
     setAnalysisError("");
@@ -724,6 +858,19 @@ export default function Home() {
           />
         )}
 
+        {page === "database" && (
+          <DecisionDatabasePanel
+            labels={labels}
+            files={databaseFiles}
+            storedDocuments={storedDocuments}
+            loading={blobUploadLoading}
+            status={blobUploadStatus}
+            error={blobUploadError}
+            onFilesChange={onDatabaseFilesChange}
+            onUpload={uploadDatabaseFiles}
+          />
+        )}
+
         {page === "regulations" && (
           <Panel title={labels.relatedRules}>
             <div className="regulation-grid">
@@ -842,6 +989,90 @@ function ExtractionSummary({ labels, extraction }: { labels: (typeof copy)["en"]
       )}
       {extraction.summary && <p className="muted">{extraction.summary}</p>}
     </div>
+  );
+}
+
+function DecisionDatabasePanel({
+  labels,
+  files,
+  storedDocuments,
+  loading,
+  status,
+  error,
+  onFilesChange,
+  onUpload
+}: {
+  labels: (typeof copy)["en"];
+  files: File[];
+  storedDocuments: StoredDecisionFile[];
+  loading: boolean;
+  status: string;
+  error: string;
+  onFilesChange: (fileList: FileList | null) => void;
+  onUpload: () => void;
+}) {
+  return (
+    <section className="database-layout">
+      <Panel title={labels.databaseTitle}>
+        <p className="muted lead-copy">{labels.databaseIntro}</p>
+        <div className="upload-box">
+          <label>
+            {labels.uploadDecisionPdfs}
+            <input
+              type="file"
+              accept=".pdf,application/pdf"
+              multiple
+              onChange={(event) => onFilesChange(event.target.files)}
+            />
+          </label>
+          <p>
+            {files.length
+              ? `${files.length} file(s): ${files.map((file) => `${file.name} (${formatBytes(file.size)})`).join(", ")}`
+              : labels.uploadHint}
+          </p>
+        </div>
+        {status && <div className="status-banner success">{status}</div>}
+        {error && <div className="status-banner error">{error}</div>}
+        <button className="primary-button" onClick={onUpload} disabled={loading || files.length === 0}>
+          {loading ? labels.uploadingToBlob : labels.uploadToBlob}
+        </button>
+      </Panel>
+
+      <Panel title={labels.storedDocuments}>
+        {storedDocuments.length === 0 ? (
+          <div className="empty-state">{labels.noStoredDocuments}</div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>{labels.fileSize}</th>
+                  <th>{labels.uploadedAt}</th>
+                  <th>{labels.blobPath}</th>
+                  <th>{labels.openPdf}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {storedDocuments.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.filename}</td>
+                    <td>{formatBytes(item.size)}</td>
+                    <td>{new Date(item.uploadedAt).toLocaleString()}</td>
+                    <td className="mono-cell">{item.pathname}</td>
+                    <td>
+                      <a href={item.downloadUrl || item.url} target="_blank" rel="noreferrer">
+                        {labels.openPdf}
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Panel>
+    </section>
   );
 }
 

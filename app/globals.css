@@ -290,6 +290,13 @@ h1 {
   align-items: start;
 }
 
+.database-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.72fr) minmax(0, 1.4fr);
+  gap: 18px;
+  align-items: start;
+}
+
 .panel {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -403,6 +410,13 @@ th {
   color: var(--muted);
   font-size: var(--text-xs);
   text-transform: uppercase;
+}
+
+.mono-cell {
+  color: var(--muted);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: var(--text-xs);
+  word-break: break-word;
 }
 
 .upload-box {
@@ -748,6 +762,7 @@ pre {
   .panel-grid,
   .workbench,
   .case-search-layout,
+  .database-layout,
   .hero,
   .regulation-grid {
     grid-template-columns: 1fr;
