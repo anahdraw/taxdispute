@@ -46,3 +46,4 @@ pnpm-debug.log*
 
 # Vercel local metadata
 .vercel/
+.env*.local

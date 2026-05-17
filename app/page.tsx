@@ -725,7 +725,7 @@ export default function Home() {
         setBlobUploadStatus(`${labels.uploadingToBlob} ${index + 1}/${databaseFiles.length}: ${file.name}`);
         const pathname = `decisions/${Date.now()}-${sanitizeFilePart(file.name) || "decision"}.pdf`;
         const blob = await upload(pathname, file, {
-          access: "private",
+          access: "public",
           handleUploadUrl: "/api/blob/upload",
           multipart: file.size > 8 * 1024 * 1024,
           clientPayload: JSON.stringify({
