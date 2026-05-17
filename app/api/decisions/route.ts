@@ -36,7 +36,8 @@ export async function POST(request: Request) {
       downloadUrl: body.downloadUrl || body.url,
       size: Number(body.size || 0),
       uploadedAt: body.uploadedAt || new Date().toISOString(),
-      status: body.status === "failed" ? "failed" : "uploaded"
+      status: body.status === "failed" ? "failed" : body.status === "extracted" ? "extracted" : "uploaded",
+      extraction: body.extraction || null
     });
     return NextResponse.json({ ok: true });
   } catch (error) {

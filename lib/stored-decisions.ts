@@ -1,3 +1,5 @@
+import type { ExtractionResult } from "./extraction";
+
 export type StoredDecisionFile = {
   id: string;
   filename: string;
@@ -6,5 +8,6 @@ export type StoredDecisionFile = {
   downloadUrl: string;
   size: number;
   uploadedAt: string;
-  status: "uploaded" | "failed";
+  status: "uploaded" | "extracted" | "failed";
+  extraction?: ExtractionResult | null;
 };

@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import type { StoredDecisionFile } from "./stored-decisions";
+import type { ExtractionResult } from "./extraction";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -48,14 +49,32 @@ export async function ensureDecisionSchema() {
     CREATE INDEX IF NOT EXISTS decision_documents_uploaded_at_idx
       ON decision_documents (uploaded_at DESC);
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS decision_extractions (
+      document_id TEXT PRIMARY KEY REFERENCES decision_documents(id) ON DELETE CASCADE,
+      extraction JSONB NOT NULL,
+      extracted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
 }
 
 export async function listDecisionDocuments(): Promise<StoredDecisionFile[]> {
   await ensureDecisionSchema();
   const result = await getPool().query(`
-    SELECT id, filename, pathname, url, download_url, size_bytes, status, uploaded_at
-    FROM decision_documents
-    ORDER BY uploaded_at DESC
+    SELECT
+      d.id,
+      d.filename,
+      d.pathname,
+      d.url,
+      d.download_url,
+      d.size_bytes,
+      d.status,
+      d.uploaded_at,
+      e.extraction
+    FROM decision_documents d
+    LEFT JOIN decision_extractions e ON e.document_id = d.id
+    ORDER BY d.uploaded_at DESC
     LIMIT 250;
   `);
   return result.rows.map((row) => ({
@@ -66,7 +85,8 @@ export async function listDecisionDocuments(): Promise<StoredDecisionFile[]> {
     downloadUrl: String(row.download_url),
     size: Number(row.size_bytes || 0),
     uploadedAt: new Date(row.uploaded_at).toISOString(),
-    status: row.status === "failed" ? "failed" : "uploaded"
+    status: row.status === "failed" ? "failed" : row.status === "extracted" ? "extracted" : "uploaded",
+    extraction: row.extraction ? (row.extraction as ExtractionResult) : null
   }));
 }
 
@@ -98,4 +118,24 @@ export async function upsertDecisionDocument(document: StoredDecisionFile) {
       document.uploadedAt
     ]
   );
+  if (document.extraction) {
+    await upsertDecisionExtraction(document.id, document.extraction);
+  }
+}
+
+export async function upsertDecisionExtraction(documentId: string, extraction: ExtractionResult) {
+  await ensureDecisionSchema();
+  await getPool().query(
+    `
+      INSERT INTO decision_extractions
+        (document_id, extraction, extracted_at)
+      VALUES
+        ($1, $2::jsonb, $3)
+      ON CONFLICT (document_id) DO UPDATE SET
+        extraction = EXCLUDED.extraction,
+        extracted_at = EXCLUDED.extracted_at;
+    `,
+    [documentId, JSON.stringify(extraction), extraction.extractedAt || new Date().toISOString()]
+  );
+  await getPool().query(`UPDATE decision_documents SET status = 'extracted' WHERE id = $1`, [documentId]);
 }

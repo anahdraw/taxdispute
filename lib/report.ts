@@ -51,13 +51,24 @@ function isEn(language: "id" | "en") {
   return language === "en";
 }
 
+function cleanReportText(text: unknown) {
+  return String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\bChunk\s+\d+\s*:\s*/gi, "\n\n")
+    .replace(/\b(?:Section|Bagian|Halaman|Pages?)\s+\d+(?:\s*[-–]\s*\d+)?\s*:\s*/gi, "\n\n")
+    .split(/\n{2,}/)
+    .map((part) => part.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function value(text: unknown) {
-  const cleaned = String(text || "").trim();
+  const cleaned = cleanReportText(text);
   return cleaned || "-";
 }
 
 function cleanMarkdown(text: string) {
-  return String(text || "")
+  return cleanReportText(text)
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/__([^_]+)__/g, "$1")
     .replace(/`([^`]+)`/g, "$1")
@@ -229,6 +240,13 @@ function bodyParagraph(text: string, options: { bold?: boolean; color?: string; 
   });
 }
 
+function narrativeParagraphs(text: unknown) {
+  return value(text)
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function cell(text: string, options: { header?: boolean; width?: number; align?: (typeof AlignmentType)[keyof typeof AlignmentType] } = {}) {
   return new TableCell({
     width: options.width ? { size: options.width, type: WidthType.DXA } : undefined,
@@ -374,6 +392,15 @@ function recommendationChildren(payload: ReportPayload) {
   return children;
 }
 
+function positionChildren(payload: ReportPayload) {
+  const children: Array<Paragraph | Table> = [];
+  for (const [label, rowValue] of positionRows(payload)) {
+    children.push(subTitle(label));
+    narrativeParagraphs(rowValue).forEach((part) => children.push(bodyParagraph(part, { spacingAfter: 90 })));
+  }
+  return children;
+}
+
 export function buildReportLines(payload: ReportPayload) {
   const en = isEn(payload.language);
   return [
@@ -439,7 +466,7 @@ export async function buildReportDocx(payload: ReportPayload) {
     makeKeyValueTable(scoreRows(payload)),
 
     sectionTitle(en ? "3. Positions and Evidence" : "3. Posisi dan Bukti"),
-    makeKeyValueTable(positionRows(payload)),
+    ...positionChildren(payload),
     subTitle(en ? "Evidence Review" : "Review Bukti"),
     makeKeyValueTable(evidenceRows(payload)),
 
@@ -622,7 +649,12 @@ export async function buildReportPdf(payload: ReportPayload) {
   drawKeyValueTable(scoreRows(payload));
 
   drawHeading(en ? "3. Positions and Evidence" : "3. Posisi dan Bukti");
-  drawKeyValueTable([...positionRows(payload), ...evidenceRows(payload)]);
+  positionRows(payload).forEach(([label, rowValue]) => {
+    drawParagraph(label, { strong: true, fontSize: 10 });
+    narrativeParagraphs(rowValue).forEach((part) => drawParagraph(part));
+  });
+  drawParagraph(en ? "Evidence Review" : "Review Bukti", { strong: true, fontSize: 10 });
+  drawKeyValueTable(evidenceRows(payload));
 
   drawHeading(en ? "4. Most Relevant Decisions" : "4. Putusan Paling Terkait");
   payload.analysis.topCases.slice(0, 2).forEach((item, idx) => {

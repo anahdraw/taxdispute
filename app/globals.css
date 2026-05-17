@@ -1,6 +1,8 @@
 :root {
   --rsm-blue: #009cde;
   --rsm-green: #43a047;
+  --rsm-blue-dark: #006f9f;
+  --rsm-green-dark: #2e7d32;
   --rsm-gray: #54585a;
   --rsm-mid-gray: #8a8f93;
   --rsm-light-blue: #66c7ee;
@@ -417,6 +419,29 @@ th {
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   font-size: var(--text-xs);
   word-break: break-word;
+}
+
+.db-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: 999px;
+  background: #eef9fd;
+  color: var(--rsm-blue-dark);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  padding: 0 10px;
+  text-transform: capitalize;
+}
+
+.db-status.extracted {
+  background: #edf8ef;
+  color: var(--rsm-green-dark);
+}
+
+.db-status.failed {
+  background: #fff7ed;
+  color: #9a3412;
 }
 
 .upload-box {

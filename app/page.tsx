@@ -66,9 +66,9 @@ const copy = {
     exportPdf: "Download PDF",
     exporting: "Membuat file...",
     noPdf: "Pilih file PDF terlebih dahulu.",
-    fileTooLarge: "Satu halaman/chunk PDF masih terlalu besar. Kompres PDF atau split bagian tersebut terlebih dahulu.",
-    chunking: "PDF besar terdeteksi. Memecah dokumen menjadi chunk halaman...",
-    extractingChunk: "Mengekstrak chunk",
+    fileTooLarge: "Satu halaman/bagian PDF masih terlalu besar. Kompres PDF atau split bagian tersebut terlebih dahulu.",
+    chunking: "PDF besar terdeteksi. Memecah dokumen menjadi beberapa bagian halaman...",
+    extractingChunk: "Mengekstrak bagian",
     caseSearchTitle: "Pencarian Kasus Mirip",
     caseSearchIntro: "Cari putusan pembanding berdasarkan narasi sengketa, kata kunci, atau PDF. Hasil menampilkan persentase kemiripan dan alasan mengapa putusan tersebut relevan.",
     caseQuery: "Kata kunci / narasi kasus",
@@ -85,7 +85,7 @@ const copy = {
     noCaseQuery: "Isi narasi/kata kunci atau upload PDF terlebih dahulu.",
     extractedForSearch: "Dokumen berhasil diekstrak untuk pencarian.",
     databaseTitle: "Database Putusan",
-    databaseIntro: "Upload PDF putusan besar langsung ke Vercel Blob. Tahap ini menyiapkan penyimpanan dokumen; ekstraksi batch dan database Postgres akan ditambahkan setelah env database tersedia.",
+    databaseIntro: "Upload PDF putusan besar langsung ke Vercel Blob. Setelah upload, aplikasi akan mengekstrak informasi utama dengan LLM dan menyimpan metadata beserta hasil ekstraksi ke database.",
     uploadDecisionPdfs: "Upload PDF Putusan",
     uploadToBlob: "Upload ke Blob",
     uploadingToBlob: "Mengupload ke Blob...",
@@ -98,7 +98,11 @@ const copy = {
     uploadedAt: "Waktu upload",
     blobPath: "Path Blob",
     databaseSaved: "Metadata dokumen tersimpan di database.",
-    databaseFallback: "Upload berhasil, tetapi metadata database belum tersimpan. Data tetap muncul sementara di browser."
+    databaseFallback: "Upload berhasil, tetapi metadata database belum tersimpan. Data tetap muncul sementara di browser.",
+    extractionSaved: "Hasil ekstraksi tersimpan di database.",
+    extractionPending: "Upload berhasil, tetapi ekstraksi belum tersimpan.",
+    status: "Status",
+    decisionNumber: "Nomor putusan"
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
@@ -146,9 +150,9 @@ const copy = {
     exportPdf: "Download PDF",
     exporting: "Creating file...",
     noPdf: "Choose a PDF file first.",
-    fileTooLarge: "One PDF page/chunk is still too large. Please compress the PDF or split that section first.",
-    chunking: "Large PDF detected. Splitting document into page chunks...",
-    extractingChunk: "Extracting chunk",
+    fileTooLarge: "One PDF page/section is still too large. Please compress the PDF or split that section first.",
+    chunking: "Large PDF detected. Splitting document into page sections...",
+    extractingChunk: "Extracting section",
     caseSearchTitle: "Similar Case Search",
     caseSearchIntro: "Search comparable decisions using a dispute narrative, keywords, or a PDF. Results show similarity percentage and why each decision is relevant.",
     caseQuery: "Keywords / case narrative",
@@ -165,7 +169,7 @@ const copy = {
     noCaseQuery: "Enter a narrative/keyword or upload a PDF first.",
     extractedForSearch: "Document extracted for search.",
     databaseTitle: "Decision Database",
-    databaseIntro: "Upload large decision PDFs directly to Vercel Blob. This step prepares document storage; batch extraction and Postgres persistence will be added after database env vars are available.",
+    databaseIntro: "Upload large decision PDFs directly to Vercel Blob. After upload, the app extracts key information with the LLM and saves both metadata and extraction JSON to the database.",
     uploadDecisionPdfs: "Upload decision PDFs",
     uploadToBlob: "Upload to Blob",
     uploadingToBlob: "Uploading to Blob...",
@@ -178,7 +182,11 @@ const copy = {
     uploadedAt: "Uploaded at",
     blobPath: "Blob path",
     databaseSaved: "Document metadata saved to database.",
-    databaseFallback: "Upload succeeded, but database metadata was not saved. The document still appears temporarily in this browser."
+    databaseFallback: "Upload succeeded, but database metadata was not saved. The document still appears temporarily in this browser.",
+    extractionSaved: "Extraction saved to database.",
+    extractionPending: "Upload succeeded, but extraction was not saved.",
+    status: "Status",
+    decisionNumber: "Decision number"
   }
 };
 
@@ -257,6 +265,31 @@ function formatBytes(bytes: number) {
     unit += 1;
   }
   return `${size.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+}
+
+function cleanMergedText(value: unknown) {
+  return String(value || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\bChunk\s+\d+\s*:\s*/gi, "\n\n")
+    .replace(/\b(?:Section|Bagian|Halaman|Pages?)\s+\d+(?:\s*[-–]\s*\d+)?\s*:\s*/gi, "\n\n")
+    .split(/\n{2,}/)
+    .map((part) => part.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function combineExtractionText(parts: string[]) {
+  const seen = new Set<string>();
+  return parts
+    .map(cleanMergedText)
+    .filter(Boolean)
+    .filter((part) => {
+      const key = part.toLowerCase().replace(/\s+/g, " ").slice(0, 260);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .join("\n\n");
 }
 
 export default function Home() {
@@ -438,17 +471,16 @@ export default function Home() {
     const first = parts[0];
     const pick = (field: keyof ExtractionResult) => {
       const value = parts.map((part) => part[field]).find((item) => typeof item === "string" && item.trim());
-      return typeof value === "string" ? value : "";
+      return typeof value === "string" ? cleanMergedText(value) : "";
     };
     const unique = (values: string[][]) => Array.from(new Set(values.flat().map((item) => item.trim()).filter(Boolean))).slice(0, 24);
     const combined = (field: keyof ExtractionResult) =>
-      parts
-        .map((part, index) => {
+      combineExtractionText(
+        parts.map((part) => {
           const value = part[field];
-          return typeof value === "string" && value.trim() ? `Chunk ${index + 1}: ${value.trim()}` : "";
+          return typeof value === "string" ? value : "";
         })
-        .filter(Boolean)
-        .join("\n\n");
+      );
 
     return {
       ...first,
@@ -485,7 +517,12 @@ export default function Home() {
       llmStatus: {
         used: true,
         model: first.llmStatus.model,
-        message: parts.length > 1 ? `PDF extracted with LLM across ${parts.length} chunks` : first.llmStatus.message
+        message:
+          parts.length > 1
+            ? language === "en"
+              ? `PDF extracted with LLM across ${parts.length} document sections`
+              : `PDF diekstrak dengan LLM dari ${parts.length} bagian dokumen`
+            : first.llmStatus.message
       }
     };
   }
@@ -611,6 +648,23 @@ export default function Home() {
             );
           }
         });
+        let extracted: ExtractionResult | null = null;
+        try {
+          const chunks = await splitPdfForUpload(file, (message) => setBlobUploadStatus(`${file.name}: ${message}`));
+          const extractedParts: ExtractionResult[] = [];
+          for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+            setBlobUploadStatus(`${labels.extractingChunk} ${chunkIndex + 1}/${chunks.length}: ${file.name}`);
+            extractedParts.push(await extractOnePdf(chunks[chunkIndex]));
+          }
+          extracted = mergeExtractions(extractedParts, file.name);
+        } catch (error) {
+          setBlobUploadStatus(
+            `${language === "en" ? "Uploaded, extraction skipped for" : "Upload berhasil, ekstraksi dilewati untuk"} ${file.name}: ${
+              error instanceof Error ? error.message : "extraction failed"
+            }`
+          );
+        }
+
         uploaded.push({
           id: `${blob.pathname}-${Date.now()}`,
           filename: file.name,
@@ -619,7 +673,8 @@ export default function Home() {
           downloadUrl: blob.downloadUrl,
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          status: "uploaded"
+          status: extracted ? "extracted" : "uploaded",
+          extraction: extracted
         });
       }
       const next = [...uploaded, ...storedDocuments];
@@ -638,7 +693,7 @@ export default function Home() {
       setBlobUploadStatus(
         `${uploaded.length} ${language === "en" ? "document(s) uploaded to Blob." : "dokumen berhasil diupload ke Blob."} ${
           savedToDatabase === uploaded.length ? labels.databaseSaved : labels.databaseFallback
-        }`
+        } ${uploaded.every((item) => item.extraction) ? labels.extractionSaved : labels.extractionPending}`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Blob upload failed.";
@@ -1076,6 +1131,9 @@ function DecisionDatabasePanel({
               <thead>
                 <tr>
                   <th>File</th>
+                  <th>{labels.status}</th>
+                  <th>{labels.decisionNumber}</th>
+                  <th>{labels.taxpayer}</th>
                   <th>{labels.fileSize}</th>
                   <th>{labels.uploadedAt}</th>
                   <th>{labels.blobPath}</th>
@@ -1083,19 +1141,27 @@ function DecisionDatabasePanel({
                 </tr>
               </thead>
               <tbody>
-                {storedDocuments.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.filename}</td>
-                    <td>{formatBytes(item.size)}</td>
-                    <td>{new Date(item.uploadedAt).toLocaleString()}</td>
-                    <td className="mono-cell">{item.pathname}</td>
-                    <td>
-                      <a href={item.downloadUrl || item.url} target="_blank" rel="noreferrer">
-                        {labels.openPdf}
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                {storedDocuments.map((item) => {
+                  const status = item.status || (item.extraction ? "extracted" : "uploaded");
+                  return (
+                    <tr key={item.id}>
+                      <td>{item.filename}</td>
+                      <td>
+                        <span className={`db-status ${status}`}>{status}</span>
+                      </td>
+                      <td>{item.extraction?.putusanNumber || "-"}</td>
+                      <td>{item.extraction?.taxpayerName || "-"}</td>
+                      <td>{formatBytes(item.size)}</td>
+                      <td>{new Date(item.uploadedAt).toLocaleString()}</td>
+                      <td className="mono-cell">{item.pathname}</td>
+                      <td>
+                        <a href={item.downloadUrl || item.url} target="_blank" rel="noreferrer">
+                          {labels.openPdf}
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
