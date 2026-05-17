@@ -6,7 +6,7 @@ import { upload } from "@vercel/blob/client";
 import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeInput } from "@/lib/analyze";
 import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } from "@/lib/case-search";
 import type { ExtractionResult } from "@/lib/extraction";
-import { dashboardStats, issueDistribution, outcomeDistribution, recentDocuments, regulations } from "@/lib/mock-data";
+import { regulations } from "@/lib/mock-data";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 type Language = "id" | "en";
@@ -22,7 +22,7 @@ const evidenceOptions = {
 const copy = {
   id: {
     subtitle: "Prototype Next.js untuk ekstraksi dokumen sengketa, pencarian putusan pembanding, konteks peraturan PPN, review risiko, dan draft rekomendasi WP.",
-    preserved: "Streamlit prototype tetap disimpan di repository sebagai sumber Python lokal. Halaman ini adalah versi Vercel-native baru.",
+    appGuidance: "Gunakan alur ini untuk upload putusan, ekstraksi data, mencari pembanding, tanya peraturan PPN, lalu membuat draft Word/PDF untuk review advisor.",
     dashboard: "Dashboard",
     guided: "Alur Terpandu",
     analysis: "Analisis Kasus WP",
@@ -86,8 +86,10 @@ const copy = {
     extractedForSearch: "Dokumen berhasil diekstrak untuk pencarian.",
     databaseTitle: "Database Putusan",
     databaseIntro: "Upload PDF putusan besar langsung ke Vercel Blob. Setelah upload, aplikasi akan mengekstrak informasi utama dengan LLM dan menyimpan metadata beserta hasil ekstraksi ke database.",
+    databaseUploadHint: "PDF akan disimpan ke Blob. Setelah itu klik Upload + Ekstrak, atau gunakan tombol Ekstrak pada dokumen yang sudah tersimpan.",
     uploadDecisionPdfs: "Upload PDF Putusan",
     uploadToBlob: "Upload ke Blob",
+    uploadAndExtract: "Upload + Ekstrak",
     uploadingToBlob: "Mengupload ke Blob...",
     blobUploadProgress: "Progress upload",
     storedDocuments: "Dokumen Tersimpan",
@@ -102,11 +104,17 @@ const copy = {
     extractionSaved: "Hasil ekstraksi tersimpan di database.",
     extractionPending: "Upload berhasil, tetapi ekstraksi belum tersimpan.",
     status: "Status",
-    decisionNumber: "Nomor putusan"
+    decisionNumber: "Nomor putusan",
+    extractStored: "Ekstrak",
+    extractingStored: "Mengekstrak...",
+    action: "Aksi",
+    noDynamicDocuments: "Belum ada dokumen database. Upload PDF di menu Database Putusan agar dashboard terisi otomatis.",
+    decisionOutcomes: "Outcome Putusan",
+    topDisputeIssues: "Top Pokok Sengketa"
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
-    preserved: "The Streamlit prototype remains preserved in the repository as the local Python source. This page is the new Vercel-native version.",
+    appGuidance: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT regulation questions, then produce Word/PDF drafts for advisor review.",
     dashboard: "Dashboard",
     guided: "Guided Flow",
     analysis: "Taxpayer Case Analysis",
@@ -170,8 +178,10 @@ const copy = {
     extractedForSearch: "Document extracted for search.",
     databaseTitle: "Decision Database",
     databaseIntro: "Upload large decision PDFs directly to Vercel Blob. After upload, the app extracts key information with the LLM and saves both metadata and extraction JSON to the database.",
+    databaseUploadHint: "PDFs are stored in Blob. Then click Upload + Extract, or use the Extract button for already stored documents.",
     uploadDecisionPdfs: "Upload decision PDFs",
     uploadToBlob: "Upload to Blob",
+    uploadAndExtract: "Upload + Extract",
     uploadingToBlob: "Uploading to Blob...",
     blobUploadProgress: "Upload progress",
     storedDocuments: "Stored Documents",
@@ -186,7 +196,13 @@ const copy = {
     extractionSaved: "Extraction saved to database.",
     extractionPending: "Upload succeeded, but extraction was not saved.",
     status: "Status",
-    decisionNumber: "Decision number"
+    decisionNumber: "Decision number",
+    extractStored: "Extract",
+    extractingStored: "Extracting...",
+    action: "Action",
+    noDynamicDocuments: "No database documents yet. Upload PDFs in Decision Database so the dashboard updates automatically.",
+    decisionOutcomes: "Decision Outcomes",
+    topDisputeIssues: "Top Dispute Issues"
   }
 };
 
@@ -292,6 +308,80 @@ function combineExtractionText(parts: string[]) {
     .join("\n\n");
 }
 
+function classifyOutcome(outcome: string, language: Language) {
+  const text = outcome.toLowerCase();
+  if (/dikabulkan seluruh|fully|granted in full|seluruhnya/.test(text)) {
+    return language === "en" ? "Taxpayer fully prevailed" : "WP dikabulkan seluruhnya";
+  }
+  if (/dikabulkan sebagian|partial|partially|sebagian/.test(text)) {
+    return language === "en" ? "Taxpayer partially prevailed" : "WP dikabulkan sebagian";
+  }
+  if (/tidak dapat diterima|gugur|formal|dismiss/.test(text)) {
+    return language === "en" ? "Formal dismissal" : "Tidak dapat diterima / gugur";
+  }
+  if (/ditolak|djp|terbanding|authority|rejected/.test(text)) {
+    return language === "en" ? "Tax authority prevailed" : "DJP menang / banding ditolak";
+  }
+  return language === "en" ? "Unclassified" : "Belum terklasifikasi";
+}
+
+function buildDynamicDashboard(documents: StoredDecisionFile[], language: Language) {
+  const extracted = documents.filter((item) => item.extraction);
+  const vatDocs = documents.filter((item) => /ppn|vat/i.test([item.extraction?.taxType, item.filename].filter(Boolean).join(" "))).length;
+  const issueCounts = new Map<string, number>();
+  const outcomeCounts = new Map<string, number>();
+
+  for (const item of documents) {
+    const extraction = item.extraction;
+    const issue = cleanMergedText(extraction?.issueType || extraction?.issueSubtype || extraction?.correctionObject || (language === "en" ? "Unclassified" : "Belum terklasifikasi"));
+    issueCounts.set(issue, (issueCounts.get(issue) || 0) + 1);
+    const outcome = classifyOutcome(extraction?.outcome || "", language);
+    outcomeCounts.set(outcome, (outcomeCounts.get(outcome) || 0) + 1);
+  }
+
+  const colors = ["#54585A", "#43A047", "#66C7EE", "#8A8F93", "#009CDE"];
+  return {
+    stats: {
+      indexedDecisions: documents.length,
+      extractionCoverage: documents.length ? Math.round((extracted.length / documents.length) * 100) : 0,
+      vatDocuments: vatDocs,
+      localRegulations: regulations.length,
+      llmLabels: extracted.length
+    },
+    outcomeDistribution: Array.from(outcomeCounts.entries()).map(([label, value], index) => ({
+      label,
+      value,
+      color: colors[index % colors.length]
+    })),
+    issueDistribution: Array.from(issueCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([label, value]) => ({ label, value })),
+    recentDocuments: documents.slice(0, 6).map((item) => ({
+      decision: item.extraction?.putusanNumber || item.filename,
+      documentType: item.extraction?.documentType || "-",
+      taxpayer: item.extraction?.taxpayerName || "-",
+      tax: item.extraction?.taxType || "-",
+      issue: item.extraction?.issueType || item.extraction?.correctionObject || "-",
+      outcome: item.extraction?.outcome || "-"
+    }))
+  };
+}
+
+function buildDonutStyle(items: Array<{ value: number; color: string }>): CSSProperties {
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+  if (!total) return {};
+  let cursor = 0;
+  const segments = items
+    .map((item) => {
+      const start = cursor;
+      cursor += (item.value / total) * 100;
+      return `${item.color} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;
+    })
+    .join(", ");
+  return { background: `conic-gradient(${segments})` };
+}
+
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
   const [page, setPage] = useState<PageKey>("dashboard");
@@ -324,9 +414,11 @@ export default function Home() {
   const [blobUploadLoading, setBlobUploadLoading] = useState(false);
   const [blobUploadStatus, setBlobUploadStatus] = useState("");
   const [blobUploadError, setBlobUploadError] = useState("");
+  const [extractingDocumentId, setExtractingDocumentId] = useState("");
   const labels = copy[language];
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }), [form, language]);
   const analysis = serverAnalysis ?? localAnalysis;
+  const dynamicDashboard = useMemo(() => buildDynamicDashboard(storedDocuments, language), [storedDocuments, language]);
   const pages: Array<[PageKey, string]> = [
     ["dashboard", labels.dashboard],
     ["guided", labels.guided],
@@ -337,7 +429,6 @@ export default function Home() {
   ];
 
   useEffect(() => {
-    if (page !== "database") return;
     let cancelled = false;
     async function loadDatabaseDocuments() {
       try {
@@ -356,7 +447,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [page]);
+  }, []);
 
   function changeLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage);
@@ -703,6 +794,33 @@ export default function Home() {
     }
   }
 
+  async function extractStoredDocument(item: StoredDecisionFile) {
+    setExtractingDocumentId(item.id);
+    setBlobUploadStatus("");
+    setBlobUploadError("");
+    try {
+      const response = await fetch("/api/decisions/extract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item, language })
+      });
+      const data = (await response.json()) as { extraction?: ExtractionResult; error?: string };
+      if (!response.ok || !data.extraction) {
+        throw new Error(data.error || "Stored document extraction failed.");
+      }
+      const next = storedDocuments.map((document) =>
+        document.id === item.id ? { ...document, status: "extracted" as const, extraction: data.extraction || null } : document
+      );
+      setStoredDocuments(next);
+      saveStoredDecisions(next);
+      setBlobUploadStatus(labels.extractionSaved);
+    } catch (error) {
+      setBlobUploadError(error instanceof Error ? error.message : "Stored document extraction failed.");
+    } finally {
+      setExtractingDocumentId("");
+    }
+  }
+
   async function runAnalysis() {
     setAnalysisLoading(true);
     setAnalysisError("");
@@ -814,37 +932,43 @@ export default function Home() {
             <h1>RSM Tax Dispute Simple Advisor</h1>
             <p>{labels.subtitle}</p>
           </div>
-          <div className="preserved-note">{labels.preserved}</div>
+          <div className="preserved-note">{labels.appGuidance}</div>
         </header>
 
         {page === "dashboard" && (
           <>
             <section className="kpi-grid" aria-label={labels.dataSummary}>
-              <Kpi label={labels.indexed} value={dashboardStats.indexedDecisions.toString()} tone="blue" />
-              <Kpi label={labels.coverage} value={`${dashboardStats.extractionCoverage}%`} tone="green" />
-              <Kpi label={labels.vatDocs} value={dashboardStats.vatDocuments.toString()} tone="blue" />
-              <Kpi label={labels.localRules} value={dashboardStats.localRegulations.toString()} tone="gray" />
-              <Kpi label={labels.llmLabels} value={dashboardStats.llmLabels.toString()} tone="gray" />
+              <Kpi label={labels.indexed} value={dynamicDashboard.stats.indexedDecisions.toString()} tone="blue" />
+              <Kpi label={labels.coverage} value={`${dynamicDashboard.stats.extractionCoverage}%`} tone="green" />
+              <Kpi label={labels.vatDocs} value={dynamicDashboard.stats.vatDocuments.toString()} tone="blue" />
+              <Kpi label={labels.localRules} value={dynamicDashboard.stats.localRegulations.toString()} tone="gray" />
+              <Kpi label={labels.llmLabels} value={dynamicDashboard.stats.llmLabels.toString()} tone="gray" />
             </section>
             <section className="panel-grid">
-              <Panel title="Decision Outcomes">
-                <div className="donut" style={{ "--a": "38%", "--b": "70%" } as CSSProperties} />
-                <div className="legend">
-                  {outcomeDistribution.map((item) => (
-                    <span key={item.label}>
-                      <i style={{ background: item.color }} /> {item.label} ({item.value})
-                    </span>
-                  ))}
-                </div>
+              <Panel title={labels.decisionOutcomes}>
+                {dynamicDashboard.outcomeDistribution.length ? (
+                  <>
+                    <div className="donut" style={buildDonutStyle(dynamicDashboard.outcomeDistribution)} />
+                    <div className="legend">
+                      {dynamicDashboard.outcomeDistribution.map((item) => (
+                        <span key={item.label}>
+                          <i style={{ background: item.color }} /> {item.label} ({item.value})
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="empty-state">{labels.noDynamicDocuments}</div>
+                )}
               </Panel>
-              <Panel title="Top Dispute Issues">
-                {issueDistribution.map((item) => (
+              <Panel title={labels.topDisputeIssues}>
+                {dynamicDashboard.issueDistribution.length ? dynamicDashboard.issueDistribution.map((item) => (
                   <MiniBar key={item.label} label={item.label} value={item.value} />
-                ))}
+                )) : <div className="empty-state">{labels.noDynamicDocuments}</div>}
               </Panel>
             </section>
             <Panel title={labels.recentDocs}>
-              <div className="table-wrap">
+              {dynamicDashboard.recentDocuments.length ? <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -857,7 +981,7 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recentDocuments.map((doc) => (
+                    {dynamicDashboard.recentDocuments.map((doc) => (
                       <tr key={doc.decision}>
                         <td>{doc.decision}</td>
                         <td>{doc.documentType}</td>
@@ -869,7 +993,7 @@ export default function Home() {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </div> : <div className="empty-state">{labels.noDynamicDocuments}</div>}
             </Panel>
           </>
         )}
@@ -952,6 +1076,8 @@ export default function Home() {
             error={blobUploadError}
             onFilesChange={onDatabaseFilesChange}
             onUpload={uploadDatabaseFiles}
+            onExtract={extractStoredDocument}
+            extractingDocumentId={extractingDocumentId}
           />
         )}
 
@@ -1083,8 +1209,10 @@ function DecisionDatabasePanel({
   loading,
   status,
   error,
+  extractingDocumentId,
   onFilesChange,
-  onUpload
+  onUpload,
+  onExtract
 }: {
   labels: (typeof copy)["en"];
   files: File[];
@@ -1092,8 +1220,10 @@ function DecisionDatabasePanel({
   loading: boolean;
   status: string;
   error: string;
+  extractingDocumentId: string;
   onFilesChange: (fileList: FileList | null) => void;
   onUpload: () => void;
+  onExtract: (item: StoredDecisionFile) => void;
 }) {
   return (
     <section className="database-layout">
@@ -1112,13 +1242,13 @@ function DecisionDatabasePanel({
           <p>
             {files.length
               ? `${files.length} file(s): ${files.map((file) => `${file.name} (${formatBytes(file.size)})`).join(", ")}`
-              : labels.uploadHint}
+              : labels.databaseUploadHint}
           </p>
         </div>
         {status && <div className="status-banner success">{status}</div>}
         {error && <div className="status-banner error">{error}</div>}
         <button className="primary-button" onClick={onUpload} disabled={loading || files.length === 0}>
-          {loading ? labels.uploadingToBlob : labels.uploadToBlob}
+          {loading ? labels.uploadingToBlob : labels.uploadAndExtract}
         </button>
       </Panel>
 
@@ -1137,6 +1267,7 @@ function DecisionDatabasePanel({
                   <th>{labels.fileSize}</th>
                   <th>{labels.uploadedAt}</th>
                   <th>{labels.blobPath}</th>
+                  <th>{labels.action}</th>
                   <th>{labels.openPdf}</th>
                 </tr>
               </thead>
@@ -1154,6 +1285,11 @@ function DecisionDatabasePanel({
                       <td>{formatBytes(item.size)}</td>
                       <td>{new Date(item.uploadedAt).toLocaleString()}</td>
                       <td className="mono-cell">{item.pathname}</td>
+                      <td>
+                        <button className="table-button" onClick={() => onExtract(item)} disabled={Boolean(extractingDocumentId)}>
+                          {extractingDocumentId === item.id ? labels.extractingStored : labels.extractStored}
+                        </button>
+                      </td>
                       <td>
                         <a href={item.downloadUrl || item.url} target="_blank" rel="noreferrer">
                           {labels.openPdf}

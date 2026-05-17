@@ -17,7 +17,7 @@
   --text-md: 1.06rem;
   --text-lg: 1.22rem;
   --text-xl: 1.42rem;
-  --text-hero: clamp(2.85rem, 4.9vw, 4.95rem);
+  --text-hero: clamp(2.35rem, 3.7vw, 3.9rem);
 }
 
 * {
@@ -529,6 +529,17 @@ th {
   font-size: var(--text-sm);
   font-weight: 800;
   padding: 0 18px;
+}
+
+.table-button {
+  min-height: 34px;
+  border: 1px solid rgba(0, 156, 222, 0.22);
+  border-radius: 8px;
+  background: #eef9fd;
+  color: var(--rsm-blue-dark);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  padding: 0 12px;
 }
 
 .secondary-button {
