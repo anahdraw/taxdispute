@@ -106,8 +106,15 @@ const copy = {
     status: "Status",
     decisionNumber: "Nomor putusan",
     extractStored: "Ekstrak",
+    reExtractStored: "Ekstrak ulang",
     extractingStored: "Mengekstrak...",
+    deleteStored: "Hapus",
+    deletingStored: "Menghapus...",
+    copyBlob: "Copy URL",
+    copiedBlob: "Copied",
     action: "Aksi",
+    confirmDelete: "Hapus dokumen ini dari database dan Blob?",
+    deleteSaved: "Dokumen dihapus.",
     noDynamicDocuments: "Belum ada dokumen database. Upload PDF di menu Database Putusan agar dashboard terisi otomatis.",
     decisionOutcomes: "Outcome Putusan",
     topDisputeIssues: "Top Pokok Sengketa"
@@ -198,8 +205,15 @@ const copy = {
     status: "Status",
     decisionNumber: "Decision number",
     extractStored: "Extract",
+    reExtractStored: "Re-extract",
     extractingStored: "Extracting...",
+    deleteStored: "Delete",
+    deletingStored: "Deleting...",
+    copyBlob: "Copy URL",
+    copiedBlob: "Copied",
     action: "Action",
+    confirmDelete: "Delete this document from the database and Blob?",
+    deleteSaved: "Document deleted.",
     noDynamicDocuments: "No database documents yet. Upload PDFs in Decision Database so the dashboard updates automatically.",
     decisionOutcomes: "Decision Outcomes",
     topDisputeIssues: "Top Dispute Issues"
@@ -415,6 +429,7 @@ export default function Home() {
   const [blobUploadStatus, setBlobUploadStatus] = useState("");
   const [blobUploadError, setBlobUploadError] = useState("");
   const [extractingDocumentId, setExtractingDocumentId] = useState("");
+  const [deletingDocumentId, setDeletingDocumentId] = useState("");
   const labels = copy[language];
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }), [form, language]);
   const analysis = serverAnalysis ?? localAnalysis;
@@ -821,6 +836,32 @@ export default function Home() {
     }
   }
 
+  async function deleteStoredDocument(item: StoredDecisionFile) {
+    if (!window.confirm(labels.confirmDelete)) return;
+    setDeletingDocumentId(item.id);
+    setBlobUploadStatus("");
+    setBlobUploadError("");
+    try {
+      const response = await fetch("/api/decisions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item)
+      });
+      const data = (await response.json().catch(() => ({}))) as { error?: string; blobWarning?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Could not delete document.");
+      }
+      const next = storedDocuments.filter((document) => document.id !== item.id);
+      setStoredDocuments(next);
+      saveStoredDecisions(next);
+      setBlobUploadStatus(data.blobWarning ? `${labels.deleteSaved} Blob: ${data.blobWarning}` : labels.deleteSaved);
+    } catch (error) {
+      setBlobUploadError(error instanceof Error ? error.message : "Could not delete document.");
+    } finally {
+      setDeletingDocumentId("");
+    }
+  }
+
   async function runAnalysis() {
     setAnalysisLoading(true);
     setAnalysisError("");
@@ -1077,7 +1118,9 @@ export default function Home() {
             onFilesChange={onDatabaseFilesChange}
             onUpload={uploadDatabaseFiles}
             onExtract={extractStoredDocument}
+            onDelete={deleteStoredDocument}
             extractingDocumentId={extractingDocumentId}
+            deletingDocumentId={deletingDocumentId}
           />
         )}
 
@@ -1210,9 +1253,11 @@ function DecisionDatabasePanel({
   status,
   error,
   extractingDocumentId,
+  deletingDocumentId,
   onFilesChange,
   onUpload,
-  onExtract
+  onExtract,
+  onDelete
 }: {
   labels: (typeof copy)["en"];
   files: File[];
@@ -1221,10 +1266,67 @@ function DecisionDatabasePanel({
   status: string;
   error: string;
   extractingDocumentId: string;
+  deletingDocumentId: string;
   onFilesChange: (fileList: FileList | null) => void;
   onUpload: () => void;
   onExtract: (item: StoredDecisionFile) => void;
+  onDelete: (item: StoredDecisionFile) => void;
 }) {
+  type SortKey = "filename" | "status" | "decision" | "taxpayer" | "size" | "uploadedAt";
+  const [sort, setSort] = useState<{ key: SortKey; direction: "asc" | "desc" }>({ key: "uploadedAt", direction: "desc" });
+  const [copiedDocumentId, setCopiedDocumentId] = useState("");
+  const sortedDocuments = useMemo(() => {
+    const getValue = (item: StoredDecisionFile, key: SortKey) => {
+      if (key === "status") return item.status || (item.extraction ? "extracted" : "uploaded");
+      if (key === "decision") return item.extraction?.putusanNumber || "";
+      if (key === "taxpayer") return item.extraction?.taxpayerName || "";
+      if (key === "size") return item.size || 0;
+      if (key === "uploadedAt") return new Date(item.uploadedAt).getTime() || 0;
+      return item.filename || "";
+    };
+    return [...storedDocuments].sort((a, b) => {
+      const left = getValue(a, sort.key);
+      const right = getValue(b, sort.key);
+      const result = typeof left === "number" && typeof right === "number" ? left - right : String(left).localeCompare(String(right));
+      return sort.direction === "asc" ? result : -result;
+    });
+  }, [storedDocuments, sort]);
+
+  function toggleSort(key: SortKey) {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  }
+
+  function SortButton({ sortKey, children }: { sortKey: SortKey; children: React.ReactNode }) {
+    return (
+      <button className="sort-button" onClick={() => toggleSort(sortKey)}>
+        {children}
+        <span>{sort.key === sortKey ? (sort.direction === "asc" ? " ↑" : " ↓") : ""}</span>
+      </button>
+    );
+  }
+
+  async function copyBlobUrl(item: StoredDecisionFile) {
+    const target = item.url || item.downloadUrl || item.pathname;
+    try {
+      await navigator.clipboard.writeText(target);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = target;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+    setCopiedDocumentId(item.id);
+    window.setTimeout(() => setCopiedDocumentId((current) => (current === item.id ? "" : current)), 1800);
+  }
+
   return (
     <section className="database-layout">
       <Panel title={labels.databaseTitle}>
@@ -1260,23 +1362,24 @@ function DecisionDatabasePanel({
             <table>
               <thead>
                 <tr>
-                  <th>File</th>
-                  <th>{labels.status}</th>
-                  <th>{labels.decisionNumber}</th>
-                  <th>{labels.taxpayer}</th>
-                  <th>{labels.fileSize}</th>
-                  <th>{labels.uploadedAt}</th>
+                  <th><SortButton sortKey="filename">File</SortButton></th>
+                  <th><SortButton sortKey="status">{labels.status}</SortButton></th>
+                  <th><SortButton sortKey="decision">{labels.decisionNumber}</SortButton></th>
+                  <th><SortButton sortKey="taxpayer">{labels.taxpayer}</SortButton></th>
+                  <th><SortButton sortKey="size">{labels.fileSize}</SortButton></th>
+                  <th><SortButton sortKey="uploadedAt">{labels.uploadedAt}</SortButton></th>
                   <th>{labels.blobPath}</th>
                   <th>{labels.action}</th>
                   <th>{labels.openPdf}</th>
                 </tr>
               </thead>
               <tbody>
-                {storedDocuments.map((item) => {
+                {sortedDocuments.map((item) => {
                   const status = item.status || (item.extraction ? "extracted" : "uploaded");
+                  const busy = Boolean(extractingDocumentId || deletingDocumentId);
                   return (
                     <tr key={item.id}>
-                      <td>{item.filename}</td>
+                      <td className="file-cell">{item.filename}</td>
                       <td>
                         <span className={`db-status ${status}`}>{status}</span>
                       </td>
@@ -1284,10 +1387,17 @@ function DecisionDatabasePanel({
                       <td>{item.extraction?.taxpayerName || "-"}</td>
                       <td>{formatBytes(item.size)}</td>
                       <td>{new Date(item.uploadedAt).toLocaleString()}</td>
-                      <td className="mono-cell">{item.pathname}</td>
                       <td>
-                        <button className="table-button" onClick={() => onExtract(item)} disabled={Boolean(extractingDocumentId)}>
-                          {extractingDocumentId === item.id ? labels.extractingStored : labels.extractStored}
+                        <button className="table-button compact" onClick={() => copyBlobUrl(item)}>
+                          {copiedDocumentId === item.id ? labels.copiedBlob : labels.copyBlob}
+                        </button>
+                      </td>
+                      <td className="action-cell">
+                        <button className="table-button" onClick={() => onExtract(item)} disabled={busy}>
+                          {extractingDocumentId === item.id ? labels.extractingStored : status === "extracted" ? labels.reExtractStored : labels.extractStored}
+                        </button>
+                        <button className="table-button danger" onClick={() => onDelete(item)} disabled={busy}>
+                          {deletingDocumentId === item.id ? labels.deletingStored : labels.deleteStored}
                         </button>
                       </td>
                       <td>

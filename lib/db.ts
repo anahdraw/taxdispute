@@ -139,3 +139,8 @@ export async function upsertDecisionExtraction(documentId: string, extraction: E
   );
   await getPool().query(`UPDATE decision_documents SET status = 'extracted' WHERE id = $1`, [documentId]);
 }
+
+export async function deleteDecisionDocument(documentId: string) {
+  await ensureDecisionSchema();
+  await getPool().query(`DELETE FROM decision_documents WHERE id = $1`, [documentId]);
+}

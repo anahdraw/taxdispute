@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { hasDatabase, listDecisionDocuments, upsertDecisionDocument } from "@/lib/db";
+import { del } from "@vercel/blob";
+import { deleteDecisionDocument, hasDatabase, listDecisionDocuments, upsertDecisionDocument } from "@/lib/db";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 export const runtime = "nodejs";
@@ -43,6 +44,36 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not save decision document." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = (await request.json()) as Partial<StoredDecisionFile>;
+    if (!body.id) {
+      return NextResponse.json({ error: "Missing decision document id." }, { status: 400 });
+    }
+
+    let blobWarning = "";
+    const blobTarget = body.url || body.downloadUrl || body.pathname || "";
+    if (blobTarget && process.env.BLOB_READ_WRITE_TOKEN) {
+      try {
+        await del(blobTarget);
+      } catch (error) {
+        blobWarning = error instanceof Error ? error.message : "Blob delete failed.";
+      }
+    }
+
+    if (hasDatabase()) {
+      await deleteDecisionDocument(body.id);
+    }
+
+    return NextResponse.json({ ok: true, blobWarning });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Could not delete decision document." },
       { status: 500 }
     );
   }
