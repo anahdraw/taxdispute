@@ -38,7 +38,7 @@ const evidenceOptions = {
 
 const copy = {
   id: {
-    subtitle: "Prototype Next.js untuk ekstraksi dokumen sengketa, pencarian putusan pembanding, konteks peraturan pajak, review risiko, dan draft rekomendasi WP.",
+    subtitle: "Gunakan alur kerja ini untuk upload putusan, ekstraksi data terstruktur, mencari putusan pembanding, bertanya aturan PPN atau Transfer Pricing, lalu membuat draft Word/PDF untuk direview advisor.",
     appGuidance: "Gunakan alur ini untuk upload putusan, ekstraksi data, mencari pembanding, tanya peraturan PPN atau Transfer Pricing, lalu membuat draft Word/PDF untuk review advisor.",
     dashboard: "Dashboard",
     guided: "Alur Terpandu",
@@ -199,7 +199,7 @@ const copy = {
     openAction: "Buka"
   },
   en: {
-    subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, tax regulation context, risk review, and taxpayer recommendation drafting.",
+    subtitle: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT or Transfer Pricing regulation questions, then produce Word/PDF drafts for advisor review.",
     appGuidance: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT or Transfer Pricing regulation questions, then produce Word/PDF drafts for advisor review.",
     dashboard: "Dashboard",
     guided: "Guided Flow",
@@ -414,7 +414,7 @@ function LoginScreen({
       <section className="login-card">
         <div className="login-brand">
           <RsmMark />
-          <p className="eyebrow">Tax Dispute Simple Advisor</p>
+          <p className="eyebrow">Tax Dispute Advisor</p>
           <h1>{labels.loginTitle}</h1>
           <p className="login-subtitle">{labels.loginSubtitle}</p>
         </div>
@@ -1380,7 +1380,7 @@ export default function Home() {
     <main>
       <aside className="sidebar">
         <RsmMark />
-        <p className="caption">Tax Dispute Simple Advisor</p>
+        <p className="caption">Tax Dispute Advisor</p>
         <div className="session-card">
           <span>{labels.signedInAs}</span>
           <b>{session.name}</b>
@@ -1411,11 +1411,9 @@ export default function Home() {
       <section className="content">
         <header className="hero">
           <div>
-            <p className="eyebrow">Vercel Native Prototype</p>
-            <h1>RSM Tax Dispute Simple Advisor</h1>
+            <h1>RSM Tax Dispute Advisor</h1>
             <p>{labels.subtitle}</p>
           </div>
-          <div className="preserved-note">{labels.appGuidance}</div>
         </header>
 
         {page === "dashboard" && (

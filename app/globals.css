@@ -315,10 +315,7 @@ nav button.active {
 }
 
 .hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 28px;
-  align-items: end;
+  display: block;
   margin-bottom: 30px;
 }
 
@@ -339,23 +336,15 @@ h1 {
   letter-spacing: 0;
 }
 
-.hero p:not(.eyebrow),
-.preserved-note {
+.hero p:not(.eyebrow) {
   color: #54585a;
   font-size: var(--text-md);
   line-height: 1.55;
 }
 
 .hero p:not(.eyebrow) {
-  max-width: 840px;
-}
-
-.preserved-note {
-  border-left: 4px solid var(--rsm-green);
-  border-radius: 8px;
-  background: #fff;
-  padding: 16px 18px;
-  box-shadow: 0 10px 22px rgba(84, 88, 90, 0.06);
+  max-width: 900px;
+  margin: 18px 0 0;
 }
 
 .kpi-grid,
