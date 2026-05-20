@@ -384,6 +384,49 @@ function RsmMark() {
   );
 }
 
+function QuickActionIcon({ type }: { type: "document" | "chatbot" | "database" }) {
+  if (type === "chatbot") {
+    return (
+      <svg className="quick-action-illustration" viewBox="0 0 96 96" aria-hidden="true">
+        <path d="M32 30h32a10 10 0 0 1 10 10v18a10 10 0 0 1-10 10H32a10 10 0 0 1-10-10V40a10 10 0 0 1 10-10Z" />
+        <path d="M48 30V18" />
+        <path d="M42 18h12" />
+        <path d="M28 46h-8a6 6 0 0 0 0 12h8" />
+        <path d="M68 46h8a6 6 0 0 1 0 12h-8" />
+        <path d="M36 46h.1" />
+        <path d="M60 46h.1" />
+        <path d="M44 57h12" />
+        <path d="M34 68v10h30V68" />
+      </svg>
+    );
+  }
+
+  if (type === "database") {
+    return (
+      <svg className="quick-action-illustration" viewBox="0 0 96 96" aria-hidden="true">
+        <path d="M20 26c0-8 56-8 56 0v44c0 8-56 8-56 0V26Z" />
+        <path d="M20 26c0 8 56 8 56 0" />
+        <path d="M20 42c0 8 56 8 56 0" />
+        <path d="M20 56c0 8 56 8 56 0" />
+        <path d="M34 74h28" />
+        <path d="M38 18h20" />
+        <path d="M48 18v-8" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="quick-action-illustration" viewBox="0 0 96 96" aria-hidden="true">
+      <path d="M28 14h32l16 16v50a4 4 0 0 1-4 4H28a4 4 0 0 1-4-4V18a4 4 0 0 1 4-4Z" />
+      <path d="M60 14v18h16" />
+      <path d="M36 46h28" />
+      <path d="M36 58h28" />
+      <path d="M36 70h18" />
+      <path d="M22 26h-8v58h42v-8" />
+    </svg>
+  );
+}
+
 function LoginScreen({
   language,
   labels,
@@ -1419,21 +1462,30 @@ export default function Home() {
         {page === "dashboard" && (
           <>
             <section className="quick-actions" aria-label={labels.quickStart}>
-              <article>
-                <span>{labels.quickStart}</span>
-                <b>{labels.quickGuided}</b>
-                <button className="table-button" onClick={() => setPage("guided")}>{labels.openAction}</button>
+              <article className="quick-action-card quick-action-blue">
+                <div>
+                  <span>{labels.quickStart}</span>
+                  <b>{labels.quickGuided}</b>
+                  <button className="table-button" onClick={() => setPage("guided")}>{labels.openAction}</button>
+                </div>
+                <QuickActionIcon type="document" />
               </article>
-              <article>
-                <span>{labels.quickStart}</span>
-                <b>{labels.quickChat}</b>
-                <button className="table-button" onClick={() => setPage("smartchat")}>{labels.openAction}</button>
+              <article className="quick-action-card quick-action-green">
+                <div>
+                  <span>{labels.quickStart}</span>
+                  <b>{labels.quickChat}</b>
+                  <button className="table-button" onClick={() => setPage("smartchat")}>{labels.openAction}</button>
+                </div>
+                <QuickActionIcon type="chatbot" />
               </article>
               {session.role === "admin" && (
-                <article>
-                  <span>{labels.quickStart}</span>
-                  <b>{labels.quickAdmin}</b>
-                  <button className="table-button" onClick={() => setPage("database")}>{labels.openAction}</button>
+                <article className="quick-action-card quick-action-gray">
+                  <div>
+                    <span>{labels.quickStart}</span>
+                    <b>{labels.quickAdmin}</b>
+                    <button className="table-button" onClick={() => setPage("database")}>{labels.openAction}</button>
+                  </div>
+                  <QuickActionIcon type="database" />
                 </article>
               )}
             </section>

@@ -362,41 +362,83 @@ h1 {
   margin-bottom: 18px;
 }
 
-.quick-actions article {
+.quick-action-card {
   display: grid;
-  gap: 10px;
-  border: 1px solid var(--line);
-  border-top: 5px solid var(--rsm-blue);
+  grid-template-columns: minmax(0, 1fr) 104px;
+  align-items: center;
+  gap: 18px;
+  min-height: 172px;
+  overflow: hidden;
+  border: 0;
   border-radius: 8px;
-  background: #fff;
-  padding: 16px;
-  box-shadow: 0 12px 28px rgba(84, 88, 90, 0.06);
+  padding: 22px;
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(84, 88, 90, 0.12);
 }
 
-.quick-actions article:nth-child(2) {
-  border-top-color: var(--rsm-green);
+.quick-action-card > div {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
 }
 
-.quick-actions article:nth-child(3) {
-  border-top-color: var(--rsm-gray);
+.quick-action-blue {
+  background: var(--rsm-blue);
 }
 
-.quick-actions span {
-  color: var(--muted);
+.quick-action-green {
+  background: var(--rsm-green);
+}
+
+.quick-action-gray {
+  background: var(--rsm-gray);
+}
+
+.quick-action-card span {
+  color: rgba(255, 255, 255, 0.82);
   font-size: var(--text-xs);
   font-weight: 800;
   text-transform: uppercase;
 }
 
-.quick-actions b {
-  min-height: 42px;
-  color: var(--ink);
-  font-size: var(--text-md);
+.quick-action-card b {
+  color: #fff;
+  font-size: var(--text-lg);
   line-height: 1.35;
 }
 
-.quick-actions .table-button {
+.quick-action-card .table-button {
   justify-self: start;
+  border-color: rgba(255, 255, 255, 0.86);
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(47, 51, 64, 0.12);
+}
+
+.quick-action-blue .table-button {
+  color: var(--rsm-blue-dark);
+}
+
+.quick-action-green .table-button {
+  color: var(--rsm-green-dark);
+}
+
+.quick-action-gray .table-button {
+  color: var(--rsm-gray);
+}
+
+.quick-action-illustration {
+  width: 104px;
+  height: 104px;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0.92;
+}
+
+.quick-action-illustration path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 5;
 }
 
 .score-row {
@@ -1357,6 +1399,21 @@ pre {
   .login-subtitle {
     font-size: var(--text-base);
     line-height: 1.5;
+  }
+
+  .quick-action-card {
+    grid-template-columns: minmax(0, 1fr) 82px;
+    min-height: 148px;
+    padding: 18px;
+  }
+
+  .quick-action-card b {
+    font-size: var(--text-md);
+  }
+
+  .quick-action-illustration {
+    width: 82px;
+    height: 82px;
   }
 
   .content {
