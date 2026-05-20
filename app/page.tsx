@@ -13,8 +13,23 @@ import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 type Language = "id" | "en";
 type PageKey = "dashboard" | "guided" | "analysis" | "database" | "smartchat" | "regulations" | "reports";
+type UserRole = "admin" | "user";
+type DemoSession = {
+  role: UserRole;
+  name: string;
+};
 const MAX_UPLOAD_BYTES = 3.6 * 1024 * 1024;
 const STORED_DECISIONS_KEY = "tax-dispute-stored-decisions";
+const DEMO_SESSION_KEY = "tax-dispute-demo-session";
+const DEMO_USERS: Record<UserRole, { username: string; password: string; name: string }> = {
+  admin: { username: "admin", password: "Admin@RSM2026", name: "Admin RSM" },
+  user: { username: "user", password: "User@RSM2026", name: "Tax Advisor User" }
+};
+
+function canAccessPage(role: UserRole, key: PageKey) {
+  if (role === "admin") return true;
+  return ["dashboard", "guided", "analysis", "smartchat", "reports"].includes(key);
+}
 
 const evidenceOptions = {
   id: ["Faktur Pajak", "SPT Masa PPN", "Bukti pembayaran", "Rekonsiliasi", "Konfirmasi Lawan Transaksi", "Surat Kuasa"],
@@ -163,7 +178,25 @@ const copy = {
     retrievedRules: "Peraturan yang dipakai RAG",
     retrievalSummary: "Ringkasan retrieval",
     noSmartAnswer: "Ajukan pertanyaan untuk melihat jawaban, sumber RAG, dan visualisasi jika relevan.",
-    openReference: "Buka referensi"
+    openReference: "Buka referensi",
+    loginTitle: "Masuk ke Tax Dispute Advisor",
+    loginSubtitle: "Pilih peran untuk mencoba alur prototype. Admin dapat mengelola database dan peraturan; user fokus ke analisis dan chatbot.",
+    username: "Username",
+    password: "Password",
+    signIn: "Masuk",
+    adminLogin: "Admin",
+    userLogin: "User",
+    loginError: "Username atau password belum cocok.",
+    demoAuthNote: "Login ini hanya untuk prototype demo, bukan autentikasi production.",
+    signedInAs: "Masuk sebagai",
+    logout: "Keluar",
+    roleAdmin: "Admin",
+    roleUser: "User",
+    quickStart: "Mulai Cepat",
+    quickGuided: "Upload dan analisis dokumen",
+    quickChat: "Tanya Smart Chatbot",
+    quickAdmin: "Kelola database dan peraturan",
+    openAction: "Buka"
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, tax regulation context, risk review, and taxpayer recommendation drafting.",
@@ -306,7 +339,25 @@ const copy = {
     retrievedRules: "RAG regulation sources",
     retrievalSummary: "Retrieval summary",
     noSmartAnswer: "Ask a question to see an answer, RAG sources, and visualizations when relevant.",
-    openReference: "Open reference"
+    openReference: "Open reference",
+    loginTitle: "Sign in to Tax Dispute Advisor",
+    loginSubtitle: "Choose a demo role. Admin can manage the database and regulations; user focuses on analysis and chatbot workflows.",
+    username: "Username",
+    password: "Password",
+    signIn: "Sign in",
+    adminLogin: "Admin",
+    userLogin: "User",
+    loginError: "Username or password does not match.",
+    demoAuthNote: "This login is prototype-only and not production authentication.",
+    signedInAs: "Signed in as",
+    logout: "Log out",
+    roleAdmin: "Admin",
+    roleUser: "User",
+    quickStart: "Quick Start",
+    quickGuided: "Upload and analyze a document",
+    quickChat: "Ask Smart Chatbot",
+    quickAdmin: "Manage database and regulations",
+    openAction: "Open"
   }
 };
 
@@ -330,6 +381,72 @@ function RsmMark() {
       <span className="rsm-blue" />
       <strong>RSM</strong>
     </div>
+  );
+}
+
+function LoginScreen({
+  language,
+  labels,
+  role,
+  username,
+  password,
+  error,
+  onLanguageChange,
+  onRoleChange,
+  onUsernameChange,
+  onPasswordChange,
+  onSubmit
+}: {
+  language: Language;
+  labels: (typeof copy)["en"];
+  role: UserRole;
+  username: string;
+  password: string;
+  error: string;
+  onLanguageChange: (language: Language) => void;
+  onRoleChange: (role: UserRole) => void;
+  onUsernameChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <main className="login-shell">
+      <section className="login-card">
+        <div>
+          <RsmMark />
+          <p className="eyebrow">Tax Dispute Simple Advisor</p>
+          <h1>{labels.loginTitle}</h1>
+          <p className="login-subtitle">{labels.loginSubtitle}</p>
+        </div>
+        <div className="login-panel">
+          <label className="field-label" htmlFor="login-language">
+            Language
+          </label>
+          <select id="login-language" value={language} onChange={(event) => onLanguageChange(event.target.value as Language)}>
+            <option value="en">English</option>
+            <option value="id">Bahasa Indonesia</option>
+          </select>
+          <div className="role-toggle" aria-label="Login role">
+            <button className={role === "admin" ? "active" : ""} onClick={() => onRoleChange("admin")}>
+              {labels.adminLogin}
+            </button>
+            <button className={role === "user" ? "active" : ""} onClick={() => onRoleChange("user")}>
+              {labels.userLogin}
+            </button>
+          </div>
+          <Input label={labels.username} value={username} onChange={onUsernameChange} />
+          <label className="control">
+            <span>{labels.password}</span>
+            <input type="password" value={password} onChange={(event) => onPasswordChange(event.target.value)} onKeyDown={(event) => event.key === "Enter" && onSubmit()} />
+          </label>
+          {error && <div className="status-banner error">{error}</div>}
+          <button className="primary-button login-button" onClick={onSubmit}>
+            {labels.signIn}
+          </button>
+          <p className="muted login-note">{labels.demoAuthNote}</p>
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -373,6 +490,27 @@ function loadStoredDecisions(): StoredDecisionFile[] {
 function saveStoredDecisions(items: StoredDecisionFile[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORED_DECISIONS_KEY, JSON.stringify(items));
+}
+
+function loadDemoSession(): DemoSession | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DEMO_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as DemoSession;
+    return parsed.role === "admin" || parsed.role === "user" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDemoSession(session: DemoSession | null) {
+  if (typeof window === "undefined") return;
+  if (!session) {
+    window.localStorage.removeItem(DEMO_SESSION_KEY);
+    return;
+  }
+  window.localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
 }
 
 function formatBytes(bytes: number) {
@@ -509,6 +647,11 @@ function buildDonutStyle(items: Array<{ value: number; color: string }>): CSSPro
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
+  const [session, setSession] = useState<DemoSession | null>(() => loadDemoSession());
+  const [loginRole, setLoginRole] = useState<UserRole>("admin");
+  const [loginUsername, setLoginUsername] = useState(DEMO_USERS.admin.username);
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [page, setPage] = useState<PageKey>("dashboard");
   const [form, setForm] = useState<AnalyzeInput>({ ...initialInput, language });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -578,6 +721,7 @@ export default function Home() {
     ["regulations", labels.regulations],
     ["reports", labels.reports]
   ];
+  const visiblePages = pages.filter(([key]) => (session ? canAccessPage(session.role, key) : false));
 
   useEffect(() => {
     let cancelled = false;
@@ -599,6 +743,12 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (session && !canAccessPage(session.role, page)) {
+      setPage("smartchat");
+    }
+  }, [page, session]);
 
   useEffect(() => {
     setRegulationPage((current) => Math.min(Math.max(1, current), regulationTotalPages));
@@ -641,6 +791,34 @@ export default function Home() {
       const query = [caseSearchText, extractionToSearchText(caseSearchExtraction)].filter(Boolean).join("\n");
       setCaseSearchResults(searchSimilarCases(query, nextLanguage));
     }
+  }
+
+  function changeLoginRole(nextRole: UserRole) {
+    setLoginRole(nextRole);
+    setLoginUsername(DEMO_USERS[nextRole].username);
+    setLoginPassword("");
+    setLoginError("");
+  }
+
+  function signIn() {
+    const user = DEMO_USERS[loginRole];
+    if (loginUsername.trim().toLowerCase() !== user.username || loginPassword !== user.password) {
+      setLoginError(labels.loginError);
+      return;
+    }
+    const nextSession = { role: loginRole, name: user.name };
+    setSession(nextSession);
+    saveDemoSession(nextSession);
+    setLoginPassword("");
+    setLoginError("");
+    setPage(loginRole === "admin" ? "dashboard" : "smartchat");
+  }
+
+  function logout() {
+    setSession(null);
+    saveDemoSession(null);
+    setPage("dashboard");
+    setLoginPassword("");
   }
 
   function updateForm(field: keyof AnalyzeInput, value: string) {
@@ -1174,11 +1352,43 @@ export default function Home() {
     }));
   }
 
+  if (!session) {
+    return (
+      <LoginScreen
+        language={language}
+        labels={labels}
+        role={loginRole}
+        username={loginUsername}
+        password={loginPassword}
+        error={loginError}
+        onLanguageChange={changeLanguage}
+        onRoleChange={changeLoginRole}
+        onUsernameChange={(value) => {
+          setLoginUsername(value.trim().toLowerCase());
+          setLoginError("");
+        }}
+        onPasswordChange={(value) => {
+          setLoginPassword(value);
+          setLoginError("");
+        }}
+        onSubmit={signIn}
+      />
+    );
+  }
+
   return (
     <main>
       <aside className="sidebar">
         <RsmMark />
         <p className="caption">Tax Dispute Simple Advisor</p>
+        <div className="session-card">
+          <span>{labels.signedInAs}</span>
+          <b>{session.name}</b>
+          <i>{session.role === "admin" ? labels.roleAdmin : labels.roleUser}</i>
+          <button className="table-button compact" onClick={logout}>
+            {labels.logout}
+          </button>
+        </div>
         <label className="field-label" htmlFor="language">
           Language
         </label>
@@ -1187,7 +1397,7 @@ export default function Home() {
           <option value="id">Bahasa Indonesia</option>
         </select>
         <nav>
-          {pages.map(([key, title]) => (
+          {visiblePages.map(([key, title]) => (
             <button key={key} className={page === key ? "active" : ""} onClick={() => setPage(key)}>
               {title}
             </button>
@@ -1210,6 +1420,25 @@ export default function Home() {
 
         {page === "dashboard" && (
           <>
+            <section className="quick-actions" aria-label={labels.quickStart}>
+              <article>
+                <span>{labels.quickStart}</span>
+                <b>{labels.quickGuided}</b>
+                <button className="table-button" onClick={() => setPage("guided")}>{labels.openAction}</button>
+              </article>
+              <article>
+                <span>{labels.quickStart}</span>
+                <b>{labels.quickChat}</b>
+                <button className="table-button" onClick={() => setPage("smartchat")}>{labels.openAction}</button>
+              </article>
+              {session.role === "admin" && (
+                <article>
+                  <span>{labels.quickStart}</span>
+                  <b>{labels.quickAdmin}</b>
+                  <button className="table-button" onClick={() => setPage("database")}>{labels.openAction}</button>
+                </article>
+              )}
+            </section>
             <section className="kpi-grid" aria-label={labels.dataSummary}>
               <Kpi label={labels.indexed} value={dynamicDashboard.stats.indexedDecisions.toString()} tone="blue" />
               <Kpi label={labels.coverage} value={`${dynamicDashboard.stats.extractionCoverage}%`} tone="green" />
@@ -1936,7 +2165,7 @@ function SmartChatPanel({
     <section className="smart-chat-layout">
       <Panel title={labels.smartChatTitle}>
         <p className="muted lead-copy">{labels.smartChatIntro}</p>
-        <div className="form-grid">
+        <div className="smart-chat-form">
           <label className="control wide">
             <span>{labels.smartQuestion}</span>
             <textarea
@@ -1946,14 +2175,20 @@ function SmartChatPanel({
               rows={5}
             />
           </label>
-          <label className="control">
+          <div className="control">
             <span>{labels.smartMode}</span>
-            <select value={mode} onChange={(event) => onModeChange(event.target.value as SmartChatSourceMode)}>
-              <option value="all">{labels.smartModeAll}</option>
-              <option value="decisions">{labels.smartModeDecisions}</option>
-              <option value="regulations">{labels.smartModeRegulations}</option>
-            </select>
-          </label>
+            <div className="mode-segment">
+              {[
+                ["all", labels.smartModeAll],
+                ["decisions", labels.smartModeDecisions],
+                ["regulations", labels.smartModeRegulations]
+              ].map(([value, title]) => (
+                <button key={value} className={mode === value ? "active" : ""} onClick={() => onModeChange(value as SmartChatSourceMode)}>
+                  {title}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         {error && <div className="status-banner error">{error}</div>}
         <button className="primary-button" onClick={onAsk} disabled={loading || !question.trim()}>
