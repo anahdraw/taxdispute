@@ -8,10 +8,11 @@ import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } fr
 import type { ExtractionResult } from "@/lib/extraction";
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { filterRegulationsByTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
+import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 type Language = "id" | "en";
-type PageKey = "dashboard" | "guided" | "analysis" | "database" | "regulations" | "reports";
+type PageKey = "dashboard" | "guided" | "analysis" | "database" | "smartchat" | "regulations" | "reports";
 const MAX_UPLOAD_BYTES = 3.6 * 1024 * 1024;
 const STORED_DECISIONS_KEY = "tax-dispute-stored-decisions";
 
@@ -28,6 +29,7 @@ const copy = {
     guided: "Alur Terpandu",
     analysis: "Analisis Kasus WP",
     database: "Database Putusan",
+    smartchat: "Chatbot Pintar",
     regulations: "Peraturan",
     reports: "Reports",
     dataSummary: "Ringkasan Data",
@@ -144,7 +146,24 @@ const copy = {
     showingRecords: "Menampilkan",
     storedRuleList: "List aturan tersimpan",
     jumpToStoredRules: "Lihat list aturan tersimpan",
-    noRegulations: "Belum ada aturan untuk topik ini."
+    noRegulations: "Belum ada aturan untuk topik ini.",
+    smartChatTitle: "Chatbot Pintar",
+    smartChatIntro: "Tanya putusan dan peraturan dalam satu tempat. Aplikasi menyaring konteks dengan cosine retrieval lebih dulu agar token LLM lebih hemat.",
+    smartQuestion: "Pertanyaan",
+    smartQuestionPlaceholder: "Contoh: Untuk sengketa transfer pricing jasa afiliasi, berapa putusan yang WP menang atau kalah dan aturan apa yang relevan?",
+    smartMode: "Sumber jawaban",
+    smartModeAll: "Putusan + Peraturan",
+    smartModeDecisions: "Putusan saja",
+    smartModeRegulations: "Peraturan saja",
+    askSmartChat: "Tanya Smart Chatbot",
+    askingSmartChat: "Menyaring RAG dan menjawab...",
+    smartAnswer: "Jawaban",
+    smartCharts: "Visualisasi",
+    retrievedDecisions: "Putusan yang dipakai RAG",
+    retrievedRules: "Peraturan yang dipakai RAG",
+    retrievalSummary: "Ringkasan retrieval",
+    noSmartAnswer: "Ajukan pertanyaan untuk melihat jawaban, sumber RAG, dan visualisasi jika relevan.",
+    openReference: "Buka referensi"
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, tax regulation context, risk review, and taxpayer recommendation drafting.",
@@ -153,6 +172,7 @@ const copy = {
     guided: "Guided Flow",
     analysis: "Taxpayer Case Analysis",
     database: "Decision Database",
+    smartchat: "Smart Chatbot",
     regulations: "Regulations",
     reports: "Reports",
     dataSummary: "Data Summary",
@@ -269,7 +289,24 @@ const copy = {
     showingRecords: "Showing",
     storedRuleList: "Stored regulation list",
     jumpToStoredRules: "View stored regulation list",
-    noRegulations: "No regulations yet for this topic."
+    noRegulations: "No regulations yet for this topic.",
+    smartChatTitle: "Smart Chatbot",
+    smartChatIntro: "Ask decisions and regulations in one place. The app filters context with cosine retrieval first so LLM token usage stays efficient.",
+    smartQuestion: "Question",
+    smartQuestionPlaceholder: "Example: For a transfer pricing dispute on related-party services, how many decisions were won or lost and what rules are relevant?",
+    smartMode: "Answer source",
+    smartModeAll: "Decisions + Regulations",
+    smartModeDecisions: "Decisions only",
+    smartModeRegulations: "Regulations only",
+    askSmartChat: "Ask Smart Chatbot",
+    askingSmartChat: "Retrieving RAG context and answering...",
+    smartAnswer: "Answer",
+    smartCharts: "Visualization",
+    retrievedDecisions: "RAG decision sources",
+    retrievedRules: "RAG regulation sources",
+    retrievalSummary: "Retrieval summary",
+    noSmartAnswer: "Ask a question to see an answer, RAG sources, and visualizations when relevant.",
+    openReference: "Open reference"
   }
 };
 
@@ -485,10 +522,12 @@ export default function Home() {
   const [analysisError, setAnalysisError] = useState("");
   const [exportLoading, setExportLoading] = useState<"docx" | "pdf" | "">("");
   const [exportError, setExportError] = useState("");
-  const [chatQuestion, setChatQuestion] = useState("Where is transfer pricing documentation regulated?");
-  const [chatAnswer, setChatAnswer] = useState("");
-  const [chatStatus, setChatStatus] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
+  const [smartQuestion, setSmartQuestion] = useState("For transfer pricing disputes, how many matched decisions were won or lost and what rules are relevant?");
+  const [smartMode, setSmartMode] = useState<SmartChatSourceMode>("all");
+  const [smartResponse, setSmartResponse] = useState<SmartChatResponse | null>(null);
+  const [smartStatus, setSmartStatus] = useState("");
+  const [smartError, setSmartError] = useState("");
+  const [smartLoading, setSmartLoading] = useState(false);
   const [caseSearchText, setCaseSearchText] = useState("");
   const [caseSearchFile, setCaseSearchFile] = useState<File | null>(null);
   const [caseSearchFileName, setCaseSearchFileName] = useState("");
@@ -535,6 +574,7 @@ export default function Home() {
     ["guided", labels.guided],
     ["analysis", labels.analysis],
     ["database", labels.database],
+    ["smartchat", labels.smartchat],
     ["regulations", labels.regulations],
     ["reports", labels.reports]
   ];
@@ -590,8 +630,12 @@ export default function Home() {
     setServerAnalysis(null);
     setAnalysisError("");
     setExportError("");
-    if (!chatAnswer) {
-      setChatQuestion(nextLanguage === "en" ? "Where is transfer pricing documentation regulated?" : "Di mana aturan dokumentasi transfer pricing berada?");
+    if (!smartResponse) {
+      setSmartQuestion(
+        nextLanguage === "en"
+          ? "For transfer pricing disputes, how many matched decisions were won or lost and what rules are relevant?"
+          : "Untuk sengketa transfer pricing, berapa putusan relevan yang menang atau kalah dan aturan apa yang relevan?"
+      );
     }
     if (caseSearchText || caseSearchExtraction) {
       const query = [caseSearchText, extractionToSearchText(caseSearchExtraction)].filter(Boolean).join("\n");
@@ -1039,26 +1083,27 @@ export default function Home() {
     }
   }
 
-  async function askRegulation() {
-    setChatLoading(true);
-    setChatStatus("");
+  async function askSmartChat() {
+    setSmartLoading(true);
+    setSmartStatus("");
+    setSmartError("");
     try {
-      const response = await fetch("/api/regulation-chat", {
+      const response = await fetch("/api/smart-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: chatQuestion, language, topic: regulationTopic })
+        body: JSON.stringify({ question: smartQuestion, language, mode: smartMode })
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Regulation chat request failed.");
+        throw new Error(data.error || "Smart chatbot request failed.");
       }
-      setChatAnswer(data.answer || "");
-      setChatStatus(data.llmStatus?.message || "");
+      setSmartResponse(data as SmartChatResponse);
+      setSmartStatus(data.llmStatus?.message || "");
     } catch (error) {
-      setChatAnswer("");
-      setChatStatus(error instanceof Error ? error.message : "Regulation chat request failed.");
+      setSmartResponse(null);
+      setSmartError(error instanceof Error ? error.message : "Smart chatbot request failed.");
     } finally {
-      setChatLoading(false);
+      setSmartLoading(false);
     }
   }
 
@@ -1311,6 +1356,21 @@ export default function Home() {
           />
         )}
 
+        {page === "smartchat" && (
+          <SmartChatPanel
+            labels={labels}
+            question={smartQuestion}
+            mode={smartMode}
+            response={smartResponse}
+            status={smartStatus}
+            error={smartError}
+            loading={smartLoading}
+            onQuestionChange={setSmartQuestion}
+            onModeChange={setSmartMode}
+            onAsk={askSmartChat}
+          />
+        )}
+
         {page === "regulations" && (
           <Panel title={labels.relatedRules}>
             <p className="muted lead-copy">{labels.regulationHelp}</p>
@@ -1408,18 +1468,6 @@ export default function Home() {
                 </button>
               </div>
             </div>
-            <div className="chat-preview">
-              <strong>{labels.chatAnswer}</strong>
-              <label className="control">
-                <span>{labels.ruleQuestion}</span>
-                <textarea value={chatQuestion} onChange={(event) => setChatQuestion(event.target.value)} rows={3} />
-              </label>
-              <button className="primary-button" onClick={askRegulation} disabled={chatLoading}>
-                {chatLoading ? (language === "en" ? "Asking..." : "Menjawab...") : labels.askRule}
-              </button>
-              {chatStatus && <div className="status-banner">{chatStatus}</div>}
-              {chatAnswer && <pre>{chatAnswer}</pre>}
-            </div>
           </Panel>
         )}
 
@@ -1472,6 +1520,50 @@ function TextArea({ label, value, onChange }: { label: string; value: string; on
       <span>{label}</span>
       <textarea value={value} onChange={(event) => onChange(event.target.value)} rows={4} />
     </label>
+  );
+}
+
+function InlineRichText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  return (
+    <>
+      {parts.map((part, index) =>
+        part.startsWith("**") && part.endsWith("**") ? <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong> : <span key={`${part}-${index}`}>{part}</span>
+      )}
+    </>
+  );
+}
+
+function MarkdownText({ text }: { text: string }) {
+  const blocks = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="rich-text">
+      {blocks.map((block, index) => {
+        const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+        const isList = lines.every((line) => /^[-•]\s+/.test(line));
+        if (isList) {
+          return (
+            <ul key={`block-${index}`}>
+              {lines.map((line, lineIndex) => (
+                <li key={`line-${lineIndex}`}>
+                  <InlineRichText text={line.replace(/^[-•]\s+/, "")} />
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <p key={`block-${index}`}>
+            <InlineRichText text={block.replace(/^#{1,6}\s*/, "")} />
+          </p>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1796,6 +1888,156 @@ function DecisionDatabasePanel({
   );
 }
 
+function SmartChart({ chart }: { chart: SmartChatResponse["charts"][number] }) {
+  const max = Math.max(...chart.items.map((item) => item.value), 1);
+  return (
+    <article className="smart-chart-card">
+      <h3>{chart.title}</h3>
+      {chart.type === "donut" && <div className="donut compact-donut" style={buildDonutStyle(chart.items)} />}
+      <div className="smart-chart-bars">
+        {chart.items.map((item) => (
+          <div key={item.label} className="smart-chart-bar">
+            <span>{item.label}</span>
+            <div>
+              <i style={{ width: `${Math.max(6, (item.value / max) * 100)}%`, background: item.color }} />
+            </div>
+            <b>{item.value}</b>
+          </div>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function SmartChatPanel({
+  labels,
+  question,
+  mode,
+  response,
+  status,
+  error,
+  loading,
+  onQuestionChange,
+  onModeChange,
+  onAsk
+}: {
+  labels: (typeof copy)["en"];
+  question: string;
+  mode: SmartChatSourceMode;
+  response: SmartChatResponse | null;
+  status: string;
+  error: string;
+  loading: boolean;
+  onQuestionChange: (value: string) => void;
+  onModeChange: (value: SmartChatSourceMode) => void;
+  onAsk: () => void;
+}) {
+  return (
+    <section className="smart-chat-layout">
+      <Panel title={labels.smartChatTitle}>
+        <p className="muted lead-copy">{labels.smartChatIntro}</p>
+        <div className="form-grid">
+          <label className="control wide">
+            <span>{labels.smartQuestion}</span>
+            <textarea
+              value={question}
+              onChange={(event) => onQuestionChange(event.target.value)}
+              placeholder={labels.smartQuestionPlaceholder}
+              rows={5}
+            />
+          </label>
+          <label className="control">
+            <span>{labels.smartMode}</span>
+            <select value={mode} onChange={(event) => onModeChange(event.target.value as SmartChatSourceMode)}>
+              <option value="all">{labels.smartModeAll}</option>
+              <option value="decisions">{labels.smartModeDecisions}</option>
+              <option value="regulations">{labels.smartModeRegulations}</option>
+            </select>
+          </label>
+        </div>
+        {error && <div className="status-banner error">{error}</div>}
+        <button className="primary-button" onClick={onAsk} disabled={loading || !question.trim()}>
+          {loading ? labels.askingSmartChat : labels.askSmartChat}
+        </button>
+      </Panel>
+
+      <Panel title={labels.smartAnswer}>
+        {!response ? (
+          <div className="empty-state">{labels.noSmartAnswer}</div>
+        ) : (
+          <>
+            {status && <div className="status-banner success">{status}</div>}
+            <MarkdownText text={response.answer} />
+            <div className="retrieval-summary">
+              <b>{labels.retrievalSummary}</b>
+              <span>
+                {response.retrieval.usedDecisions}/{response.retrieval.totalDecisions} decisions ·{" "}
+                {response.retrieval.usedRegulations}/{response.retrieval.totalRegulations} regulations
+              </span>
+            </div>
+            {response.charts.length > 0 && (
+              <>
+                <h3 className="section-subtitle">{labels.smartCharts}</h3>
+                <div className="smart-chart-grid">
+                  {response.charts.map((chart) => (
+                    <SmartChart key={chart.title} chart={chart} />
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="source-grid">
+              <div>
+                <h3 className="section-subtitle">{labels.retrievedDecisions}</h3>
+                <div className="source-list">
+                  {response.decisionHits.length ? (
+                    response.decisionHits.slice(0, 5).map((item) => (
+                      <article key={item.id} className="source-card">
+                        <b>{item.number}</b>
+                        <span>{item.taxpayer} · {item.taxType} · {item.issue}</span>
+                        <p>{item.outcome}</p>
+                        <small>Cosine {item.score}%</small>
+                        {item.url.startsWith("https://") && (
+                          <a href={item.url} target="_blank" rel="noreferrer">
+                            {labels.openReference}
+                          </a>
+                        )}
+                      </article>
+                    ))
+                  ) : (
+                    <div className="empty-state">{labels.noDynamicDocuments}</div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <h3 className="section-subtitle">{labels.retrievedRules}</h3>
+                <div className="source-list">
+                  {response.ruleHits.length ? (
+                    response.ruleHits.slice(0, 5).map((item) => (
+                      <article key={item.id} className="source-card">
+                        <b>{item.title}</b>
+                        <span>{item.citation} · {item.topic}</span>
+                        <p>{item.snippet}</p>
+                        <small>Cosine {item.score}% · {item.source}</small>
+                        {item.sourceUrl.startsWith("https://") && (
+                          <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                            {labels.openReference}
+                          </a>
+                        )}
+                      </article>
+                    ))
+                  ) : (
+                    <div className="empty-state">{labels.noRegulations}</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </Panel>
+    </section>
+  );
+}
+
 function CaseSearchPanel({
   labels,
   text,
@@ -1955,7 +2197,7 @@ function AnalysisResult({
         ))}
       </div>
       <h3>{labels.recommendation}</h3>
-      <pre>{analysis.recommendation}</pre>
+      <MarkdownText text={analysis.recommendation} />
       {canExport && onDownload && (
         <div className="export-actions">
           <button className="primary-button" onClick={() => onDownload("docx")} disabled={Boolean(exportLoading)}>
