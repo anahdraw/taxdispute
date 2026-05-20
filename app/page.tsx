@@ -412,7 +412,7 @@ function LoginScreen({
   return (
     <main className="login-shell">
       <section className="login-card">
-        <div>
+        <div className="login-brand">
           <RsmMark />
           <p className="eyebrow">Tax Dispute Simple Advisor</p>
           <h1>{labels.loginTitle}</h1>
