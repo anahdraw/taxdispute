@@ -6,7 +6,8 @@ import { upload } from "@vercel/blob/client";
 import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeInput } from "@/lib/analyze";
 import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } from "@/lib/case-search";
 import type { ExtractionResult } from "@/lib/extraction";
-import { regulations } from "@/lib/mock-data";
+import { regulations, type Regulation } from "@/lib/mock-data";
+import { filterRegulationsByTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 type Language = "id" | "en";
@@ -21,8 +22,8 @@ const evidenceOptions = {
 
 const copy = {
   id: {
-    subtitle: "Prototype Next.js untuk ekstraksi dokumen sengketa, pencarian putusan pembanding, konteks peraturan PPN, review risiko, dan draft rekomendasi WP.",
-    appGuidance: "Gunakan alur ini untuk upload putusan, ekstraksi data, mencari pembanding, tanya peraturan PPN, lalu membuat draft Word/PDF untuk review advisor.",
+    subtitle: "Prototype Next.js untuk ekstraksi dokumen sengketa, pencarian putusan pembanding, konteks peraturan pajak, review risiko, dan draft rekomendasi WP.",
+    appGuidance: "Gunakan alur ini untuk upload putusan, ekstraksi data, mencari pembanding, tanya peraturan PPN atau Transfer Pricing, lalu membuat draft Word/PDF untuk review advisor.",
     dashboard: "Dashboard",
     guided: "Alur Terpandu",
     analysis: "Analisis Kasus WP",
@@ -33,7 +34,7 @@ const copy = {
     dataVisualization: "Visualisasi Data",
     indexed: "Putusan terindeks",
     coverage: "Coverage ekstraksi",
-    vatDocs: "Dokumen PPN",
+    vatDocs: "Dokumen PPN/TP",
     localRules: "Peraturan lokal",
     llmLabels: "Label LLM",
     startAnalysis: "Buat Analisis",
@@ -56,7 +57,7 @@ const copy = {
     health: "Check API Health",
     analyzing: "Menganalisis dengan LLM...",
     askRule: "Tanya aturan",
-    ruleQuestion: "Pertanyaan aturan PPN",
+    ruleQuestion: "Pertanyaan aturan pajak",
     chatAnswer: "Jawaban chatbot",
     extractWithLlm: "Ekstrak PDF dengan LLM",
     extracting: "Mengekstrak PDF...",
@@ -117,11 +118,28 @@ const copy = {
     deleteSaved: "Dokumen dihapus.",
     noDynamicDocuments: "Belum ada dokumen database. Upload PDF di menu Database Putusan agar dashboard terisi otomatis.",
     decisionOutcomes: "Outcome Putusan",
-    topDisputeIssues: "Top Pokok Sengketa"
+    topDisputeIssues: "Top Pokok Sengketa",
+    regulationTopic: "Topik peraturan",
+    updateFromOrtax: "Update dari Ortax",
+    updatingRules: "Mengambil aturan dari Ortax...",
+    regulationUpdated: "Knowledge peraturan diperbarui.",
+    source: "Sumber",
+    openSource: "Buka sumber",
+    manualRegulation: "Upload / input manual aturan",
+    manualTitle: "Nama aturan",
+    manualCitation: "Nomor / sitasi",
+    manualFocus: "Ringkasan fungsi aturan",
+    manualSourceUrl: "Link sumber",
+    manualContent: "Catatan atau kutipan ringkas",
+    uploadManualRule: "Upload file teks aturan",
+    saveManualRule: "Simpan aturan manual",
+    savingManualRule: "Menyimpan aturan...",
+    regulationHelp: "Pilih topik untuk memperbarui knowledge dari Ortax. Untuk aturan yang belum tersedia, upload/paste ringkasan manual agar chatbot bisa memakainya.",
+    allTopics: "Semua topik"
   },
   en: {
-    subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, VAT regulation context, risk review, and taxpayer recommendation drafting.",
-    appGuidance: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT regulation questions, then produce Word/PDF drafts for advisor review.",
+    subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, tax regulation context, risk review, and taxpayer recommendation drafting.",
+    appGuidance: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT or Transfer Pricing regulation questions, then produce Word/PDF drafts for advisor review.",
     dashboard: "Dashboard",
     guided: "Guided Flow",
     analysis: "Taxpayer Case Analysis",
@@ -132,7 +150,7 @@ const copy = {
     dataVisualization: "Data Visualization",
     indexed: "Indexed decisions",
     coverage: "Extraction coverage",
-    vatDocs: "VAT documents",
+    vatDocs: "VAT/TP documents",
     localRules: "Local regulations",
     llmLabels: "LLM labels",
     startAnalysis: "Create Analysis",
@@ -155,7 +173,7 @@ const copy = {
     health: "Check API Health",
     analyzing: "Analyzing with LLM...",
     askRule: "Ask regulation",
-    ruleQuestion: "VAT regulation question",
+    ruleQuestion: "Tax regulation question",
     chatAnswer: "Chatbot answer",
     extractWithLlm: "Extract PDF with LLM",
     extracting: "Extracting PDF...",
@@ -216,7 +234,24 @@ const copy = {
     deleteSaved: "Document deleted.",
     noDynamicDocuments: "No database documents yet. Upload PDFs in Decision Database so the dashboard updates automatically.",
     decisionOutcomes: "Decision Outcomes",
-    topDisputeIssues: "Top Dispute Issues"
+    topDisputeIssues: "Top Dispute Issues",
+    regulationTopic: "Regulation topic",
+    updateFromOrtax: "Update from Ortax",
+    updatingRules: "Fetching rules from Ortax...",
+    regulationUpdated: "Regulation knowledge updated.",
+    source: "Source",
+    openSource: "Open source",
+    manualRegulation: "Manual rule upload / input",
+    manualTitle: "Rule name",
+    manualCitation: "Number / citation",
+    manualFocus: "Rule summary",
+    manualSourceUrl: "Source link",
+    manualContent: "Notes or short excerpt",
+    uploadManualRule: "Upload rule text file",
+    saveManualRule: "Save manual rule",
+    savingManualRule: "Saving rule...",
+    regulationHelp: "Choose a topic to refresh knowledge from Ortax. For rules not yet available, upload or paste a manual summary so the chatbot can use it.",
+    allTopics: "All topics"
   }
 };
 
@@ -339,9 +374,11 @@ function classifyOutcome(outcome: string, language: Language) {
   return language === "en" ? "Unclassified" : "Belum terklasifikasi";
 }
 
-function buildDynamicDashboard(documents: StoredDecisionFile[], language: Language) {
+function buildDynamicDashboard(documents: StoredDecisionFile[], language: Language, localRegulationCount: number) {
   const extracted = documents.filter((item) => item.extraction);
-  const vatDocs = documents.filter((item) => /ppn|vat/i.test([item.extraction?.taxType, item.filename].filter(Boolean).join(" "))).length;
+  const topicDocs = documents.filter((item) =>
+    /ppn|vat|transfer pricing|harga transfer|hubungan istimewa|afiliasi/i.test([item.extraction?.taxType, item.extraction?.issueType, item.filename].filter(Boolean).join(" "))
+  ).length;
   const issueCounts = new Map<string, number>();
   const outcomeCounts = new Map<string, number>();
 
@@ -358,8 +395,8 @@ function buildDynamicDashboard(documents: StoredDecisionFile[], language: Langua
     stats: {
       indexedDecisions: documents.length,
       extractionCoverage: documents.length ? Math.round((extracted.length / documents.length) * 100) : 0,
-      vatDocuments: vatDocs,
-      localRegulations: regulations.length,
+      vatDocuments: topicDocs,
+      localRegulations: localRegulationCount,
       llmLabels: extracted.length
     },
     outcomeDistribution: Array.from(outcomeCounts.entries()).map(([label, value], index) => ({
@@ -411,7 +448,7 @@ export default function Home() {
   const [analysisError, setAnalysisError] = useState("");
   const [exportLoading, setExportLoading] = useState<"docx" | "pdf" | "">("");
   const [exportError, setExportError] = useState("");
-  const [chatQuestion, setChatQuestion] = useState("Where is input VAT creditability regulated?");
+  const [chatQuestion, setChatQuestion] = useState("Where is transfer pricing documentation regulated?");
   const [chatAnswer, setChatAnswer] = useState("");
   const [chatStatus, setChatStatus] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -430,10 +467,24 @@ export default function Home() {
   const [blobUploadError, setBlobUploadError] = useState("");
   const [extractingDocumentId, setExtractingDocumentId] = useState("");
   const [deletingDocumentId, setDeletingDocumentId] = useState("");
+  const [regulationRecords, setRegulationRecords] = useState<Regulation[]>(regulations);
+  const [regulationTopic, setRegulationTopic] = useState<RegulationTopic>("transfer_pricing");
+  const [regulationStatus, setRegulationStatus] = useState("");
+  const [regulationError, setRegulationError] = useState("");
+  const [regulationLoading, setRegulationLoading] = useState(false);
+  const [manualRule, setManualRule] = useState({
+    title: "",
+    citation: "",
+    focus: "",
+    sourceUrl: "",
+    content: ""
+  });
+  const [manualRuleSaving, setManualRuleSaving] = useState(false);
   const labels = copy[language];
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }), [form, language]);
   const analysis = serverAnalysis ?? localAnalysis;
-  const dynamicDashboard = useMemo(() => buildDynamicDashboard(storedDocuments, language), [storedDocuments, language]);
+  const dynamicDashboard = useMemo(() => buildDynamicDashboard(storedDocuments, language, regulationRecords.length), [storedDocuments, language, regulationRecords.length]);
+  const visibleRegulations = useMemo(() => filterRegulationsByTopic(regulationRecords, regulationTopic), [regulationRecords, regulationTopic]);
   const pages: Array<[PageKey, string]> = [
     ["dashboard", labels.dashboard],
     ["guided", labels.guided],
@@ -464,6 +515,26 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRegulations() {
+      try {
+        const response = await fetch("/api/regulations");
+        if (!response.ok) return;
+        const data = (await response.json()) as { records?: Regulation[] };
+        if (!cancelled && Array.isArray(data.records) && data.records.length) {
+          setRegulationRecords(data.records);
+        }
+      } catch {
+        // Seed regulation cards remain available if the database is unavailable.
+      }
+    }
+    loadRegulations();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   function changeLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage);
     setForm((current) => ({ ...current, language: nextLanguage }));
@@ -471,7 +542,7 @@ export default function Home() {
     setAnalysisError("");
     setExportError("");
     if (!chatAnswer) {
-      setChatQuestion(nextLanguage === "en" ? "Where is input VAT creditability regulated?" : "Di mana aturan pengkreditan pajak masukan berada?");
+      setChatQuestion(nextLanguage === "en" ? "Where is transfer pricing documentation regulated?" : "Di mana aturan dokumentasi transfer pricing berada?");
     }
     if (caseSearchText || caseSearchExtraction) {
       const query = [caseSearchText, extractionToSearchText(caseSearchExtraction)].filter(Boolean).join("\n");
@@ -926,7 +997,7 @@ export default function Home() {
       const response = await fetch("/api/regulation-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: chatQuestion, language })
+        body: JSON.stringify({ question: chatQuestion, language, topic: regulationTopic })
       });
       const data = await response.json();
       if (!response.ok) {
@@ -940,6 +1011,73 @@ export default function Home() {
     } finally {
       setChatLoading(false);
     }
+  }
+
+  async function updateRegulationsFromOrtax() {
+    setRegulationLoading(true);
+    setRegulationStatus("");
+    setRegulationError("");
+    try {
+      const response = await fetch("/api/regulations/ortax", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: regulationTopic })
+      });
+      const data = (await response.json()) as { records?: Regulation[]; error?: string; imported?: number };
+      if (!response.ok) {
+        throw new Error(data.error || "Could not update Ortax regulations.");
+      }
+      if (Array.isArray(data.records) && data.records.length) {
+        setRegulationRecords(data.records);
+      }
+      setRegulationStatus(`${labels.regulationUpdated} ${data.imported || 0} ${language === "en" ? "record(s)" : "data"}.`);
+    } catch (error) {
+      setRegulationError(error instanceof Error ? error.message : "Could not update Ortax regulations.");
+    } finally {
+      setRegulationLoading(false);
+    }
+  }
+
+  async function saveManualRegulation() {
+    setManualRuleSaving(true);
+    setRegulationStatus("");
+    setRegulationError("");
+    try {
+      const response = await fetch("/api/regulations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: regulationTopic,
+          ...manualRule,
+          relevance: 75
+        })
+      });
+      const data = (await response.json()) as { records?: Regulation[]; error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Could not save regulation.");
+      }
+      if (Array.isArray(data.records) && data.records.length) {
+        setRegulationRecords(data.records);
+      }
+      setManualRule({ title: "", citation: "", focus: "", sourceUrl: "", content: "" });
+      setRegulationStatus(labels.regulationUpdated);
+    } catch (error) {
+      setRegulationError(error instanceof Error ? error.message : "Could not save regulation.");
+    } finally {
+      setManualRuleSaving(false);
+    }
+  }
+
+  async function onManualRuleFileChange(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    const text = await file.text().catch(() => "");
+    setManualRule((current) => ({
+      ...current,
+      title: current.title || file.name.replace(/\.[a-z0-9]+$/i, ""),
+      content: text || current.content,
+      focus: current.focus || text.slice(0, 600)
+    }));
   }
 
   return (
@@ -1126,15 +1264,64 @@ export default function Home() {
 
         {page === "regulations" && (
           <Panel title={labels.relatedRules}>
+            <p className="muted lead-copy">{labels.regulationHelp}</p>
+            <div className="regulation-toolbar">
+              <label className="control">
+                <span>{labels.regulationTopic}</span>
+                <select value={regulationTopic} onChange={(event) => setRegulationTopic(event.target.value as RegulationTopic)}>
+                  {regulationTopicOptions.map((topic) => (
+                    <option key={topic.key} value={topic.key}>
+                      {topic[language]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button className="primary-button" onClick={updateRegulationsFromOrtax} disabled={regulationLoading}>
+                {regulationLoading ? labels.updatingRules : labels.updateFromOrtax}
+              </button>
+            </div>
+            {regulationStatus && <div className="status-banner success">{regulationStatus}</div>}
+            {regulationError && <div className="status-banner error">{regulationError}</div>}
             <div className="regulation-grid">
-              {regulations.map((item) => (
+              {visibleRegulations.map((item) => (
                 <article key={item.id} className="reg-card">
                   <b>{item.title}</b>
                   <span>{item.citation}</span>
                   <p>{item.focus}</p>
+                  {item.content && <p className="muted">{item.content}</p>}
+                  <small>
+                    {labels.source}: {item.source || "seed"}
+                    {item.sourceUrl && item.sourceUrl.startsWith("https://") ? (
+                      <>
+                        {" · "}
+                        <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                          {labels.openSource}
+                        </a>
+                      </>
+                    ) : null}
+                  </small>
                   <div className="score-pill">{item.relevance}% relevance</div>
                 </article>
               ))}
+            </div>
+            <div className="manual-rule-box">
+              <h3>{labels.manualRegulation}</h3>
+              <div className="form-grid">
+                <Input label={labels.manualTitle} value={manualRule.title} onChange={(value) => setManualRule((current) => ({ ...current, title: value }))} />
+                <Input label={labels.manualCitation} value={manualRule.citation} onChange={(value) => setManualRule((current) => ({ ...current, citation: value }))} />
+                <Input label={labels.manualSourceUrl} value={manualRule.sourceUrl} onChange={(value) => setManualRule((current) => ({ ...current, sourceUrl: value }))} />
+              </div>
+              <TextArea label={labels.manualFocus} value={manualRule.focus} onChange={(value) => setManualRule((current) => ({ ...current, focus: value }))} />
+              <TextArea label={labels.manualContent} value={manualRule.content} onChange={(value) => setManualRule((current) => ({ ...current, content: value }))} />
+              <div className="regulation-actions">
+                <label className="table-button upload-inline">
+                  {labels.uploadManualRule}
+                  <input type="file" accept=".txt,.md,.text" onChange={(event) => onManualRuleFileChange(event.target.files)} />
+                </label>
+                <button className="primary-button secondary-button" onClick={saveManualRegulation} disabled={manualRuleSaving}>
+                  {manualRuleSaving ? labels.savingManualRule : labels.saveManualRule}
+                </button>
+              </div>
             </div>
             <div className="chat-preview">
               <strong>{labels.chatAnswer}</strong>

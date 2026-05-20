@@ -434,8 +434,8 @@ export async function buildReportDocx(payload: ReportPayload) {
   const generatedAt = new Date().toLocaleString(en ? "en-US" : "id-ID");
   const title = en ? "Taxpayer Recommendation Report" : "Laporan Rekomendasi Wajib Pajak";
   const subtitle = en
-    ? "Structured VAT dispute analysis based on extracted document data, comparable decisions, regulation context, and LLM-assisted advisor review."
-    : "Analisis sengketa PPN terstruktur berdasarkan hasil ekstraksi dokumen, putusan pembanding, konteks peraturan, dan telaah advisor berbantuan LLM.";
+    ? "Structured tax dispute analysis based on extracted document data, comparable decisions, regulation context, and LLM-assisted advisor review."
+    : "Analisis sengketa pajak terstruktur berdasarkan hasil ekstraksi dokumen, putusan pembanding, konteks peraturan, dan telaah advisor berbantuan LLM.";
 
   const children: Array<Paragraph | Table> = [
     new Paragraph({
@@ -635,8 +635,8 @@ export async function buildReportPdf(payload: ReportPayload) {
   drawHeading(en ? "Taxpayer Recommendation Report" : "Laporan Rekomendasi Wajib Pajak", 18);
   drawParagraph(
     en
-      ? "Structured VAT dispute analysis based on extracted document data, comparable decisions, regulation context, and LLM-assisted advisor review."
-      : "Analisis sengketa PPN terstruktur berdasarkan hasil ekstraksi dokumen, putusan pembanding, konteks peraturan, dan telaah advisor berbantuan LLM.",
+      ? "Structured tax dispute analysis based on extracted document data, comparable decisions, regulation context, and LLM-assisted advisor review."
+      : "Analisis sengketa pajak terstruktur berdasarkan hasil ekstraksi dokumen, putusan pembanding, konteks peraturan, dan telaah advisor berbantuan LLM.",
     { fontSize: 10.5 }
   );
   drawParagraph(`${en ? "Generated" : "Dibuat"}: ${new Date().toLocaleString(en ? "en-US" : "id-ID")}`, { fontSize: 9 });

@@ -789,6 +789,50 @@ pre {
   gap: 14px;
 }
 
+.regulation-toolbar,
+.regulation-actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.regulation-toolbar .control {
+  min-width: min(320px, 100%);
+}
+
+.reg-card small {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.manual-rule-box {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.manual-rule-box h3 {
+  margin: 0 0 14px;
+  font-size: var(--text-lg);
+}
+
+.upload-inline {
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-inline input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .score-pill {
   display: inline-flex;
   margin-top: 8px;

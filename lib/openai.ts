@@ -1,6 +1,7 @@
 import type { AnalysisResult, AnalyzeInput } from "./analyze";
 import type { ExtractionResult } from "./extraction";
-import { comparableDecisions, regulations } from "./mock-data";
+import { comparableDecisions, regulations, type Regulation } from "./mock-data";
+import { chooseRegulationContext } from "./regulation-knowledge";
 
 export type LlmStatus = {
   used: boolean;
@@ -173,27 +174,36 @@ export function extractJsonObject(text: string) {
   }
 }
 
-export async function buildLlmAnalysis(input: AnalyzeInput, local: AnalysisResult, extraction?: ExtractionResult | null): Promise<AnalysisResult> {
+export async function buildLlmAnalysis(
+  input: AnalyzeInput,
+  local: AnalysisResult,
+  extraction?: ExtractionResult | null,
+  regulationContext: Regulation[] = regulations
+): Promise<AnalysisResult> {
+  const matchedRegulations = chooseRegulationContext(
+    regulationContext.length ? regulationContext : regulations,
+    `${input.taxType} ${input.issueType} ${input.taxAuthorityPosition} ${input.taxpayerPosition}`
+  );
   if (!hasOpenAIKey()) {
-    return { ...local, llmStatus: missingKeyStatus(input.language) };
+    return { ...local, regulations: matchedRegulations, llmStatus: missingKeyStatus(input.language) };
   }
 
   const model = configuredModel();
   const system =
     input.language === "en"
-      ? "You are a senior Indonesian tax dispute advisor. Produce cautious, practical analysis for VAT disputes. Do not invent case facts. Return JSON only."
-      : "Anda adalah senior advisor sengketa pajak Indonesia. Buat analisis praktis dan hati-hati untuk sengketa PPN. Jangan mengarang fakta. Kembalikan JSON saja.";
+      ? "You are a senior Indonesian tax dispute advisor. Produce cautious, practical analysis for Indonesian tax disputes, including VAT and transfer pricing where relevant. Do not invent case facts. Return JSON only."
+      : "Anda adalah senior advisor sengketa pajak Indonesia. Buat analisis praktis dan hati-hati untuk sengketa pajak Indonesia, termasuk PPN dan transfer pricing jika relevan. Jangan mengarang fakta. Kembalikan JSON saja.";
   const prompt = JSON.stringify(
     {
       instruction:
         input.language === "en"
-          ? "Improve the local analysis into a thorough advisor-grade report. Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. The recommendation must be long-form and suitable for an approximately 8-page Word memo: executive summary, document/extraction summary, factual chronology, tax authority position, taxpayer position, disputed amount mapping, legal/regulatory basis, evidence sufficiency review, evidence gaps, risk assessment, comparable decision strategy, argument strategy, recommended document checklist, and next steps. Use clear headings in plain text. Do not use Markdown tables."
-          : "Perdalam analisis lokal menjadi report advisor yang komprehensif. Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Rekomendasi harus long-form dan layak menjadi memo Word sekitar 8 halaman: ringkasan eksekutif, ringkasan dokumen/ekstraksi, kronologi fakta, posisi DJP, posisi WP, pemetaan nilai sengketa, dasar hukum/peraturan, review kecukupan bukti, celah bukti, asesmen risiko, strategi putusan pembanding, strategi argumentasi, checklist dokumen, dan langkah berikutnya. Gunakan heading teks biasa. Jangan gunakan tabel Markdown.",
+          ? "Improve the local analysis into a thorough advisor-grade report. Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. The recommendation must be long-form and suitable for an approximately 8-page Word memo: executive summary, document/extraction summary, factual chronology, tax authority position, taxpayer position, disputed amount mapping, legal/regulatory basis, evidence sufficiency review, evidence gaps, risk assessment, comparable decision strategy, argument strategy, recommended document checklist, and next steps. Use the regulation context that best matches the case topic. Use clear headings in plain text. Do not use Markdown tables."
+          : "Perdalam analisis lokal menjadi report advisor yang komprehensif. Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Rekomendasi harus long-form dan layak menjadi memo Word sekitar 8 halaman: ringkasan eksekutif, ringkasan dokumen/ekstraksi, kronologi fakta, posisi DJP, posisi WP, pemetaan nilai sengketa, dasar hukum/peraturan, review kecukupan bukti, celah bukti, asesmen risiko, strategi putusan pembanding, strategi argumentasi, checklist dokumen, dan langkah berikutnya. Gunakan konteks peraturan yang paling cocok dengan topik kasus. Gunakan heading teks biasa. Jangan gunakan tabel Markdown.",
       caseInput: input,
       extractedDocument: extraction || null,
       localAnalysis: local,
       comparableDecisionContext: comparableDecisions.slice(0, 2),
-      regulationContext: regulations
+      regulationContext: matchedRegulations
     },
     null,
     2
@@ -215,6 +225,7 @@ export async function buildLlmAnalysis(input: AnalyzeInput, local: AnalysisResul
           implication: typeof llmCase?.implication === "string" ? llmCase.implication : item.implication
         };
       }),
+      regulations: matchedRegulations,
       llmStatus: {
         used: true,
         model,
@@ -224,6 +235,7 @@ export async function buildLlmAnalysis(input: AnalyzeInput, local: AnalysisResul
   } catch (error) {
     return {
       ...local,
+      regulations: matchedRegulations,
       llmStatus: {
         used: false,
         model,
@@ -235,32 +247,34 @@ export async function buildLlmAnalysis(input: AnalyzeInput, local: AnalysisResul
   }
 }
 
-export async function answerRegulationQuestion(question: string, language: "id" | "en") {
+export async function answerRegulationQuestion(question: string, language: "id" | "en", regulationContext: Regulation[] = regulations) {
   const model = configuredModel();
+  const context = regulationContext.length ? regulationContext : regulations;
+  const top = context.slice(0, 3);
   const localAnswer =
     language === "en"
-      ? `Based on the local VAT regulation cards, start with ${regulations[0].title} (${regulations[0].citation}) for taxable delivery and input VAT creditability, then use ${regulations[2].title} (${regulations[2].citation}) for tax invoice evidence.`
-      : `Berdasarkan kartu peraturan PPN lokal, mulai dari ${regulations[0].title} (${regulations[0].citation}) untuk penyerahan kena pajak dan pengkreditan pajak masukan, lalu gunakan ${regulations[2].title} (${regulations[2].citation}) untuk bukti faktur pajak.`;
+      ? `Based on the available regulation cards, start with ${top[0]?.title || "the closest regulation"} (${top[0]?.citation || "local context"}). Then compare it with ${top[1]?.title || "supporting rules"}${top[1]?.citation ? ` (${top[1].citation})` : ""} for supporting requirements, evidence, and dispute positioning.`
+      : `Berdasarkan kartu peraturan yang tersedia, mulai dari ${top[0]?.title || "aturan terdekat"} (${top[0]?.citation || "konteks lokal"}). Lalu sandingkan dengan ${top[1]?.title || "aturan pendukung"}${top[1]?.citation ? ` (${top[1].citation})` : ""} untuk syarat pendukung, pembuktian, dan posisi sengketa.`;
 
   if (!hasOpenAIKey()) {
     return {
       answer: localAnswer,
-      citations: regulations.slice(0, 3),
+      citations: top,
       llmStatus: missingKeyStatus(language)
     };
   }
 
   const system =
     language === "en"
-      ? "You are a VAT regulation chatbot for Indonesian tax disputes. Answer from the provided regulation context only. Name where the rule is located. If context is insufficient, say so."
-      : "Anda adalah chatbot aturan PPN untuk sengketa pajak Indonesia. Jawab hanya dari konteks peraturan yang diberikan. Sebutkan lokasi aturannya. Jika konteks belum cukup, katakan demikian.";
-  const prompt = JSON.stringify({ question, regulationContext: regulations, responseLanguage: language }, null, 2);
+      ? "You are an Indonesian tax regulation chatbot for tax disputes. Answer from the provided regulation context only. Cover VAT and transfer pricing when relevant. Name where each rule is located. If context is insufficient, say so and identify what regulation should be added."
+      : "Anda adalah chatbot peraturan pajak Indonesia untuk sengketa pajak. Jawab hanya dari konteks peraturan yang diberikan. Bahas PPN dan transfer pricing jika relevan. Sebutkan lokasi setiap aturan. Jika konteks belum cukup, katakan dan sebutkan aturan apa yang perlu ditambahkan.";
+  const prompt = JSON.stringify({ question, regulationContext: context, responseLanguage: language }, null, 2);
 
   try {
     const answer = await callOpenAIText(prompt, system, model);
     return {
       answer,
-      citations: regulations.slice(0, 3),
+      citations: top,
       llmStatus: {
         used: true,
         model,
@@ -272,7 +286,7 @@ export async function answerRegulationQuestion(question: string, language: "id" 
       answer: `${localAnswer}\n\n${language === "en" ? "LLM note" : "Catatan LLM"}: ${
         error instanceof Error ? error.message : "Unknown error"
       }`,
-      citations: regulations.slice(0, 3),
+      citations: top,
       llmStatus: {
         used: false,
         model,

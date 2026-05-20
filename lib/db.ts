@@ -1,6 +1,8 @@
 import { Pool } from "pg";
 import type { StoredDecisionFile } from "./stored-decisions";
 import type { ExtractionResult } from "./extraction";
+import type { Regulation } from "./mock-data";
+import { normalizeRegulationTopic } from "./regulation-knowledge";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -143,4 +145,86 @@ export async function upsertDecisionExtraction(documentId: string, extraction: E
 export async function deleteDecisionDocument(documentId: string) {
   await ensureDecisionSchema();
   await getPool().query(`DELETE FROM decision_documents WHERE id = $1`, [documentId]);
+}
+
+export async function ensureRegulationSchema() {
+  const pool = getPool();
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tax_regulations (
+      id TEXT PRIMARY KEY,
+      topic TEXT NOT NULL DEFAULT 'general',
+      title TEXT NOT NULL,
+      citation TEXT NOT NULL,
+      focus TEXT NOT NULL,
+      relevance INTEGER NOT NULL DEFAULT 70,
+      source TEXT NOT NULL DEFAULT 'manual',
+      source_url TEXT NOT NULL DEFAULT '',
+      content TEXT NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS tax_regulations_topic_idx
+      ON tax_regulations (topic, updated_at DESC);
+  `);
+}
+
+export async function listTaxRegulations(): Promise<Regulation[]> {
+  await ensureRegulationSchema();
+  const result = await getPool().query(`
+    SELECT id, topic, title, citation, focus, relevance, source, source_url, content, updated_at
+    FROM tax_regulations
+    ORDER BY topic ASC, updated_at DESC, relevance DESC;
+  `);
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    topic: normalizeRegulationTopic(row.topic),
+    title: String(row.title),
+    citation: String(row.citation),
+    focus: String(row.focus),
+    relevance: Number(row.relevance || 70),
+    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : "manual",
+    sourceUrl: String(row.source_url || ""),
+    content: String(row.content || ""),
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
+  }));
+}
+
+export async function upsertTaxRegulations(records: Regulation[]) {
+  if (records.length === 0) return;
+  await ensureRegulationSchema();
+  const pool = getPool();
+  for (const record of records) {
+    await pool.query(
+      `
+        INSERT INTO tax_regulations
+          (id, topic, title, citation, focus, relevance, source, source_url, content, updated_at)
+        VALUES
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ON CONFLICT (id) DO UPDATE SET
+          topic = EXCLUDED.topic,
+          title = EXCLUDED.title,
+          citation = EXCLUDED.citation,
+          focus = EXCLUDED.focus,
+          relevance = EXCLUDED.relevance,
+          source = EXCLUDED.source,
+          source_url = EXCLUDED.source_url,
+          content = EXCLUDED.content,
+          updated_at = EXCLUDED.updated_at;
+      `,
+      [
+        record.id,
+        normalizeRegulationTopic(record.topic),
+        record.title,
+        record.citation,
+        record.focus,
+        Math.max(1, Math.min(100, Number(record.relevance || 70))),
+        record.source || "manual",
+        record.sourceUrl || "",
+        record.content || "",
+        record.updatedAt || new Date().toISOString()
+      ]
+    );
+  }
 }

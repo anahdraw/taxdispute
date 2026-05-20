@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { buildAnalysis, type AnalyzeInput } from "@/lib/analyze";
+import { hasDatabase, listTaxRegulations } from "@/lib/db";
 import type { ExtractionResult } from "@/lib/extraction";
+import { mergeRegulationRecords } from "@/lib/regulation-knowledge";
 import { buildLlmAnalysis } from "@/lib/openai";
 
 export const runtime = "nodejs";
@@ -11,7 +13,8 @@ export async function POST(request: Request) {
     const input = ("input" in body ? body.input : body) as AnalyzeInput;
     const extraction = ("extraction" in body ? body.extraction : null) as ExtractionResult | null;
     const localAnalysis = buildAnalysis(input);
-    return NextResponse.json(await buildLlmAnalysis(input, localAnalysis, extraction));
+    const storedRegulations = hasDatabase() ? await listTaxRegulations().catch(() => []) : [];
+    return NextResponse.json(await buildLlmAnalysis(input, localAnalysis, extraction, mergeRegulationRecords(storedRegulations)));
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Invalid analysis request" },

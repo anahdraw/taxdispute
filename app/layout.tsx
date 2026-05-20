@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "RSM Tax Dispute Simple Advisor",
-  description: "Next.js prototype for tax dispute document review, comparable decisions, VAT regulations, and taxpayer recommendations."
+  description: "Next.js prototype for tax dispute document review, comparable decisions, tax regulations, and taxpayer recommendations."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
