@@ -75,7 +75,7 @@ export async function listDecisionDocuments(): Promise<StoredDecisionFile[]> {
     FROM decision_documents d
     LEFT JOIN decision_extractions e ON e.document_id = d.id
     ORDER BY d.uploaded_at DESC
-    LIMIT 250;
+    LIMIT 1000;
   `);
   return result.rows.map((row) => ({
     id: String(row.id),

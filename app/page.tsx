@@ -1310,6 +1310,7 @@ function DecisionDatabasePanel({
 
   async function copyBlobUrl(item: StoredDecisionFile) {
     const target = item.url || item.downloadUrl || item.pathname;
+    if (!target.startsWith("https://")) return;
     try {
       await navigator.clipboard.writeText(target);
     } catch {
@@ -1377,6 +1378,7 @@ function DecisionDatabasePanel({
                 {sortedDocuments.map((item) => {
                   const status = item.status || (item.extraction ? "extracted" : "uploaded");
                   const busy = Boolean(extractingDocumentId || deletingDocumentId);
+                  const hasPdfUrl = Boolean((item.url || item.downloadUrl || "").startsWith("https://"));
                   return (
                     <tr key={item.id}>
                       <td className="file-cell">{item.filename}</td>
@@ -1388,12 +1390,12 @@ function DecisionDatabasePanel({
                       <td>{formatBytes(item.size)}</td>
                       <td>{new Date(item.uploadedAt).toLocaleString()}</td>
                       <td>
-                        <button className="table-button compact" onClick={() => copyBlobUrl(item)}>
+                        <button className="table-button compact" onClick={() => copyBlobUrl(item)} disabled={!hasPdfUrl}>
                           {copiedDocumentId === item.id ? labels.copiedBlob : labels.copyBlob}
                         </button>
                       </td>
                       <td className="action-cell">
-                        <button className="table-button" onClick={() => onExtract(item)} disabled={busy}>
+                        <button className="table-button" onClick={() => onExtract(item)} disabled={busy || !hasPdfUrl}>
                           {extractingDocumentId === item.id ? labels.extractingStored : status === "extracted" ? labels.reExtractStored : labels.extractStored}
                         </button>
                         <button className="table-button danger" onClick={() => onDelete(item)} disabled={busy}>
@@ -1401,9 +1403,13 @@ function DecisionDatabasePanel({
                         </button>
                       </td>
                       <td>
-                        <a href={item.downloadUrl || item.url} target="_blank" rel="noreferrer">
-                          {labels.openPdf}
-                        </a>
+                        {hasPdfUrl ? (
+                          <a href={item.downloadUrl || item.url} target="_blank" rel="noreferrer">
+                            {labels.openPdf}
+                          </a>
+                        ) : (
+                          "-"
+                        )}
                       </td>
                     </tr>
                   );

@@ -57,8 +57,8 @@ export async function DELETE(request: Request) {
     }
 
     let blobWarning = "";
-    const blobTarget = body.url || body.downloadUrl || body.pathname || "";
-    if (blobTarget && process.env.BLOB_READ_WRITE_TOKEN) {
+    const blobTarget = body.url || body.downloadUrl || "";
+    if (blobTarget.startsWith("https://") && process.env.BLOB_READ_WRITE_TOKEN) {
       try {
         await del(blobTarget);
       } catch (error) {
