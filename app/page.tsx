@@ -135,7 +135,16 @@ const copy = {
     saveManualRule: "Simpan aturan manual",
     savingManualRule: "Menyimpan aturan...",
     regulationHelp: "Pilih topik untuk memperbarui knowledge dari Ortax. Untuk aturan yang belum tersedia, upload/paste ringkasan manual agar chatbot bisa memakainya.",
-    allTopics: "Semua topik"
+    allTopics: "Semua topik",
+    totalRecords: "Total data",
+    itemsPerPage: "Per halaman",
+    pageOf: "Halaman",
+    previousPage: "Sebelumnya",
+    nextPage: "Berikutnya",
+    showingRecords: "Menampilkan",
+    storedRuleList: "List aturan tersimpan",
+    jumpToStoredRules: "Lihat list aturan tersimpan",
+    noRegulations: "Belum ada aturan untuk topik ini."
   },
   en: {
     subtitle: "A Next.js prototype for dispute document extraction, comparable decision search, tax regulation context, risk review, and taxpayer recommendation drafting.",
@@ -251,7 +260,16 @@ const copy = {
     saveManualRule: "Save manual rule",
     savingManualRule: "Saving rule...",
     regulationHelp: "Choose a topic to refresh knowledge from Ortax. For rules not yet available, upload or paste a manual summary so the chatbot can use it.",
-    allTopics: "All topics"
+    allTopics: "All topics",
+    totalRecords: "Total records",
+    itemsPerPage: "Per page",
+    pageOf: "Page",
+    previousPage: "Previous",
+    nextPage: "Next",
+    showingRecords: "Showing",
+    storedRuleList: "Stored regulation list",
+    jumpToStoredRules: "View stored regulation list",
+    noRegulations: "No regulations yet for this topic."
   }
 };
 
@@ -330,6 +348,25 @@ function formatBytes(bytes: number) {
     unit += 1;
   }
   return `${size.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+}
+
+function getPageNumbers(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+  const pages = new Set([1, totalPages, currentPage, currentPage - 1, currentPage + 1]);
+  return Array.from(pages)
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+}
+
+function getPaginationRange(totalItems: number, currentPage: number, perPage: number) {
+  if (!totalItems) return { start: 0, end: 0 };
+  const start = (currentPage - 1) * perPage + 1;
+  return {
+    start,
+    end: Math.min(start + perPage - 1, totalItems)
+  };
 }
 
 function cleanMergedText(value: unknown) {
@@ -480,11 +517,19 @@ export default function Home() {
     content: ""
   });
   const [manualRuleSaving, setManualRuleSaving] = useState(false);
+  const [regulationPage, setRegulationPage] = useState(1);
+  const [regulationPerPage, setRegulationPerPage] = useState(6);
   const labels = copy[language];
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }), [form, language]);
   const analysis = serverAnalysis ?? localAnalysis;
   const dynamicDashboard = useMemo(() => buildDynamicDashboard(storedDocuments, language, regulationRecords.length), [storedDocuments, language, regulationRecords.length]);
   const visibleRegulations = useMemo(() => filterRegulationsByTopic(regulationRecords, regulationTopic), [regulationRecords, regulationTopic]);
+  const regulationTotalPages = Math.max(1, Math.ceil(visibleRegulations.length / regulationPerPage));
+  const currentRegulationPage = Math.min(regulationPage, regulationTotalPages);
+  const pagedRegulations = useMemo(
+    () => visibleRegulations.slice((currentRegulationPage - 1) * regulationPerPage, currentRegulationPage * regulationPerPage),
+    [visibleRegulations, currentRegulationPage, regulationPerPage]
+  );
   const pages: Array<[PageKey, string]> = [
     ["dashboard", labels.dashboard],
     ["guided", labels.guided],
@@ -514,6 +559,10 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    setRegulationPage((current) => Math.min(Math.max(1, current), regulationTotalPages));
+  }, [regulationTotalPages]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1268,7 +1317,13 @@ export default function Home() {
             <div className="regulation-toolbar">
               <label className="control">
                 <span>{labels.regulationTopic}</span>
-                <select value={regulationTopic} onChange={(event) => setRegulationTopic(event.target.value as RegulationTopic)}>
+                <select
+                  value={regulationTopic}
+                  onChange={(event) => {
+                    setRegulationTopic(event.target.value as RegulationTopic);
+                    setRegulationPage(1);
+                  }}
+                >
                   {regulationTopicOptions.map((topic) => (
                     <option key={topic.key} value={topic.key}>
                       {topic[language]}
@@ -1279,30 +1334,60 @@ export default function Home() {
               <button className="primary-button" onClick={updateRegulationsFromOrtax} disabled={regulationLoading}>
                 {regulationLoading ? labels.updatingRules : labels.updateFromOrtax}
               </button>
+              <a className="table-button jump-link" href="#stored-regulations">
+                {labels.jumpToStoredRules}
+              </a>
             </div>
             {regulationStatus && <div className="status-banner success">{regulationStatus}</div>}
             {regulationError && <div className="status-banner error">{regulationError}</div>}
-            <div className="regulation-grid">
-              {visibleRegulations.map((item) => (
-                <article key={item.id} className="reg-card">
-                  <b>{item.title}</b>
-                  <span>{item.citation}</span>
-                  <p>{item.focus}</p>
-                  {item.content && <p className="muted">{item.content}</p>}
-                  <small>
-                    {labels.source}: {item.source || "seed"}
-                    {item.sourceUrl && item.sourceUrl.startsWith("https://") ? (
-                      <>
-                        {" · "}
-                        <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-                          {labels.openSource}
-                        </a>
-                      </>
-                    ) : null}
-                  </small>
-                  <div className="score-pill">{item.relevance}% relevance</div>
-                </article>
-              ))}
+            <div id="stored-regulations" className="stored-rule-list">
+              <h3>{labels.storedRuleList}</h3>
+              {visibleRegulations.length === 0 ? (
+                <div className="empty-state">{labels.noRegulations}</div>
+              ) : (
+                <>
+                  <PaginationControls
+                    labels={labels}
+                    totalItems={visibleRegulations.length}
+                    currentPage={currentRegulationPage}
+                    perPage={regulationPerPage}
+                    perPageOptions={[3, 6, 9, 12]}
+                    onPageChange={setRegulationPage}
+                    onPerPageChange={setRegulationPerPage}
+                  />
+                  <div className="regulation-grid">
+                    {pagedRegulations.map((item) => (
+                      <article key={item.id} className="reg-card">
+                        <b>{item.title}</b>
+                        <span>{item.citation}</span>
+                        <p>{item.focus}</p>
+                        {item.content && <p className="muted">{item.content}</p>}
+                        <small>
+                          {labels.source}: {item.source || "seed"}
+                          {item.sourceUrl && item.sourceUrl.startsWith("https://") ? (
+                            <>
+                              {" · "}
+                              <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                                {labels.openSource}
+                              </a>
+                            </>
+                          ) : null}
+                        </small>
+                        <div className="score-pill">{item.relevance}% relevance</div>
+                      </article>
+                    ))}
+                  </div>
+                  <PaginationControls
+                    labels={labels}
+                    totalItems={visibleRegulations.length}
+                    currentPage={currentRegulationPage}
+                    perPage={regulationPerPage}
+                    perPageOptions={[3, 6, 9, 12]}
+                    onPageChange={setRegulationPage}
+                    onPerPageChange={setRegulationPerPage}
+                  />
+                </>
+              )}
             </div>
             <div className="manual-rule-box">
               <h3>{labels.manualRegulation}</h3>
@@ -1390,6 +1475,76 @@ function TextArea({ label, value, onChange }: { label: string; value: string; on
   );
 }
 
+function PaginationControls({
+  labels,
+  totalItems,
+  currentPage,
+  perPage,
+  perPageOptions = [10, 25, 50, 100],
+  onPageChange,
+  onPerPageChange
+}: {
+  labels: (typeof copy)["en"];
+  totalItems: number;
+  currentPage: number;
+  perPage: number;
+  perPageOptions?: number[];
+  onPageChange: (page: number) => void;
+  onPerPageChange: (perPage: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / perPage));
+  const safePage = Math.min(Math.max(1, currentPage), totalPages);
+  const range = getPaginationRange(totalItems, safePage, perPage);
+  const pages = getPageNumbers(safePage, totalPages);
+  return (
+    <div className="pagination-bar">
+      <div className="pagination-summary">
+        <strong>
+          {labels.totalRecords}: {totalItems}
+        </strong>
+        <span>
+          {labels.showingRecords} {range.start}-{range.end}
+        </span>
+      </div>
+      <label className="per-page-control">
+        <span>{labels.itemsPerPage}</span>
+        <select
+          value={perPage}
+          onChange={(event) => {
+            onPerPageChange(Number(event.target.value));
+            onPageChange(1);
+          }}
+        >
+          {perPageOptions.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="page-buttons" aria-label={`${labels.pageOf} ${safePage} / ${totalPages}`}>
+        <button className="table-button compact" onClick={() => onPageChange(Math.max(1, safePage - 1))} disabled={safePage === 1}>
+          {labels.previousPage}
+        </button>
+        {pages.map((page, index) => {
+          const previous = pages[index - 1];
+          return (
+            <span key={page} className="page-button-group">
+              {previous && page - previous > 1 ? <span className="page-ellipsis">...</span> : null}
+              <button className={`page-number ${page === safePage ? "active" : ""}`} onClick={() => onPageChange(page)}>
+                {page}
+              </button>
+            </span>
+          );
+        })}
+        <button className="table-button compact" onClick={() => onPageChange(Math.min(totalPages, safePage + 1))} disabled={safePage === totalPages}>
+          {labels.nextPage}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ExtractionSummary({ labels, extraction }: { labels: (typeof copy)["en"]; extraction: ExtractionResult }) {
   const rows = [
     ["File", extraction.filename],
@@ -1462,6 +1617,8 @@ function DecisionDatabasePanel({
   type SortKey = "filename" | "status" | "decision" | "taxpayer" | "size" | "uploadedAt";
   const [sort, setSort] = useState<{ key: SortKey; direction: "asc" | "desc" }>({ key: "uploadedAt", direction: "desc" });
   const [copiedDocumentId, setCopiedDocumentId] = useState("");
+  const [pageNumber, setPageNumber] = useState(1);
+  const [perPage, setPerPage] = useState(10);
   const sortedDocuments = useMemo(() => {
     const getValue = (item: StoredDecisionFile, key: SortKey) => {
       if (key === "status") return item.status || (item.extraction ? "extracted" : "uploaded");
@@ -1478,12 +1635,23 @@ function DecisionDatabasePanel({
       return sort.direction === "asc" ? result : -result;
     });
   }, [storedDocuments, sort]);
+  const totalPages = Math.max(1, Math.ceil(sortedDocuments.length / perPage));
+  const currentPage = Math.min(pageNumber, totalPages);
+  const pagedDocuments = useMemo(
+    () => sortedDocuments.slice((currentPage - 1) * perPage, currentPage * perPage),
+    [sortedDocuments, currentPage, perPage]
+  );
+
+  useEffect(() => {
+    setPageNumber((current) => Math.min(Math.max(1, current), totalPages));
+  }, [totalPages]);
 
   function toggleSort(key: SortKey) {
     setSort((current) => ({
       key,
       direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
     }));
+    setPageNumber(1);
   }
 
   function SortButton({ sortKey, children }: { sortKey: SortKey; children: React.ReactNode }) {
@@ -1546,64 +1714,82 @@ function DecisionDatabasePanel({
         {storedDocuments.length === 0 ? (
           <div className="empty-state">{labels.noStoredDocuments}</div>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th><SortButton sortKey="filename">File</SortButton></th>
-                  <th><SortButton sortKey="status">{labels.status}</SortButton></th>
-                  <th><SortButton sortKey="decision">{labels.decisionNumber}</SortButton></th>
-                  <th><SortButton sortKey="taxpayer">{labels.taxpayer}</SortButton></th>
-                  <th><SortButton sortKey="size">{labels.fileSize}</SortButton></th>
-                  <th><SortButton sortKey="uploadedAt">{labels.uploadedAt}</SortButton></th>
-                  <th>{labels.blobPath}</th>
-                  <th>{labels.action}</th>
-                  <th>{labels.openPdf}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedDocuments.map((item) => {
-                  const status = item.status || (item.extraction ? "extracted" : "uploaded");
-                  const busy = Boolean(extractingDocumentId || deletingDocumentId);
-                  const hasPdfUrl = Boolean((item.url || item.downloadUrl || "").startsWith("https://"));
-                  return (
-                    <tr key={item.id}>
-                      <td className="file-cell">{item.filename}</td>
-                      <td>
-                        <span className={`db-status ${status}`}>{status}</span>
-                      </td>
-                      <td>{item.extraction?.putusanNumber || "-"}</td>
-                      <td>{item.extraction?.taxpayerName || "-"}</td>
-                      <td>{formatBytes(item.size)}</td>
-                      <td>{new Date(item.uploadedAt).toLocaleString()}</td>
-                      <td>
-                        <button className="table-button compact" onClick={() => copyBlobUrl(item)} disabled={!hasPdfUrl}>
-                          {copiedDocumentId === item.id ? labels.copiedBlob : labels.copyBlob}
-                        </button>
-                      </td>
-                      <td className="action-cell">
-                        <button className="table-button" onClick={() => onExtract(item)} disabled={busy || !hasPdfUrl}>
-                          {extractingDocumentId === item.id ? labels.extractingStored : status === "extracted" ? labels.reExtractStored : labels.extractStored}
-                        </button>
-                        <button className="table-button danger" onClick={() => onDelete(item)} disabled={busy}>
-                          {deletingDocumentId === item.id ? labels.deletingStored : labels.deleteStored}
-                        </button>
-                      </td>
-                      <td>
-                        {hasPdfUrl ? (
-                          <a href={item.downloadUrl || item.url} target="_blank" rel="noreferrer">
-                            {labels.openPdf}
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <PaginationControls
+              labels={labels}
+              totalItems={sortedDocuments.length}
+              currentPage={currentPage}
+              perPage={perPage}
+              onPageChange={setPageNumber}
+              onPerPageChange={setPerPage}
+            />
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th><SortButton sortKey="filename">File</SortButton></th>
+                    <th><SortButton sortKey="status">{labels.status}</SortButton></th>
+                    <th><SortButton sortKey="decision">{labels.decisionNumber}</SortButton></th>
+                    <th><SortButton sortKey="taxpayer">{labels.taxpayer}</SortButton></th>
+                    <th><SortButton sortKey="size">{labels.fileSize}</SortButton></th>
+                    <th><SortButton sortKey="uploadedAt">{labels.uploadedAt}</SortButton></th>
+                    <th>{labels.blobPath}</th>
+                    <th>{labels.action}</th>
+                    <th>{labels.openPdf}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedDocuments.map((item) => {
+                    const status = item.status || (item.extraction ? "extracted" : "uploaded");
+                    const busy = Boolean(extractingDocumentId || deletingDocumentId);
+                    const hasPdfUrl = Boolean((item.url || item.downloadUrl || "").startsWith("https://"));
+                    return (
+                      <tr key={item.id}>
+                        <td className="file-cell">{item.filename}</td>
+                        <td>
+                          <span className={`db-status ${status}`}>{status}</span>
+                        </td>
+                        <td>{item.extraction?.putusanNumber || "-"}</td>
+                        <td>{item.extraction?.taxpayerName || "-"}</td>
+                        <td>{formatBytes(item.size)}</td>
+                        <td>{new Date(item.uploadedAt).toLocaleString()}</td>
+                        <td>
+                          <button className="table-button compact" onClick={() => copyBlobUrl(item)} disabled={!hasPdfUrl}>
+                            {copiedDocumentId === item.id ? labels.copiedBlob : labels.copyBlob}
+                          </button>
+                        </td>
+                        <td className="action-cell">
+                          <button className="table-button" onClick={() => onExtract(item)} disabled={busy || !hasPdfUrl}>
+                            {extractingDocumentId === item.id ? labels.extractingStored : status === "extracted" ? labels.reExtractStored : labels.extractStored}
+                          </button>
+                          <button className="table-button danger" onClick={() => onDelete(item)} disabled={busy}>
+                            {deletingDocumentId === item.id ? labels.deletingStored : labels.deleteStored}
+                          </button>
+                        </td>
+                        <td>
+                          {hasPdfUrl ? (
+                            <a href={item.downloadUrl || item.url} target="_blank" rel="noreferrer">
+                              {labels.openPdf}
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <PaginationControls
+              labels={labels}
+              totalItems={sortedDocuments.length}
+              currentPage={currentPage}
+              perPage={perPage}
+              onPageChange={setPageNumber}
+              onPerPageChange={setPerPage}
+            />
+          </>
         )}
       </Panel>
     </section>

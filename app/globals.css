@@ -552,6 +552,9 @@ th {
 }
 
 .table-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 34px;
   border: 1px solid rgba(0, 156, 222, 0.22);
   border-radius: 8px;
@@ -560,6 +563,7 @@ th {
   font-size: var(--text-xs);
   font-weight: 800;
   padding: 0 12px;
+  text-decoration: none;
 }
 
 .table-button.compact {
@@ -577,6 +581,82 @@ th {
   flex-wrap: wrap;
   gap: 8px;
   min-width: 210px;
+}
+
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0 16px;
+  border: 1px solid #e7edf2;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px 12px;
+}
+
+.pagination-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.pagination-summary strong {
+  color: var(--ink);
+}
+
+.per-page-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.per-page-control select {
+  width: auto;
+  min-width: 82px;
+  min-height: 34px;
+}
+
+.page-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.page-button-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-number {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--rsm-gray);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.page-number.active {
+  border-color: var(--rsm-blue);
+  background: var(--rsm-blue);
+  color: #fff;
+}
+
+.page-ellipsis {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
 }
 
 .secondary-button {
@@ -814,6 +894,15 @@ pre {
   margin-top: 18px;
   padding-top: 18px;
   border-top: 1px solid var(--line);
+}
+
+.stored-rule-list {
+  scroll-margin-top: 24px;
+}
+
+.stored-rule-list h3 {
+  margin: 18px 0 12px;
+  font-size: var(--text-lg);
 }
 
 .manual-rule-box h3 {
