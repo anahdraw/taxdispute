@@ -31,6 +31,7 @@ type ReportBlock =
   | { type: "heading"; level: 2 | 3; text: string }
   | { type: "paragraph"; text: string }
   | { type: "bullet"; text: string }
+  | { type: "numbered"; number: string; text: string }
   | { type: "table"; headers: string[]; rows: string[][] };
 
 const COLORS = {
@@ -123,9 +124,18 @@ function splitRecommendation(text: string): ReportBlock[] {
       continue;
     }
 
+    if (/^[A-Z0-9 /&(),.'-]+$/.test(raw) && /[A-Z]/.test(raw) && raw.length >= 5 && raw.length <= 80) {
+      blocks.push({ type: "heading", level: 3, text: cleanMarkdown(raw) });
+      continue;
+    }
+
     const numberedHeading = raw.match(/^(\d+)[.)]\s+(.+)$/);
-    if (numberedHeading && raw.length < 96) {
+    if (numberedHeading && raw.length < 80 && !/[.!?;:]$/.test(raw)) {
       blocks.push({ type: "heading", level: 2, text: cleanMarkdown(`${numberedHeading[1]}. ${numberedHeading[2]}`) });
+      continue;
+    }
+    if (numberedHeading) {
+      blocks.push({ type: "numbered", number: numberedHeading[1], text: cleanMarkdown(numberedHeading[2]) });
       continue;
     }
 
@@ -187,6 +197,18 @@ function scoreRows(payload: ReportPayload): LabelValue[] {
   ];
 }
 
+function scoreBreakdownRows(payload: ReportPayload): string[][] {
+  const { analysis, language } = payload;
+  const en = isEn(language);
+  return (analysis.scoringBreakdown?.components || []).map((component) => [
+    component.label,
+    `${component.maxPoints}`,
+    `${component.earnedPoints}`,
+    component.rationale,
+    component.signals.slice(0, 4).join("; ") || (en ? "No signal recorded" : "Tidak ada sinyal tercatat")
+  ]);
+}
+
 function positionRows(payload: ReportPayload): LabelValue[] {
   const { input, extraction, language } = payload;
   const en = isEn(language);
@@ -212,6 +234,7 @@ function evidenceRows(payload: ReportPayload): LabelValue[] {
 function sectionTitle(text: string) {
   return new Paragraph({
     heading: HeadingLevel.HEADING_1,
+    keepNext: true,
     spacing: { before: 260, after: 120 },
     children: [new TextRun({ text, bold: true, color: COLORS.blue, size: 28, font: "Arial" })]
   });
@@ -220,9 +243,14 @@ function sectionTitle(text: string) {
 function subTitle(text: string) {
   return new Paragraph({
     heading: HeadingLevel.HEADING_2,
+    keepNext: true,
     spacing: { before: 180, after: 80 },
     children: [new TextRun({ text, bold: true, color: COLORS.charcoal, size: 23, font: "Arial" })]
   });
+}
+
+function spacer(spacingAfter = 80) {
+  return new Paragraph({ spacing: { after: spacingAfter }, children: [] });
 }
 
 function bodyParagraph(text: string, options: { bold?: boolean; color?: string; spacingAfter?: number } = {}) {
@@ -303,15 +331,15 @@ function makeKeyValueTable(rows: LabelValue[]) {
 
 function makeDecisionTable(payload: ReportPayload) {
   const en = isEn(payload.language);
-  const widths = [560, 2400, 1700, 760, 3940];
+  const widths = [520, 2400, 1700, 900, 3840];
   return makeTable([
     new TableRow({
       tableHeader: true,
       children: [
-        cell(en ? "No." : "No.", { header: true, width: widths[0], align: AlignmentType.CENTER }),
+        cell("#", { header: true, width: widths[0], align: AlignmentType.CENTER }),
         cell(en ? "Decision" : "Putusan", { header: true, width: widths[1] }),
         cell(en ? "Issue" : "Isu", { header: true, width: widths[2] }),
-        cell(en ? "Score" : "Skor", { header: true, width: widths[3], align: AlignmentType.CENTER }),
+        cell(en ? "Score %" : "Skor %", { header: true, width: widths[3], align: AlignmentType.CENTER }),
         cell(en ? "Relevance / implication" : "Relevansi / implikasi", { header: true, width: widths[4] })
       ]
     }),
@@ -351,6 +379,35 @@ function makeRegulationTable(payload: ReportPayload) {
   ], widths);
 }
 
+function makeScoreBreakdownTable(payload: ReportPayload) {
+  const en = isEn(payload.language);
+  const widths = [1900, 780, 780, 3000, 2900];
+  return makeTable([
+    new TableRow({
+      tableHeader: true,
+      children: [
+        cell(en ? "Component" : "Komponen", { header: true, width: widths[0] }),
+        cell(en ? "Max" : "Maks.", { header: true, width: widths[1], align: AlignmentType.CENTER }),
+        cell(en ? "Pts" : "Poin", { header: true, width: widths[2], align: AlignmentType.CENTER }),
+        cell(en ? "Assessment basis" : "Dasar penilaian", { header: true, width: widths[3] }),
+        cell(en ? "Signals used" : "Sinyal yang dipakai", { header: true, width: widths[4] })
+      ]
+    }),
+    ...scoreBreakdownRows(payload).map(
+      (row) =>
+        new TableRow({
+          children: [
+            cell(row[0], { width: widths[0] }),
+            cell(row[1], { width: widths[1], align: AlignmentType.CENTER }),
+            cell(row[2], { width: widths[2], align: AlignmentType.CENTER }),
+            cell(row[3], { width: widths[3] }),
+            cell(row[4], { width: widths[4] })
+          ]
+        })
+    )
+  ], widths);
+}
+
 function makeMarkdownTable(block: Extract<ReportBlock, { type: "table" }>) {
   const columnCount = Math.max(block.headers.length, ...block.rows.map((row) => row.length));
   const width = Math.floor(PAGE_TEXT_WIDTH_DXA / Math.max(columnCount, 1));
@@ -385,11 +442,47 @@ function recommendationChildren(payload: ReportPayload) {
     } else if (block.type === "table") {
       children.push(makeMarkdownTable(block));
       children.push(bodyParagraph(" ", { spacingAfter: 80 }));
+    } else if (block.type === "numbered") {
+      children.push(
+        new Paragraph({
+          indent: { left: 360, hanging: 260 },
+          spacing: { after: 90, line: 280 },
+          children: [
+            new TextRun({ text: `${block.number}. `, bold: true, color: COLORS.charcoal, size: 21, font: "Arial" }),
+            new TextRun({ text: block.text, color: COLORS.text, size: 21, font: "Arial" })
+          ]
+        })
+      );
     } else {
       children.push(bodyParagraph(block.text));
     }
   }
   return children;
+}
+
+function decisionChildren(payload: ReportPayload) {
+  const en = isEn(payload.language);
+  const children: Array<Paragraph | Table> = [];
+  payload.analysis.topCases.slice(0, 2).forEach((item, idx) => {
+    children.push(subTitle(`${idx + 1}. ${item.number}`));
+    children.push(
+      makeKeyValueTable([
+        [en ? "Tax / issue" : "Pajak / isu", `${value(item.taxType)} | ${value(item.issue)}`],
+        [en ? "Indicative similarity" : "Kemiripan indikatif", `${item.score}%`],
+        [en ? "Outcome" : "Outcome", value(item.outcome)],
+        [en ? "Amount" : "Nilai", value(item.amount)]
+      ])
+    );
+    children.push(spacer(70));
+    children.push(bodyParagraph(en ? "Why this decision matters" : "Mengapa putusan ini penting", { bold: true, color: COLORS.charcoal, spacingAfter: 60 }));
+    narrativeParagraphs(item.reasoning).forEach((part) => children.push(bodyParagraph(part, { spacingAfter: 90 })));
+    children.push(bodyParagraph(en ? "Advisor implication" : "Implikasi untuk advisor", { bold: true, color: COLORS.charcoal, spacingAfter: 60 }));
+    narrativeParagraphs(item.implication).forEach((part) => children.push(bodyParagraph(part, { spacingAfter: 90 })));
+    if (item.matchPoints.length) {
+      children.push(bodyParagraph(`${en ? "Match signals" : "Sinyal kemiripan"}: ${item.matchPoints.slice(0, 6).join("; ")}`, { color: COLORS.muted, spacingAfter: 120 }));
+    }
+  });
+  return children.length ? children : [bodyParagraph(en ? "No comparable decision is available." : "Belum ada putusan pembanding.")];
 }
 
 function positionChildren(payload: ReportPayload) {
@@ -415,6 +508,11 @@ export function buildReportLines(payload: ReportPayload) {
     en ? "Executive Assessment" : "Penilaian Eksekutif",
     ...scoreRows(payload).map(([label, rowValue]) => `${label}: ${rowValue}`),
     "",
+    en ? "Scoring Methodology" : "Metodologi Skor",
+    payload.analysis.scoringBreakdown?.formula || "",
+    ...scoreBreakdownRows(payload).map((row) => `${row[0]}: ${row[2]}/${row[1]} - ${row[3]} (${row[4]})`),
+    ...(payload.analysis.scoringBreakdown?.notes || []),
+    "",
     en ? "Positions and Evidence" : "Posisi dan Bukti",
     ...positionRows(payload).map(([label, rowValue]) => `${label}: ${rowValue}`),
     ...evidenceRows(payload).map(([label, rowValue]) => `${label}: ${rowValue}`),
@@ -423,6 +521,7 @@ export function buildReportLines(payload: ReportPayload) {
     ...splitRecommendation(payload.analysis.recommendation).flatMap((block) => {
       if (block.type === "heading") return [block.text];
       if (block.type === "bullet") return [`- ${block.text}`];
+      if (block.type === "numbered") return [`${block.number}. ${block.text}`];
       if (block.type === "table") return [block.headers.join(" | "), ...block.rows.map((row) => row.join(" | "))];
       return [block.text];
     })
@@ -432,10 +531,10 @@ export function buildReportLines(payload: ReportPayload) {
 export async function buildReportDocx(payload: ReportPayload) {
   const en = isEn(payload.language);
   const generatedAt = new Date().toLocaleString(en ? "en-US" : "id-ID");
-  const title = en ? "Taxpayer Recommendation Report" : "Laporan Rekomendasi Wajib Pajak";
+  const title = en ? "Tax Dispute Advisor Report" : "Laporan Tax Dispute Advisor";
   const subtitle = en
-    ? "Structured tax dispute analysis based on extracted document data, comparable decisions, regulation context, and LLM-assisted advisor review."
-    : "Analisis sengketa pajak terstruktur berdasarkan hasil ekstraksi dokumen, putusan pembanding, konteks peraturan, dan telaah advisor berbantuan LLM.";
+    ? "Advisor-ready dispute review based on extracted case data, transparent scorecard, comparable decisions, regulation context, and LLM-assisted drafting."
+    : "Telaah sengketa siap-review advisor berdasarkan data kasus terekstraksi, scorecard transparan, putusan pembanding, konteks peraturan, dan drafting berbantuan LLM.";
 
   const children: Array<Paragraph | Table> = [
     new Paragraph({
@@ -460,10 +559,16 @@ export async function buildReportDocx(payload: ReportPayload) {
 
     sectionTitle(en ? "1. Case Details" : "1. Detail Kasus"),
     makeKeyValueTable(caseRows(payload)),
-    payload.extraction?.summary ? bodyParagraph(payload.extraction.summary, { spacingAfter: 160 }) : bodyParagraph(" ", { spacingAfter: 60 }),
+    ...(payload.extraction?.summary
+      ? [subTitle(en ? "Document Summary" : "Ringkasan Dokumen"), bodyParagraph(payload.extraction.summary, { spacingAfter: 160 })]
+      : [bodyParagraph(" ", { spacingAfter: 60 })]),
 
     sectionTitle(en ? "2. Executive Assessment" : "2. Penilaian Eksekutif"),
     makeKeyValueTable(scoreRows(payload)),
+    subTitle(en ? "Transparent Scoring Methodology" : "Metodologi Skor Transparan"),
+    bodyParagraph(payload.analysis.scoringBreakdown?.formula || "-", { color: COLORS.charcoal, spacingAfter: 100 }),
+    makeScoreBreakdownTable(payload),
+    ...(payload.analysis.scoringBreakdown?.notes || []).map((note) => bodyParagraph(note, { color: COLORS.muted, spacingAfter: 70 })),
 
     sectionTitle(en ? "3. Positions and Evidence" : "3. Posisi dan Bukti"),
     ...positionChildren(payload),
@@ -471,7 +576,7 @@ export async function buildReportDocx(payload: ReportPayload) {
     makeKeyValueTable(evidenceRows(payload)),
 
     sectionTitle(en ? "4. Most Relevant Decisions" : "4. Putusan Paling Terkait"),
-    makeDecisionTable(payload),
+    ...decisionChildren(payload),
 
     sectionTitle(en ? "5. Regulatory Basis" : "5. Dasar Peraturan"),
     makeRegulationTable(payload),
@@ -481,7 +586,7 @@ export async function buildReportDocx(payload: ReportPayload) {
   ];
 
   const doc = new DocxDocument({
-    creator: "RSM Tax Dispute Simple Advisor",
+    creator: "RSM Tax Dispute Advisor",
     title: "Tax Dispute Analysis Report",
     styles: {
       paragraphStyles: [
@@ -507,7 +612,7 @@ export async function buildReportDocx(payload: ReportPayload) {
                 alignment: AlignmentType.CENTER,
                 children: [
                   new TextRun({
-                    text: "RSM Tax Dispute Simple Advisor | Prototype analysis, subject to professional review | Page ",
+                    text: "RSM Tax Dispute Advisor | Indicative analysis, subject to advisor review | Page ",
                     color: COLORS.grey,
                     size: 16,
                     font: "Arial"
@@ -632,21 +737,31 @@ export async function buildReportPdf(payload: ReportPayload) {
   };
 
   addPage();
-  drawHeading(en ? "Taxpayer Recommendation Report" : "Laporan Rekomendasi Wajib Pajak", 18);
+  drawHeading(en ? "Tax Dispute Advisor Report" : "Laporan Tax Dispute Advisor", 18);
   drawParagraph(
     en
-      ? "Structured tax dispute analysis based on extracted document data, comparable decisions, regulation context, and LLM-assisted advisor review."
-      : "Analisis sengketa pajak terstruktur berdasarkan hasil ekstraksi dokumen, putusan pembanding, konteks peraturan, dan telaah advisor berbantuan LLM.",
+      ? "Advisor-ready dispute review based on extracted case data, transparent scorecard, comparable decisions, regulation context, and LLM-assisted drafting."
+      : "Telaah sengketa siap-review advisor berdasarkan data kasus terekstraksi, scorecard transparan, putusan pembanding, konteks peraturan, dan drafting berbantuan LLM.",
     { fontSize: 10.5 }
   );
   drawParagraph(`${en ? "Generated" : "Dibuat"}: ${new Date().toLocaleString(en ? "en-US" : "id-ID")}`, { fontSize: 9 });
 
   drawHeading(en ? "1. Case Details" : "1. Detail Kasus");
   drawKeyValueTable(caseRows(payload));
-  if (payload.extraction?.summary) drawParagraph(payload.extraction.summary);
+  if (payload.extraction?.summary) {
+    drawParagraph(en ? "Document Summary" : "Ringkasan Dokumen", { strong: true, fontSize: 10.5 });
+    drawParagraph(payload.extraction.summary);
+  }
 
   drawHeading(en ? "2. Executive Assessment" : "2. Penilaian Eksekutif");
   drawKeyValueTable(scoreRows(payload));
+  drawParagraph(en ? "Transparent Scoring Methodology" : "Metodologi Skor Transparan", { strong: true, fontSize: 10.5 });
+  drawParagraph(payload.analysis.scoringBreakdown?.formula || "-");
+  scoreBreakdownRows(payload).forEach((row) => {
+    drawParagraph(`${row[0]}: ${row[2]}/${row[1]}`, { strong: true, fontSize: 9.5 });
+    drawParagraph(`${row[3]} ${row[4]}`, { indent: 10, fontSize: 8.5 });
+  });
+  (payload.analysis.scoringBreakdown?.notes || []).forEach((note) => drawParagraph(note, { indent: 10, fontSize: 8.5 }));
 
   drawHeading(en ? "3. Positions and Evidence" : "3. Posisi dan Bukti");
   positionRows(payload).forEach(([label, rowValue]) => {
@@ -670,6 +785,7 @@ export async function buildReportPdf(payload: ReportPayload) {
     if (block.type === "heading") drawHeading(block.text, block.level === 2 ? 13 : 11);
     if (block.type === "paragraph") drawParagraph(block.text);
     if (block.type === "bullet") drawParagraph(`- ${block.text}`, { indent: 14 });
+    if (block.type === "numbered") drawParagraph(`${block.number}. ${block.text}`, { indent: 14 });
     if (block.type === "table") {
       drawParagraph(block.headers.join(" | "), { strong: true });
       block.rows.forEach((row) => drawParagraph(row.join(" | "), { indent: 10 }));
@@ -678,7 +794,7 @@ export async function buildReportPdf(payload: ReportPayload) {
 
   const pages = pdf.getPages();
   pages.forEach((pdfPage, idx) => {
-    pdfPage.drawText(`RSM Tax Dispute Simple Advisor | Prototype analysis, subject to professional review | ${idx + 1}/${pages.length}`, {
+    pdfPage.drawText(`RSM Tax Dispute Advisor | Indicative analysis, subject to advisor review | ${idx + 1}/${pages.length}`, {
       x: margin,
       y: 28,
       size: 7.5,

@@ -196,7 +196,14 @@ const copy = {
     quickGuided: "Upload dan analisis dokumen",
     quickChat: "Tanya Smart Chatbot",
     quickAdmin: "Kelola database dan peraturan",
-    openAction: "Buka"
+    openAction: "Buka",
+    scoreMethodology: "Metodologi skor",
+    scoreFormula: "Formula",
+    scoreComponent: "Komponen",
+    scoreMax: "Bobot maks.",
+    scoreEarned: "Poin",
+    scoreBasis: "Dasar penilaian",
+    scoreNotes: "Catatan skor"
   },
   en: {
     subtitle: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT or Transfer Pricing regulation questions, then produce Word/PDF drafts for advisor review.",
@@ -357,7 +364,14 @@ const copy = {
     quickGuided: "Upload and analyze a document",
     quickChat: "Ask Smart Chatbot",
     quickAdmin: "Manage database and regulations",
-    openAction: "Open"
+    openAction: "Open",
+    scoreMethodology: "Scoring methodology",
+    scoreFormula: "Formula",
+    scoreComponent: "Component",
+    scoreMax: "Max weight",
+    scoreEarned: "Points",
+    scoreBasis: "Assessment basis",
+    scoreNotes: "Score notes"
   }
 };
 
@@ -745,7 +759,7 @@ export default function Home() {
   const [regulationPage, setRegulationPage] = useState(1);
   const [regulationPerPage, setRegulationPerPage] = useState(6);
   const labels = copy[language];
-  const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }), [form, language]);
+  const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }, extraction), [form, language, extraction]);
   const analysis = serverAnalysis ?? localAnalysis;
   const dynamicDashboard = useMemo(() => buildDynamicDashboard(storedDocuments, language, regulationRecords.length), [storedDocuments, language, regulationRecords.length]);
   const visibleRegulations = useMemo(() => filterRegulationsByTopic(regulationRecords, regulationTopic), [regulationRecords, regulationTopic]);
@@ -2457,6 +2471,37 @@ function AnalysisResult({
         <Kpi label="Evidence" value={analysis.evidenceScore.toString()} tone="gray" />
       </div>
       <div className="indication">{analysis.indication}</div>
+      {analysis.scoringBreakdown && (
+        <div className="score-breakdown">
+          <div className="score-breakdown-head">
+            <h3>{labels.scoreMethodology}</h3>
+            <span>{analysis.scoringBreakdown.version}</span>
+          </div>
+          <p>
+            <b>{labels.scoreFormula}:</b> {analysis.scoringBreakdown.formula}
+          </p>
+          <div className="score-components">
+            {analysis.scoringBreakdown.components.map((component) => (
+              <article key={component.id}>
+                <div>
+                  <b>{component.label}</b>
+                  <span>
+                    {component.earnedPoints}/{component.maxPoints}
+                  </span>
+                </div>
+                <meter min="0" max={component.maxPoints} value={component.earnedPoints} />
+                <p>{component.rationale}</p>
+                <small>{component.signals.slice(0, 3).join(" · ")}</small>
+              </article>
+            ))}
+          </div>
+          <ul className="score-notes">
+            {analysis.scoringBreakdown.notes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <h3>{labels.topCases}</h3>
       <div className="case-list">
         {analysis.topCases.map((item) => (
