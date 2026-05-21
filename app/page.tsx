@@ -21,6 +21,8 @@ type DemoSession = {
 const MAX_UPLOAD_BYTES = 3.6 * 1024 * 1024;
 const STORED_DECISIONS_KEY = "tax-dispute-stored-decisions";
 const DEMO_SESSION_KEY = "tax-dispute-demo-session";
+const APP_NAME = "RSM Tax Dispute Agentic Advisor";
+const APP_SHORT_NAME = "Tax Dispute Agentic Advisor";
 const DEMO_USERS: Record<UserRole, { username: string; password: string; name: string }> = {
   admin: { username: "admin", password: "Admin@RSM2026", name: "Admin RSM" },
   user: { username: "user", password: "User@RSM2026", name: "Tax Advisor User" }
@@ -179,7 +181,7 @@ const copy = {
     retrievalSummary: "Ringkasan retrieval",
     noSmartAnswer: "Ajukan pertanyaan untuk melihat jawaban, sumber RAG, dan visualisasi jika relevan.",
     openReference: "Buka referensi",
-    loginTitle: "Masuk ke Tax Dispute Advisor",
+    loginTitle: "Masuk ke RSM Tax Dispute Agentic Advisor",
     loginSubtitle: "Pilih peran untuk mencoba alur prototype. Admin dapat mengelola database dan peraturan; user fokus ke analisis dan chatbot.",
     username: "Username",
     password: "Password",
@@ -347,7 +349,7 @@ const copy = {
     retrievalSummary: "Retrieval summary",
     noSmartAnswer: "Ask a question to see an answer, RAG sources, and visualizations when relevant.",
     openReference: "Open reference",
-    loginTitle: "Sign in to Tax Dispute Advisor",
+    loginTitle: "Sign in to RSM Tax Dispute Agentic Advisor",
     loginSubtitle: "Choose a demo role. Admin can manage the database and regulations; user focuses on analysis and chatbot workflows.",
     username: "Username",
     password: "Password",
@@ -471,7 +473,7 @@ function LoginScreen({
       <section className="login-card">
         <div className="login-brand">
           <RsmMark />
-          <p className="eyebrow">Tax Dispute Advisor</p>
+          <p className="eyebrow">{APP_SHORT_NAME}</p>
           <h1>{labels.loginTitle}</h1>
           <p className="login-subtitle">{labels.loginSubtitle}</p>
         </div>
@@ -1437,7 +1439,7 @@ export default function Home() {
     <main>
       <aside className="sidebar">
         <RsmMark />
-        <p className="caption">Tax Dispute Advisor</p>
+        <p className="caption">{APP_SHORT_NAME}</p>
         <div className="session-card">
           <span>{labels.signedInAs}</span>
           <b>{session.name}</b>
@@ -1468,7 +1470,7 @@ export default function Home() {
       <section className="content">
         <header className="hero">
           <div>
-            <h1>RSM Tax Dispute Advisor</h1>
+            <h1>{APP_NAME}</h1>
             <p>{labels.subtitle}</p>
           </div>
         </header>

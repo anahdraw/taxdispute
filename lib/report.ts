@@ -47,6 +47,7 @@ const COLORS = {
   white: "FFFFFF"
 };
 const PAGE_TEXT_WIDTH_DXA = 9360;
+const APP_NAME = "RSM Tax Dispute Agentic Advisor";
 
 function isEn(language: "id" | "en") {
   return language === "en";
@@ -299,6 +300,58 @@ function cell(text: string, options: { header?: boolean; width?: number; align?:
   });
 }
 
+function noBorders() {
+  return {
+    top: { style: BorderStyle.NONE, size: 0, color: COLORS.white },
+    bottom: { style: BorderStyle.NONE, size: 0, color: COLORS.white },
+    left: { style: BorderStyle.NONE, size: 0, color: COLORS.white },
+    right: { style: BorderStyle.NONE, size: 0, color: COLORS.white },
+    insideHorizontal: { style: BorderStyle.NONE, size: 0, color: COLORS.white },
+    insideVertical: { style: BorderStyle.NONE, size: 0, color: COLORS.white }
+  };
+}
+
+function brandBarCell(width: number, fill?: string) {
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    shading: fill ? { fill } : undefined,
+    borders: noBorders(),
+    children: [
+      new Paragraph({
+        spacing: { before: 0, after: 0, line: 70 },
+        children: [new TextRun({ text: " ", size: 2, font: "Arial" })]
+      })
+    ]
+  });
+}
+
+function rsmDocumentHeader(): Array<Paragraph | Table> {
+  return [
+    new Table({
+      width: { size: 3860, type: WidthType.DXA },
+      columnWidths: [220, 150, 760, 150, 2580],
+      layout: TableLayoutType.FIXED,
+      borders: noBorders(),
+      rows: [
+        new TableRow({
+          children: [
+            brandBarCell(220, COLORS.grey),
+            brandBarCell(150),
+            brandBarCell(760, COLORS.green),
+            brandBarCell(150),
+            brandBarCell(2580, COLORS.blue)
+          ]
+        })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 95, after: 90 },
+      children: [new TextRun({ text: "RSM", bold: true, color: COLORS.charcoal, size: 62, font: "Arial" })]
+    })
+  ];
+}
+
 function makeTable(rows: TableRow[], columnWidths: number[]) {
   return new Table({
     width: { size: PAGE_TEXT_WIDTH_DXA, type: WidthType.DXA },
@@ -497,7 +550,7 @@ function positionChildren(payload: ReportPayload) {
 export function buildReportLines(payload: ReportPayload) {
   const en = isEn(payload.language);
   return [
-    "RSM Tax Dispute Simple Advisor",
+    APP_NAME,
     en ? "Taxpayer Recommendation Report" : "Laporan Rekomendasi Wajib Pajak",
     "",
     `${en ? "Generated" : "Dibuat"}: ${new Date().toLocaleString(en ? "en-US" : "id-ID")}`,
@@ -531,24 +584,13 @@ export function buildReportLines(payload: ReportPayload) {
 export async function buildReportDocx(payload: ReportPayload) {
   const en = isEn(payload.language);
   const generatedAt = new Date().toLocaleString(en ? "en-US" : "id-ID");
-  const title = en ? "Tax Dispute Advisor Report" : "Laporan Tax Dispute Advisor";
+  const title = en ? `${APP_NAME} Report` : `Laporan ${APP_NAME}`;
   const subtitle = en
     ? "Advisor-ready dispute review based on extracted case data, transparent scorecard, comparable decisions, regulation context, and LLM-assisted drafting."
     : "Telaah sengketa siap-review advisor berdasarkan data kasus terekstraksi, scorecard transparan, putusan pembanding, konteks peraturan, dan drafting berbantuan LLM.";
 
   const children: Array<Paragraph | Table> = [
-    new Paragraph({
-      spacing: { after: 40 },
-      children: [
-        new TextRun({ text: "■ ", color: COLORS.grey, size: 18, font: "Arial" }),
-        new TextRun({ text: "━━━━ ", color: COLORS.green, size: 18, font: "Arial" }),
-        new TextRun({ text: "━━━━━━━━━━━━", color: COLORS.blue, size: 18, font: "Arial" })
-      ]
-    }),
-    new Paragraph({
-      spacing: { after: 70 },
-      children: [new TextRun({ text: "RSM", bold: true, color: COLORS.charcoal, size: 48, font: "Arial" })]
-    }),
+    ...rsmDocumentHeader(),
     new Paragraph({
       heading: HeadingLevel.TITLE,
       spacing: { after: 120 },
@@ -586,8 +628,8 @@ export async function buildReportDocx(payload: ReportPayload) {
   ];
 
   const doc = new DocxDocument({
-    creator: "RSM Tax Dispute Advisor",
-    title: "Tax Dispute Analysis Report",
+    creator: APP_NAME,
+    title: `${APP_NAME} Report`,
     styles: {
       paragraphStyles: [
         {
@@ -612,7 +654,7 @@ export async function buildReportDocx(payload: ReportPayload) {
                 alignment: AlignmentType.CENTER,
                 children: [
                   new TextRun({
-                    text: "RSM Tax Dispute Advisor | Indicative analysis, subject to advisor review | Page ",
+                    text: `${APP_NAME} | Indicative analysis, subject to advisor review | Page `,
                     color: COLORS.grey,
                     size: 16,
                     font: "Arial"
@@ -670,11 +712,11 @@ export async function buildReportPdf(payload: ReportPayload) {
   const addPage = () => {
     page = pdf.addPage(pageSize);
     y = pageSize[1] - margin;
-    page.drawText("RSM", { x: margin, y, size: 24, font: bold, color: rgb(0.329, 0.345, 0.353) });
-    page.drawRectangle({ x: margin, y: y + 34, width: 10, height: 8, color: rgb(0.541, 0.561, 0.576) });
-    page.drawRectangle({ x: margin + 18, y: y + 34, width: 42, height: 8, color: rgb(0.263, 0.627, 0.278) });
-    page.drawRectangle({ x: margin + 68, y: y + 34, width: 126, height: 8, color: rgb(0, 0.612, 0.871) });
-    y -= 42;
+    page.drawRectangle({ x: margin, y: y + 40, width: 12, height: 8, color: rgb(0.541, 0.561, 0.576) });
+    page.drawRectangle({ x: margin + 20, y: y + 40, width: 58, height: 8, color: rgb(0.263, 0.627, 0.278) });
+    page.drawRectangle({ x: margin + 88, y: y + 40, width: 150, height: 8, color: rgb(0, 0.612, 0.871) });
+    page.drawText("RSM", { x: margin, y, size: 30, font: bold, color: rgb(0.329, 0.345, 0.353) });
+    y -= 54;
   };
 
   const ensure = (height: number) => {
@@ -737,7 +779,7 @@ export async function buildReportPdf(payload: ReportPayload) {
   };
 
   addPage();
-  drawHeading(en ? "Tax Dispute Advisor Report" : "Laporan Tax Dispute Advisor", 18);
+  drawHeading(en ? `${APP_NAME} Report` : `Laporan ${APP_NAME}`, 18);
   drawParagraph(
     en
       ? "Advisor-ready dispute review based on extracted case data, transparent scorecard, comparable decisions, regulation context, and LLM-assisted drafting."
@@ -794,7 +836,7 @@ export async function buildReportPdf(payload: ReportPayload) {
 
   const pages = pdf.getPages();
   pages.forEach((pdfPage, idx) => {
-    pdfPage.drawText(`RSM Tax Dispute Advisor | Indicative analysis, subject to advisor review | ${idx + 1}/${pages.length}`, {
+    pdfPage.drawText(`${APP_NAME} | Indicative analysis, subject to advisor review | ${idx + 1}/${pages.length}`, {
       x: margin,
       y: 28,
       size: 7.5,

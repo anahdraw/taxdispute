@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       format === "pdf"
         ? "application/pdf"
         : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-    const filename = `rsm-tax-dispute-report.${format}`;
+    const filename = `rsm-tax-dispute-agentic-advisor-report.${format}`;
     return new Response(responseBody, {
       headers: {
         "Content-Type": contentType,

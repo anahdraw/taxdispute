@@ -18,7 +18,7 @@ async function probeOrtaxSource(record: Regulation): Promise<Regulation> {
       cache: "no-store",
       signal: controller.signal,
       headers: {
-        "User-Agent": "RSM-Tax-Dispute-Prototype/1.0"
+        "User-Agent": "RSM-Tax-Dispute-Agentic-Advisor/1.0"
       }
     });
     const text = await response.text();

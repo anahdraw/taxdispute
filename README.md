@@ -1,4 +1,4 @@
-# Tax Dispute Simple Advisor Prototype
+# RSM Tax Dispute Agentic Advisor Prototype
 
 Prototype lokal untuk membaca PDF putusan Pengadilan Pajak, mencari putusan pembanding,
 memberi indikasi peluang sederhana, membuat review risiko, dan menyusun draft rekomendasi
