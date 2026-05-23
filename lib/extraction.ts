@@ -6,6 +6,14 @@ export type ExtractionResult = {
   documentType: string;
   putusanNumber: string;
   putusanYear: string;
+  courtPanel: string;
+  judgeNames: string[];
+  clerkName: string;
+  procedureType: string;
+  examinationLevel: string;
+  caseFileNumber: string;
+  decisionDate: string;
+  hearingDate: string;
   taxpayerName: string;
   taxpayerNpwp: string;
   taxpayerAddress: string;
@@ -56,11 +64,20 @@ export function extractionToAnalyzeInput(extraction: ExtractionResult, language:
 function normalizeExtraction(raw: Partial<ExtractionResult>, filename: string): ExtractionResult {
   const evidence = Array.isArray(raw.evidence) ? raw.evidence.map(String).filter(Boolean).slice(0, 12) : [];
   const legalReferences = Array.isArray(raw.legalReferences) ? raw.legalReferences.map(String).filter(Boolean).slice(0, 12) : [];
+  const judgeNames = Array.isArray(raw.judgeNames) ? raw.judgeNames.map(String).filter(Boolean).slice(0, 8) : [];
   return {
     filename,
     documentType: String(raw.documentType || ""),
     putusanNumber: String(raw.putusanNumber || ""),
     putusanYear: String(raw.putusanYear || ""),
+    courtPanel: String(raw.courtPanel || ""),
+    judgeNames,
+    clerkName: String(raw.clerkName || ""),
+    procedureType: String(raw.procedureType || ""),
+    examinationLevel: String(raw.examinationLevel || ""),
+    caseFileNumber: String(raw.caseFileNumber || ""),
+    decisionDate: String(raw.decisionDate || ""),
+    hearingDate: String(raw.hearingDate || ""),
     taxpayerName: String(raw.taxpayerName || ""),
     taxpayerNpwp: String(raw.taxpayerNpwp || ""),
     taxpayerAddress: String(raw.taxpayerAddress || ""),
@@ -108,11 +125,11 @@ export async function extractPdfWithLlm(file: File, language: "id" | "en"): Prom
   const prompt =
     language === "en"
       ? `Extract structured information from this tax dispute PDF. Return JSON with exactly these keys:
-documentType, putusanNumber, putusanYear, taxpayerName, taxpayerNpwp, taxpayerAddress, representativeName, legalCounselName, legalCounselLicense, appelleeName, djpUnit, taxType, taxPeriod, skpNumber, djpDecisionNumber, issueType, issueSubtype, correctionAmount, correctionObject, correctionReason, taxpayerRebuttal, taxAuthorityPosition, taxpayerPosition, evidence, legalReferences, courtReasoning, outcome, summary.
-Use English for summaries, but keep official names/numbers in source language. evidence and legalReferences must be arrays. If a field is unavailable, use an empty string or empty array.`
+documentType, putusanNumber, putusanYear, courtPanel, judgeNames, clerkName, procedureType, examinationLevel, caseFileNumber, decisionDate, hearingDate, taxpayerName, taxpayerNpwp, taxpayerAddress, representativeName, legalCounselName, legalCounselLicense, appelleeName, djpUnit, taxType, taxPeriod, skpNumber, djpDecisionNumber, issueType, issueSubtype, correctionAmount, correctionObject, correctionReason, taxpayerRebuttal, taxAuthorityPosition, taxpayerPosition, evidence, legalReferences, courtReasoning, outcome, summary.
+Use English for summaries, but keep official names/numbers in source language. judgeNames, evidence, and legalReferences must be arrays. If a field is unavailable, use an empty string or empty array.`
       : `Ekstrak informasi terstruktur dari PDF sengketa pajak ini. Kembalikan JSON dengan key persis berikut:
-documentType, putusanNumber, putusanYear, taxpayerName, taxpayerNpwp, taxpayerAddress, representativeName, legalCounselName, legalCounselLicense, appelleeName, djpUnit, taxType, taxPeriod, skpNumber, djpDecisionNumber, issueType, issueSubtype, correctionAmount, correctionObject, correctionReason, taxpayerRebuttal, taxAuthorityPosition, taxpayerPosition, evidence, legalReferences, courtReasoning, outcome, summary.
-Gunakan Bahasa Indonesia untuk ringkasan, tetapi pertahankan nama/nomor resmi sesuai sumber. evidence dan legalReferences harus array. Jika field tidak tersedia, isi string kosong atau array kosong.`;
+documentType, putusanNumber, putusanYear, courtPanel, judgeNames, clerkName, procedureType, examinationLevel, caseFileNumber, decisionDate, hearingDate, taxpayerName, taxpayerNpwp, taxpayerAddress, representativeName, legalCounselName, legalCounselLicense, appelleeName, djpUnit, taxType, taxPeriod, skpNumber, djpDecisionNumber, issueType, issueSubtype, correctionAmount, correctionObject, correctionReason, taxpayerRebuttal, taxAuthorityPosition, taxpayerPosition, evidence, legalReferences, courtReasoning, outcome, summary.
+Gunakan Bahasa Indonesia untuk ringkasan, tetapi pertahankan nama/nomor resmi sesuai sumber. judgeNames, evidence, dan legalReferences harus array. Jika field tidak tersedia, isi string kosong atau array kosong.`;
   const text = await callOpenAIWithPdf(prompt, system, { filename: file.name, fileData });
   const parsed = extractJsonObject(text) as Partial<ExtractionResult>;
   return normalizeExtraction(parsed, file.name);

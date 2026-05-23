@@ -92,6 +92,42 @@ export async function listDecisionDocuments(): Promise<StoredDecisionFile[]> {
   }));
 }
 
+export async function getDecisionDocumentById(documentId: string): Promise<StoredDecisionFile | null> {
+  await ensureDecisionSchema();
+  const result = await getPool().query(
+    `
+      SELECT
+        d.id,
+        d.filename,
+        d.pathname,
+        d.url,
+        d.download_url,
+        d.size_bytes,
+        d.status,
+        d.uploaded_at,
+        e.extraction
+      FROM decision_documents d
+      LEFT JOIN decision_extractions e ON e.document_id = d.id
+      WHERE d.id = $1
+      LIMIT 1;
+    `,
+    [documentId]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    filename: String(row.filename),
+    pathname: String(row.pathname),
+    url: String(row.url),
+    downloadUrl: String(row.download_url),
+    size: Number(row.size_bytes || 0),
+    uploadedAt: new Date(row.uploaded_at).toISOString(),
+    status: row.status === "failed" ? "failed" : row.status === "extracted" ? "extracted" : "uploaded",
+    extraction: row.extraction ? (row.extraction as ExtractionResult) : null
+  };
+}
+
 export async function upsertDecisionDocument(document: StoredDecisionFile) {
   await ensureDecisionSchema();
   await getPool().query(

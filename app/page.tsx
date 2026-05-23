@@ -10,6 +10,7 @@ import { regulations, type Regulation } from "@/lib/mock-data";
 import { filterRegulationsByTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
+import { decisionDetailPath } from "@/lib/decision-links";
 
 type Language = "id" | "en";
 type PageKey = "dashboard" | "guided" | "analysis" | "database" | "smartchat" | "regulations" | "reports";
@@ -205,7 +206,22 @@ const copy = {
     scoreMax: "Bobot maks.",
     scoreEarned: "Poin",
     scoreBasis: "Dasar penilaian",
-    scoreNotes: "Catatan skor"
+    scoreNotes: "Catatan skor",
+    viewCase: "Detail",
+    caseDetail: "Detail Putusan",
+    backToDocuments: "Kembali ke list",
+    printCaseSheet: "Print / simpan PDF",
+    documentProfile: "Profil Dokumen",
+    taxpayerParty: "Pemohon Banding / WP",
+    authorityParty: "Terbanding / DJP",
+    courtPanel: "Majelis Hakim",
+    disputedAmount: "Nilai Sengketa",
+    disputeNarrative: "Pokok Sengketa",
+    decisionContent: "Konten Putusan",
+    originalFile: "File asli",
+    extractionConfidence: "Kelengkapan ekstraksi",
+    noCaseDetail: "Dokumen ini belum punya hasil ekstraksi. Klik Ekstrak dulu untuk membuat detail putusan.",
+    casePageLink: "Halaman"
   },
   en: {
     subtitle: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT or Transfer Pricing regulation questions, then produce Word/PDF drafts for advisor review.",
@@ -373,7 +389,22 @@ const copy = {
     scoreMax: "Max weight",
     scoreEarned: "Points",
     scoreBasis: "Assessment basis",
-    scoreNotes: "Score notes"
+    scoreNotes: "Score notes",
+    viewCase: "Detail",
+    caseDetail: "Decision Detail",
+    backToDocuments: "Back to list",
+    printCaseSheet: "Print / save PDF",
+    documentProfile: "Document Profile",
+    taxpayerParty: "Appellant / Taxpayer",
+    authorityParty: "Appellee / DGT",
+    courtPanel: "Judicial Panel",
+    disputedAmount: "Disputed Amount",
+    disputeNarrative: "Dispute Issue",
+    decisionContent: "Decision Content",
+    originalFile: "Original file",
+    extractionConfidence: "Extraction completeness",
+    noCaseDetail: "This document does not have extraction data yet. Click Extract first to create the decision detail.",
+    casePageLink: "Page"
   }
 };
 
@@ -704,6 +735,56 @@ function buildDonutStyle(items: Array<{ value: number; color: string }>): CSSPro
   return { background: `conic-gradient(${segments})` };
 }
 
+function nonEmpty(value: unknown) {
+  return String(value || "").trim();
+}
+
+function dash(value: unknown) {
+  return nonEmpty(value) || "-";
+}
+
+function truncateText(value: unknown, maxLength = 520) {
+  const text = cleanMergedText(value);
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).replace(/\s+\S*$/, "")}...`;
+}
+
+function extractionCompleteness(extraction: ExtractionResult | null | undefined) {
+  if (!extraction) return 0;
+  const scalarFields: Array<keyof ExtractionResult> = [
+    "putusanNumber",
+    "putusanYear",
+    "courtPanel",
+    "clerkName",
+    "decisionDate",
+    "taxpayerName",
+    "taxpayerNpwp",
+    "taxpayerAddress",
+    "legalCounselName",
+    "djpUnit",
+    "taxType",
+    "taxPeriod",
+    "skpNumber",
+    "djpDecisionNumber",
+    "issueType",
+    "correctionAmount",
+    "taxAuthorityPosition",
+    "taxpayerPosition",
+    "courtReasoning",
+    "outcome"
+  ];
+  const filled = scalarFields.filter((field) => nonEmpty(extraction[field])).length;
+  const arrayFilled = [extraction.judgeNames, extraction.evidence, extraction.legalReferences].filter((items) => Array.isArray(items) && items.length > 0).length;
+  return Math.round(((filled + arrayFilled) / (scalarFields.length + 3)) * 100);
+}
+
+function printCaseDetail() {
+  if (typeof window === "undefined") return;
+  document.body.classList.add("print-case-detail");
+  window.print();
+  window.setTimeout(() => document.body.classList.remove("print-case-detail"), 600);
+}
+
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
   const [session, setSession] = useState<DemoSession | null>(() => loadDemoSession());
@@ -808,6 +889,15 @@ export default function Home() {
       setPage("smartchat");
     }
   }, [page, session]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !session) return;
+    const targetPage = new URLSearchParams(window.location.search).get("page") as PageKey | null;
+    if (targetPage && pages.some(([key]) => key === targetPage) && canAccessPage(session.role, targetPage)) {
+      setPage(targetPage);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [session]);
 
   useEffect(() => {
     setRegulationPage((current) => Math.min(Math.max(1, current), regulationTotalPages));
@@ -995,6 +1085,14 @@ export default function Home() {
       documentType: pick("documentType"),
       putusanNumber: pick("putusanNumber"),
       putusanYear: pick("putusanYear"),
+      courtPanel: pick("courtPanel"),
+      judgeNames: unique(parts.map((part) => part.judgeNames || [])),
+      clerkName: pick("clerkName"),
+      procedureType: pick("procedureType"),
+      examinationLevel: pick("examinationLevel"),
+      caseFileNumber: pick("caseFileNumber"),
+      decisionDate: pick("decisionDate"),
+      hearingDate: pick("hearingDate"),
       taxpayerName: pick("taxpayerName"),
       taxpayerNpwp: pick("taxpayerNpwp"),
       taxpayerAddress: pick("taxpayerAddress"),
@@ -1974,6 +2072,183 @@ function ExtractionSummary({ labels, extraction }: { labels: (typeof copy)["en"]
   );
 }
 
+function DetailRows({ rows }: { rows: Array<[string, React.ReactNode]> }) {
+  return (
+    <dl className="case-detail-rows">
+      {rows
+        .filter(([, value]) => {
+          if (Array.isArray(value)) return value.length > 0;
+          return value !== null && value !== undefined && String(value).trim() !== "";
+        })
+        .map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+    </dl>
+  );
+}
+
+function CaseDetailCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="case-detail-card">
+      <h3>{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; document: StoredDecisionFile }) {
+  const extraction = document.extraction;
+  if (!extraction) {
+    return <div className="empty-state">{labels.noCaseDetail}</div>;
+  }
+
+  const completeness = extractionCompleteness(extraction);
+  const outcomeLabel = classifyOutcome(extraction.outcome || "", labels.caseDetail === "Decision Detail" ? "en" : "id");
+  const badges = [
+    extraction.taxType,
+    extraction.issueType || extraction.issueSubtype,
+    extraction.documentType,
+    outcomeLabel !== "Unclassified" && outcomeLabel !== "Belum terklasifikasi" ? outcomeLabel : "",
+    completeness ? `${completeness}% ${labels.extractionConfidence}` : ""
+  ].filter((badge): badge is string => Boolean(badge));
+  const judges = Array.isArray(extraction.judgeNames) && extraction.judgeNames.length ? extraction.judgeNames.join("; ") : "";
+  const legalReferences = Array.isArray(extraction.legalReferences) && extraction.legalReferences.length ? extraction.legalReferences.join("; ") : "";
+  const evidence = Array.isArray(extraction.evidence) && extraction.evidence.length ? extraction.evidence.join("; ") : "";
+
+  return (
+    <article className="case-detail-sheet">
+      <div className="case-detail-header">
+        <div>
+          <span className="case-detail-kicker">Putusan detail</span>
+          <h3>{dash(extraction.putusanNumber || document.filename)}</h3>
+          <p>
+            {dash(extraction.putusanYear)}
+            {extraction.courtPanel ? ` · ${extraction.courtPanel}` : ""}
+            {extraction.hearingDate ? ` · Sidang ${extraction.hearingDate}` : ""}
+          </p>
+        </div>
+        <div className="case-detail-meter">
+          <span>{labels.extractionConfidence}</span>
+          <strong>{completeness}%</strong>
+        </div>
+      </div>
+
+      <div className="case-detail-badges">
+        {badges.map((badge) => (
+          <span key={badge}>{badge}</span>
+        ))}
+      </div>
+
+      <div className="case-file-stats">
+        <div>
+          <span>{labels.originalFile}</span>
+          <b>{document.filename}</b>
+        </div>
+        <div>
+          <span>{labels.fileSize}</span>
+          <b>{formatBytes(document.size)}</b>
+        </div>
+        <div>
+          <span>{labels.uploadedAt}</span>
+          <b>{new Date(document.uploadedAt).toLocaleString()}</b>
+        </div>
+        <div>
+          <span>LLM</span>
+          <b>{extraction.llmStatus?.model || "-"}</b>
+        </div>
+      </div>
+
+      <div className="case-detail-grid two">
+        <CaseDetailCard title={labels.taxpayerParty}>
+          <DetailRows
+            rows={[
+              ["Nama", dash(extraction.taxpayerName)],
+              ["NPWP", dash(extraction.taxpayerNpwp)],
+              ["Alamat", truncateText(extraction.taxpayerAddress, 220)],
+              ["Wakil", dash(extraction.representativeName)],
+              ["Kuasa hukum", dash(extraction.legalCounselName)],
+              ["Lisensi kuasa", dash(extraction.legalCounselLicense)]
+            ]}
+          />
+        </CaseDetailCard>
+        <CaseDetailCard title={labels.authorityParty}>
+          <DetailRows
+            rows={[
+              ["Unit", dash(extraction.djpUnit || extraction.appelleeName)],
+              ["Nomor KEP", dash(extraction.djpDecisionNumber)],
+              ["Nomor SKP/STP", dash(extraction.skpNumber)],
+              ["Jenis pajak", dash(extraction.taxType)],
+              ["Masa/Tahun Pajak", dash(extraction.taxPeriod)]
+            ]}
+          />
+        </CaseDetailCard>
+      </div>
+
+      <CaseDetailCard title={labels.courtPanel}>
+        <DetailRows
+          rows={[
+            ["Majelis", dash(extraction.courtPanel)],
+            ["Hakim", judges || "-"],
+            ["Panitera", dash(extraction.clerkName)],
+            ["Jenis acara", dash(extraction.procedureType)],
+            ["Tingkat pemeriksaan", dash(extraction.examinationLevel)],
+            ["Nomor berkas", dash(extraction.caseFileNumber)],
+            ["Tanggal putusan", dash(extraction.decisionDate)]
+          ]}
+        />
+      </CaseDetailCard>
+
+      <CaseDetailCard title={labels.disputedAmount}>
+        <DetailRows
+          rows={[
+            ["Sebelum / nilai koreksi", dash(extraction.correctionAmount)],
+            ["Objek koreksi", dash(extraction.correctionObject)],
+            ["Outcome", dash(extraction.outcome)],
+            ["Klasifikasi", outcomeLabel]
+          ]}
+        />
+      </CaseDetailCard>
+
+      <CaseDetailCard title={labels.disputeNarrative}>
+        <div className="case-issue-card">
+          <b>{dash(extraction.issueType || extraction.issueSubtype || extraction.correctionObject)}</b>
+          <p>{truncateText(extraction.summary || extraction.correctionReason || extraction.taxAuthorityPosition, 620)}</p>
+        </div>
+      </CaseDetailCard>
+
+      <div className="case-detail-grid two">
+        <CaseDetailCard title={labels.authority}>
+          <p>{truncateText(extraction.taxAuthorityPosition || extraction.correctionReason, 520) || "-"}</p>
+        </CaseDetailCard>
+        <CaseDetailCard title={labels.taxpayerPosition}>
+          <p>{truncateText(extraction.taxpayerPosition || extraction.taxpayerRebuttal, 520) || "-"}</p>
+        </CaseDetailCard>
+      </div>
+
+      <div className="case-detail-grid two">
+        <CaseDetailCard title={labels.extractedEvidence}>
+          <p>{evidence || "-"}</p>
+        </CaseDetailCard>
+        <CaseDetailCard title={labels.relatedRules}>
+          <p>{legalReferences || "-"}</p>
+        </CaseDetailCard>
+      </div>
+
+      <CaseDetailCard title={labels.decisionContent}>
+        <DetailRows
+          rows={[
+            ["Pertimbangan", truncateText(extraction.courtReasoning, 680)],
+            ["Amar putusan", truncateText(extraction.outcome, 420)]
+          ]}
+        />
+      </CaseDetailCard>
+    </article>
+  );
+}
+
 function DecisionDatabasePanel({
   labels,
   files,
@@ -2004,6 +2279,7 @@ function DecisionDatabasePanel({
   type SortKey = "filename" | "status" | "decision" | "taxpayer" | "size" | "uploadedAt";
   const [sort, setSort] = useState<{ key: SortKey; direction: "asc" | "desc" }>({ key: "uploadedAt", direction: "desc" });
   const [copiedDocumentId, setCopiedDocumentId] = useState("");
+  const [selectedDocumentId, setSelectedDocumentId] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const sortedDocuments = useMemo(() => {
@@ -2028,10 +2304,17 @@ function DecisionDatabasePanel({
     () => sortedDocuments.slice((currentPage - 1) * perPage, currentPage * perPage),
     [sortedDocuments, currentPage, perPage]
   );
+  const selectedDocument = selectedDocumentId ? storedDocuments.find((item) => item.id === selectedDocumentId) || null : null;
 
   useEffect(() => {
     setPageNumber((current) => Math.min(Math.max(1, current), totalPages));
   }, [totalPages]);
+
+  useEffect(() => {
+    if (selectedDocumentId && !storedDocuments.some((item) => item.id === selectedDocumentId)) {
+      setSelectedDocumentId("");
+    }
+  }, [selectedDocumentId, storedDocuments]);
 
   function toggleSort(key: SortKey) {
     setSort((current) => ({
@@ -2097,9 +2380,26 @@ function DecisionDatabasePanel({
         </button>
       </Panel>
 
-      <Panel title={labels.storedDocuments}>
+      <Panel title={selectedDocument ? labels.caseDetail : labels.storedDocuments}>
         {storedDocuments.length === 0 ? (
           <div className="empty-state">{labels.noStoredDocuments}</div>
+        ) : selectedDocument ? (
+          <>
+            <div className="case-detail-actions">
+              <button className="table-button" onClick={() => setSelectedDocumentId("")}>
+                {labels.backToDocuments}
+              </button>
+              <button className="table-button" onClick={printCaseDetail}>
+                {labels.printCaseSheet}
+              </button>
+              {(selectedDocument.downloadUrl || selectedDocument.url).startsWith("https://") && (
+                <a className="table-button" href={selectedDocument.downloadUrl || selectedDocument.url} target="_blank" rel="noreferrer">
+                  {labels.openPdf}
+                </a>
+              )}
+            </div>
+            <CaseDetailSheet labels={labels} document={selectedDocument} />
+          </>
         ) : (
           <>
             <PaginationControls
@@ -2132,11 +2432,27 @@ function DecisionDatabasePanel({
                     const hasPdfUrl = Boolean((item.url || item.downloadUrl || "").startsWith("https://"));
                     return (
                       <tr key={item.id}>
-                        <td className="file-cell">{item.filename}</td>
+                        <td className="file-cell">
+                          {item.extraction ? (
+                            <a className="text-link" href={decisionDetailPath(item.id)}>
+                              {item.filename}
+                            </a>
+                          ) : (
+                            item.filename
+                          )}
+                        </td>
                         <td>
                           <span className={`db-status ${status}`}>{status}</span>
                         </td>
-                        <td>{item.extraction?.putusanNumber || "-"}</td>
+                        <td>
+                          {item.extraction?.putusanNumber ? (
+                            <a className="text-link" href={decisionDetailPath(item.id)}>
+                              {item.extraction.putusanNumber}
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
                         <td>{item.extraction?.taxpayerName || "-"}</td>
                         <td>{formatBytes(item.size)}</td>
                         <td>{new Date(item.uploadedAt).toLocaleString()}</td>
@@ -2149,6 +2465,14 @@ function DecisionDatabasePanel({
                           <button className="table-button" onClick={() => onExtract(item)} disabled={busy || !hasPdfUrl}>
                             {extractingDocumentId === item.id ? labels.extractingStored : status === "extracted" ? labels.reExtractStored : labels.extractStored}
                           </button>
+                          <button className="table-button" onClick={() => setSelectedDocumentId(item.id)} disabled={!item.extraction}>
+                            {labels.viewCase}
+                          </button>
+                          {item.extraction && (
+                            <a className="table-button" href={decisionDetailPath(item.id)}>
+                              {labels.casePageLink}
+                            </a>
+                          )}
                           <button className="table-button danger" onClick={() => onDelete(item)} disabled={busy}>
                             {deletingDocumentId === item.id ? labels.deletingStored : labels.deleteStored}
                           </button>
