@@ -219,7 +219,7 @@ const copy = {
     disputeNarrative: "Pokok Sengketa",
     decisionContent: "Konten Putusan",
     originalFile: "File asli",
-    extractionConfidence: "Kelengkapan ekstraksi",
+    extractionConfidence: "Confidence ekstraksi",
     noCaseDetail: "Dokumen ini belum punya hasil ekstraksi. Klik Ekstrak dulu untuk membuat detail putusan.",
     casePageLink: "Halaman"
   },
@@ -402,7 +402,7 @@ const copy = {
     disputeNarrative: "Dispute Issue",
     decisionContent: "Decision Content",
     originalFile: "Original file",
-    extractionConfidence: "Extraction completeness",
+    extractionConfidence: "Extraction confidence",
     noCaseDetail: "This document does not have extraction data yet. Click Extract first to create the decision detail.",
     casePageLink: "Page"
   }
@@ -2276,7 +2276,7 @@ function DecisionDatabasePanel({
   onExtract: (item: StoredDecisionFile) => void;
   onDelete: (item: StoredDecisionFile) => void;
 }) {
-  type SortKey = "filename" | "status" | "decision" | "taxpayer" | "size" | "uploadedAt";
+  type SortKey = "filename" | "status" | "confidence" | "decision" | "taxpayer" | "size" | "uploadedAt";
   const [sort, setSort] = useState<{ key: SortKey; direction: "asc" | "desc" }>({ key: "uploadedAt", direction: "desc" });
   const [copiedDocumentId, setCopiedDocumentId] = useState("");
   const [selectedDocumentId, setSelectedDocumentId] = useState("");
@@ -2285,6 +2285,7 @@ function DecisionDatabasePanel({
   const sortedDocuments = useMemo(() => {
     const getValue = (item: StoredDecisionFile, key: SortKey) => {
       if (key === "status") return item.status || (item.extraction ? "extracted" : "uploaded");
+      if (key === "confidence") return extractionCompleteness(item.extraction);
       if (key === "decision") return item.extraction?.putusanNumber || "";
       if (key === "taxpayer") return item.extraction?.taxpayerName || "";
       if (key === "size") return item.size || 0;
@@ -2392,6 +2393,20 @@ function DecisionDatabasePanel({
               <button className="table-button" onClick={printCaseDetail}>
                 {labels.printCaseSheet}
               </button>
+              <button
+                className="table-button"
+                onClick={() => onExtract(selectedDocument)}
+                disabled={Boolean(extractingDocumentId || deletingDocumentId) || !(selectedDocument.url || selectedDocument.downloadUrl || "").startsWith("https://")}
+              >
+                {extractingDocumentId === selectedDocument.id ? labels.extractingStored : labels.reExtractStored}
+              </button>
+              <button
+                className="table-button danger"
+                onClick={() => onDelete(selectedDocument)}
+                disabled={Boolean(extractingDocumentId || deletingDocumentId)}
+              >
+                {deletingDocumentId === selectedDocument.id ? labels.deletingStored : labels.deleteStored}
+              </button>
               {(selectedDocument.downloadUrl || selectedDocument.url).startsWith("https://") && (
                 <a className="table-button" href={selectedDocument.downloadUrl || selectedDocument.url} target="_blank" rel="noreferrer">
                   {labels.openPdf}
@@ -2416,6 +2431,7 @@ function DecisionDatabasePanel({
                   <tr>
                     <th><SortButton sortKey="filename">File</SortButton></th>
                     <th><SortButton sortKey="status">{labels.status}</SortButton></th>
+                    <th><SortButton sortKey="confidence">{labels.extractionConfidence}</SortButton></th>
                     <th><SortButton sortKey="decision">{labels.decisionNumber}</SortButton></th>
                     <th><SortButton sortKey="taxpayer">{labels.taxpayer}</SortButton></th>
                     <th><SortButton sortKey="size">{labels.fileSize}</SortButton></th>
@@ -2430,6 +2446,7 @@ function DecisionDatabasePanel({
                     const status = item.status || (item.extraction ? "extracted" : "uploaded");
                     const busy = Boolean(extractingDocumentId || deletingDocumentId);
                     const hasPdfUrl = Boolean((item.url || item.downloadUrl || "").startsWith("https://"));
+                    const confidence = extractionCompleteness(item.extraction);
                     return (
                       <tr key={item.id}>
                         <td className="file-cell">
@@ -2443,6 +2460,11 @@ function DecisionDatabasePanel({
                         </td>
                         <td>
                           <span className={`db-status ${status}`}>{status}</span>
+                        </td>
+                        <td>
+                          <span className={`confidence-pill ${confidence >= 80 ? "high" : confidence >= 55 ? "medium" : "low"}`}>
+                            {item.extraction ? `${confidence}%` : "-"}
+                          </span>
                         </td>
                         <td>
                           {item.extraction?.putusanNumber ? (

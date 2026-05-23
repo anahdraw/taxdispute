@@ -123,7 +123,7 @@ function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
 
   const completeness = extractionCompleteness(extraction);
   const outcomeLabel = classifyOutcome(extraction.outcome || "");
-  const badges = [extraction.taxType, extraction.issueType || extraction.issueSubtype, extraction.documentType, outcomeLabel, `${completeness}% extraction completeness`].filter(Boolean);
+  const badges = [extraction.taxType, extraction.issueType || extraction.issueSubtype, extraction.documentType, outcomeLabel, `${completeness}% extraction confidence`].filter(Boolean);
   const judges = Array.isArray(extraction.judgeNames) && extraction.judgeNames.length ? extraction.judgeNames.join("; ") : "-";
   const legalReferences = Array.isArray(extraction.legalReferences) && extraction.legalReferences.length ? extraction.legalReferences.join("; ") : "-";
   const evidence = Array.isArray(extraction.evidence) && extraction.evidence.length ? extraction.evidence.join("; ") : "-";
@@ -283,7 +283,7 @@ export default async function DecisionDetailPage({ params }: PageProps) {
           <b>{document.extraction?.putusanNumber || document.filename}</b>
           <i>{document.status}</i>
         </div>
-        <DecisionDetailActions backLabel="Back to database" printLabel="Print / save PDF" />
+        <DecisionDetailActions document={document} backLabel="Back to database" printLabel="Print / save PDF" />
         {(document.downloadUrl || document.url).startsWith("https://") && (
           <a className="table-button detail-open-pdf" href={document.downloadUrl || document.url} target="_blank" rel="noreferrer">
             Open original PDF
