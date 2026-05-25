@@ -11,6 +11,20 @@ type DecisionDetailActionsProps = {
   printLabel: string;
 };
 
+async function readActionResponse(response: Response): Promise<{ error?: string }> {
+  const text = await response.text();
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text) as { error?: string };
+  } catch {
+    return {
+      error: response.ok
+        ? ""
+        : "The server returned a non-JSON error. This usually means the extraction request timed out or the document is too large for one serverless run. Please try again, or edit the existing extraction manually."
+    };
+  }
+}
+
 export function DecisionDetailActions({ document, backLabel, printLabel }: DecisionDetailActionsProps) {
   const router = useRouter();
   const [busyAction, setBusyAction] = useState<"" | "extract" | "save" | "delete">("");
@@ -40,7 +54,7 @@ export function DecisionDetailActions({ document, backLabel, printLabel }: Decis
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...document, language: "id" })
       });
-      const data = (await response.json()) as { error?: string };
+      const data = await readActionResponse(response);
       if (!response.ok) throw new Error(data.error || "Re-extraction failed.");
       setStatus("Re-extraction completed. Page refreshed with the latest data.");
       router.refresh();
@@ -66,7 +80,7 @@ export function DecisionDetailActions({ document, backLabel, printLabel }: Decis
           extraction: parsed
         })
       });
-      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      const data = await readActionResponse(response);
       if (!response.ok) throw new Error(data.error || "Could not save extraction edits.");
       setIsEditing(false);
       setStatus("Extraction edits saved.");
@@ -89,7 +103,7 @@ export function DecisionDetailActions({ document, backLabel, printLabel }: Decis
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(document)
       });
-      const data = (await response.json().catch(() => ({}))) as { error?: string };
+      const data = await readActionResponse(response);
       if (!response.ok) throw new Error(data.error || "Could not delete document.");
       router.push("/?page=database");
     } catch (caught) {

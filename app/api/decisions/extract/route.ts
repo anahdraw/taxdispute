@@ -141,7 +141,21 @@ async function splitPdfForExtraction(bytes: ArrayBuffer, filename: string) {
   return chunks;
 }
 
+function friendlyExtractionError(error: unknown, sections?: number) {
+  const message = error instanceof Error ? error.message : "Stored PDF extraction failed.";
+  if (/unexpected token|not valid json|valid json|non-json|response did not contain text/i.test(message)) {
+    return sections && sections > 1
+      ? `LLM extraction returned an invalid response for one of ${sections} document sections. Please try Re-extract again, or use Edit extraction to adjust the existing data.`
+      : "LLM extraction returned an invalid response. Please try Re-extract again, or use Edit extraction to adjust the existing data.";
+  }
+  if (/timeout|timed out|504|503|502|too large|payload|body exceeded/i.test(message)) {
+    return "Re-extraction could not finish in this serverless run. This document may be too large or the LLM request timed out. Please try again, or edit the existing extraction manually.";
+  }
+  return message;
+}
+
 export async function POST(request: Request) {
+  let chunkCount = 0;
   try {
     const body = (await request.json()) as {
       id?: string;
@@ -166,9 +180,14 @@ export async function POST(request: Request) {
 
     const pdfBytes = await pdfResponse.arrayBuffer();
     const chunks = await splitPdfForExtraction(pdfBytes, filename);
+    chunkCount = chunks.length;
     const extractedParts: ExtractionResult[] = [];
     for (const chunk of chunks) {
-      extractedParts.push(await extractPdfWithLlm(chunk, language));
+      try {
+        extractedParts.push(await extractPdfWithLlm(chunk, language));
+      } catch {
+        extractedParts.push(await extractPdfWithLlm(chunk, language));
+      }
     }
     const extraction = mergeExtractions(extractedParts, filename, language);
 
@@ -179,7 +198,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ extraction, status: "extracted", sections: chunks.length });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Stored PDF extraction failed." },
+      { error: friendlyExtractionError(error, chunkCount) },
       { status: 500 }
     );
   }
