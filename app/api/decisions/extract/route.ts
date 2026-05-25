@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import { hasDatabase, upsertDecisionExtraction } from "@/lib/db";
-import { extractPdfWithLlm, type ExtractionResult } from "@/lib/extraction";
+import { emptyPpnComponents, extractPdfWithLlm, type ExtractionResult, type PpnComponents } from "@/lib/extraction";
 
 export const runtime = "nodejs";
 
@@ -46,6 +46,11 @@ function mergeExtractions(parts: ExtractionResult[], originalName: string, langu
         return typeof value === "string" ? value : "";
       })
     );
+  const pickPpn = (field: keyof PpnComponents) => {
+    const value = parts.map((part) => part.ppnComponents?.[field]).find((item) => typeof item === "string" && item.trim());
+    return typeof value === "string" ? cleanMergedText(value) : "";
+  };
+  const ppnIsLb = parts.map((part) => part.ppnComponents?.ppn_is_lb).find((value): value is boolean => typeof value === "boolean");
 
   return {
     ...first,
@@ -86,6 +91,25 @@ function mergeExtractions(parts: ExtractionResult[], originalName: string, langu
     courtReasoning: combined("courtReasoning") || pick("courtReasoning"),
     outcome: pick("outcome"),
     summary: combined("summary") || pick("summary"),
+    ppnComponents: {
+      ...emptyPpnComponents(),
+      ppn_dpp: pickPpn("ppn_dpp"),
+      ppn_pajak_keluaran: pickPpn("ppn_pajak_keluaran"),
+      ppn_pajak_masukan: pickPpn("ppn_pajak_masukan"),
+      ppn_kb_lb: pickPpn("ppn_kb_lb"),
+      ppn_kompensasi: pickPpn("ppn_kompensasi"),
+      ppn_masih_harus_bayar: pickPpn("ppn_masih_harus_bayar"),
+      ppn_dpp_djp: pickPpn("ppn_dpp_djp"),
+      ppn_pm_djp: pickPpn("ppn_pm_djp"),
+      ppn_sanksi_pasal_13: pickPpn("ppn_sanksi_pasal_13"),
+      ppn_koreksi_dpp: pickPpn("ppn_koreksi_dpp"),
+      ppn_koreksi_pm: pickPpn("ppn_koreksi_pm"),
+      ppn_tarif: pickPpn("ppn_tarif"),
+      ppn_is_lb: typeof ppnIsLb === "boolean" ? ppnIsLb : null,
+      ppn_jenis_penyerahan: (pickPpn("ppn_jenis_penyerahan") as PpnComponents["ppn_jenis_penyerahan"]) || "",
+      ppn_objek_sengketa: (pickPpn("ppn_objek_sengketa") as PpnComponents["ppn_objek_sengketa"]) || "",
+      ppn_notes: combineExtractionText(parts.map((part) => part.ppnComponents?.ppn_notes || ""))
+    },
     extractedAt: new Date().toISOString(),
     llmStatus: {
       used: true,

@@ -18,6 +18,7 @@ import {
 import { PDFDocument, PageSizes, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { AnalysisResult, AnalyzeInput } from "./analyze";
 import type { ExtractionResult } from "./extraction";
+import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "./ppn-components";
 
 export type ReportPayload = {
   input: AnalyzeInput;
@@ -183,6 +184,19 @@ function caseRows(payload: ReportPayload): LabelValue[] {
     [en ? "Counsel license" : "Izin kuasa", value(extraction?.legalCounselLicense)],
     [en ? "Outcome" : "Amar / outcome", value(extraction?.outcome)]
   ];
+}
+
+function ppnReportRows(payload: ReportPayload): LabelValue[] {
+  const { extraction, language } = payload;
+  if (!extraction || !hasPpnComponentData(extraction)) return [];
+  const rows = [...ppnComponentRows(extraction.ppnComponents, language), ...ppnClassificationRows(extraction.ppnComponents, language)];
+  return rows.map((row) => [`${row.label} (${row.key})`, value(row.value)]);
+}
+
+function ppnFormulaReportRows(payload: ReportPayload): LabelValue[] {
+  const { extraction, language } = payload;
+  if (!extraction || !hasPpnComponentData(extraction)) return [];
+  return ppnFormulaRows(extraction.ppnComponents, language).map((row) => [row.formula, value(`${row.result}${row.basis ? ` - ${row.basis}` : ""}`)]);
 }
 
 function scoreRows(payload: ReportPayload): LabelValue[] {
@@ -588,6 +602,8 @@ export async function buildReportDocx(payload: ReportPayload) {
   const subtitle = en
     ? "Advisor-ready dispute review based on extracted case data, transparent scorecard, comparable decisions, regulation context, and LLM-assisted drafting."
     : "Telaah sengketa siap-review advisor berdasarkan data kasus terekstraksi, scorecard transparan, putusan pembanding, konteks peraturan, dan drafting berbantuan LLM.";
+  const ppnRows = ppnReportRows(payload);
+  const ppnFormula = ppnFormulaReportRows(payload);
 
   const children: Array<Paragraph | Table> = [
     ...rsmDocumentHeader(),
@@ -601,6 +617,13 @@ export async function buildReportDocx(payload: ReportPayload) {
 
     sectionTitle(en ? "1. Case Details" : "1. Detail Kasus"),
     makeKeyValueTable(caseRows(payload)),
+    ...(ppnRows.length
+      ? [
+          subTitle(en ? "VAT Components" : "Komponen PPN"),
+          makeKeyValueTable(ppnRows),
+          ...(ppnFormula.length ? [subTitle(en ? "Indicative VAT Formula Check" : "Cek Rumus PPN Indikatif"), makeKeyValueTable(ppnFormula)] : [])
+        ]
+      : []),
     ...(payload.extraction?.summary
       ? [subTitle(en ? "Document Summary" : "Ringkasan Dokumen"), bodyParagraph(payload.extraction.summary, { spacingAfter: 160 })]
       : [bodyParagraph(" ", { spacingAfter: 60 })]),
@@ -790,6 +813,16 @@ export async function buildReportPdf(payload: ReportPayload) {
 
   drawHeading(en ? "1. Case Details" : "1. Detail Kasus");
   drawKeyValueTable(caseRows(payload));
+  const ppnRows = ppnReportRows(payload);
+  const ppnFormula = ppnFormulaReportRows(payload);
+  if (ppnRows.length) {
+    drawParagraph(en ? "VAT Components" : "Komponen PPN", { strong: true, fontSize: 10.5 });
+    drawKeyValueTable(ppnRows);
+    if (ppnFormula.length) {
+      drawParagraph(en ? "Indicative VAT Formula Check" : "Cek Rumus PPN Indikatif", { strong: true, fontSize: 10.5 });
+      drawKeyValueTable(ppnFormula);
+    }
+  }
   if (payload.extraction?.summary) {
     drawParagraph(en ? "Document Summary" : "Ringkasan Dokumen", { strong: true, fontSize: 10.5 });
     drawParagraph(payload.extraction.summary);

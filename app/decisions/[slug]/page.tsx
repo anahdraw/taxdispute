@@ -3,6 +3,7 @@ import { DecisionDetailActions } from "./actions";
 import { decodeDecisionSlug } from "@/lib/decision-links";
 import { getDecisionDocumentById, hasDatabase } from "@/lib/db";
 import type { ExtractionResult } from "@/lib/extraction";
+import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 export const runtime = "nodejs";
@@ -115,6 +116,67 @@ function CaseDetailCard({ title, children }: { title: string; children: React.Re
   );
 }
 
+function PpnComponentsCard({ extraction }: { extraction: ExtractionResult }) {
+  if (!hasPpnComponentData(extraction)) return null;
+  const ppn = extraction.ppnComponents;
+  const componentRows = ppnComponentRows(ppn, "id");
+  const classificationRows = ppnClassificationRows(ppn, "id");
+  const formulaRows = ppnFormulaRows(ppn, "id");
+
+  return (
+    <CaseDetailCard title="Komponen PPN">
+      <div className="ppn-component-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Komponen</th>
+              <th>Key</th>
+              <th>Nilai terekstraksi</th>
+              <th>Keterangan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...componentRows, ...classificationRows].map((row) => (
+              <tr key={row.key}>
+                <td>{row.label}</td>
+                <td className="mono-cell">{row.key}</td>
+                <td>{row.value}</td>
+                <td>{row.hint}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {formulaRows.length > 0 && (
+        <>
+          <h4 className="case-subtitle">Cek rumus indikatif</h4>
+          <div className="ppn-component-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Rumus</th>
+                  <th>Hasil indikatif</th>
+                  <th>Dasar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {formulaRows.map((row) => (
+                  <tr key={row.formula}>
+                    <td>{row.formula}</td>
+                    <td>{row.result}</td>
+                    <td>{row.basis}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      {ppn.ppn_notes && <p className="muted ppn-note">{ppn.ppn_notes}</p>}
+    </CaseDetailCard>
+  );
+}
+
 function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
   const extraction = document.extraction;
   if (!extraction) {
@@ -221,6 +283,8 @@ function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
           ]}
         />
       </CaseDetailCard>
+
+      <PpnComponentsCard extraction={extraction} />
 
       <CaseDetailCard title="Pokok Sengketa">
         <div className="case-issue-card">

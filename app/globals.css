@@ -1703,6 +1703,37 @@ pre {
   padding: 14px;
 }
 
+.case-subtitle {
+  margin: 14px 14px 8px;
+  color: var(--rsm-blue-dark);
+  font-size: var(--text-sm);
+  font-weight: 900;
+}
+
+.ppn-component-table {
+  overflow-x: auto;
+  padding: 12px 14px;
+}
+
+.ppn-component-table table {
+  min-width: 760px;
+}
+
+.ppn-component-table th,
+.ppn-component-table td {
+  font-size: var(--text-xs);
+  vertical-align: top;
+}
+
+.ppn-component-table tbody tr:nth-child(odd) {
+  background: #fbfdff;
+}
+
+.ppn-note {
+  margin: 0;
+  padding: 0 14px 14px;
+}
+
 .case-detail-rows {
   margin: 0;
 }

@@ -5,8 +5,9 @@ import type { CSSProperties } from "react";
 import { upload } from "@vercel/blob/client";
 import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeInput } from "@/lib/analyze";
 import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } from "@/lib/case-search";
-import type { ExtractionResult } from "@/lib/extraction";
+import { emptyPpnComponents, type ExtractionResult, type PpnComponents } from "@/lib/extraction";
 import { regulations, type Regulation } from "@/lib/mock-data";
+import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
 import { filterRegulationsByTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
@@ -1078,6 +1079,11 @@ export default function Home() {
           return typeof value === "string" ? value : "";
         })
       );
+    const pickPpn = (field: keyof PpnComponents) => {
+      const value = parts.map((part) => part.ppnComponents?.[field]).find((item) => typeof item === "string" && item.trim());
+      return typeof value === "string" ? cleanMergedText(value) : "";
+    };
+    const ppnIsLb = parts.map((part) => part.ppnComponents?.ppn_is_lb).find((value): value is boolean => typeof value === "boolean");
 
     return {
       ...first,
@@ -1118,6 +1124,25 @@ export default function Home() {
       courtReasoning: combined("courtReasoning") || pick("courtReasoning"),
       outcome: pick("outcome"),
       summary: combined("summary") || pick("summary"),
+      ppnComponents: {
+        ...emptyPpnComponents(),
+        ppn_dpp: pickPpn("ppn_dpp"),
+        ppn_pajak_keluaran: pickPpn("ppn_pajak_keluaran"),
+        ppn_pajak_masukan: pickPpn("ppn_pajak_masukan"),
+        ppn_kb_lb: pickPpn("ppn_kb_lb"),
+        ppn_kompensasi: pickPpn("ppn_kompensasi"),
+        ppn_masih_harus_bayar: pickPpn("ppn_masih_harus_bayar"),
+        ppn_dpp_djp: pickPpn("ppn_dpp_djp"),
+        ppn_pm_djp: pickPpn("ppn_pm_djp"),
+        ppn_sanksi_pasal_13: pickPpn("ppn_sanksi_pasal_13"),
+        ppn_koreksi_dpp: pickPpn("ppn_koreksi_dpp"),
+        ppn_koreksi_pm: pickPpn("ppn_koreksi_pm"),
+        ppn_tarif: pickPpn("ppn_tarif"),
+        ppn_is_lb: typeof ppnIsLb === "boolean" ? ppnIsLb : null,
+        ppn_jenis_penyerahan: (pickPpn("ppn_jenis_penyerahan") as PpnComponents["ppn_jenis_penyerahan"]) || "",
+        ppn_objek_sengketa: (pickPpn("ppn_objek_sengketa") as PpnComponents["ppn_objek_sengketa"]) || "",
+        ppn_notes: combineExtractionText(parts.map((part) => part.ppnComponents?.ppn_notes || ""))
+      },
       extractedAt: new Date().toISOString(),
       llmStatus: {
         used: true,
@@ -2099,6 +2124,69 @@ function CaseDetailCard({ title, children }: { title: string; children: React.Re
   );
 }
 
+function PpnComponentsCard({ extraction, language }: { extraction: ExtractionResult; language: "id" | "en" }) {
+  if (!hasPpnComponentData(extraction)) return null;
+  const ppn = extraction.ppnComponents;
+  const componentRows = ppnComponentRows(ppn, language);
+  const classificationRows = ppnClassificationRows(ppn, language);
+  const formulaRows = ppnFormulaRows(ppn, language);
+  const title = language === "en" ? "VAT Components" : "Komponen PPN";
+  const formulaTitle = language === "en" ? "Indicative formula check" : "Cek rumus indikatif";
+
+  return (
+    <CaseDetailCard title={title}>
+      <div className="ppn-component-table">
+        <table>
+          <thead>
+            <tr>
+              <th>{language === "en" ? "Component" : "Komponen"}</th>
+              <th>Key</th>
+              <th>{language === "en" ? "Extracted value" : "Nilai terekstraksi"}</th>
+              <th>{language === "en" ? "Meaning" : "Keterangan"}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...componentRows, ...classificationRows].map((row) => (
+              <tr key={row.key}>
+                <td>{row.label}</td>
+                <td className="mono-cell">{row.key}</td>
+                <td>{row.value}</td>
+                <td>{row.hint}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {formulaRows.length > 0 && (
+        <>
+          <h4 className="case-subtitle">{formulaTitle}</h4>
+          <div className="ppn-component-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>{language === "en" ? "Formula" : "Rumus"}</th>
+                  <th>{language === "en" ? "Indicative result" : "Hasil indikatif"}</th>
+                  <th>{language === "en" ? "Basis" : "Dasar"}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {formulaRows.map((row) => (
+                  <tr key={row.formula}>
+                    <td>{row.formula}</td>
+                    <td>{row.result}</td>
+                    <td>{row.basis}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+      {ppn.ppn_notes && <p className="muted ppn-note">{ppn.ppn_notes}</p>}
+    </CaseDetailCard>
+  );
+}
+
 function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; document: StoredDecisionFile }) {
   const extraction = document.extraction;
   if (!extraction) {
@@ -2117,6 +2205,7 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
   const judges = Array.isArray(extraction.judgeNames) && extraction.judgeNames.length ? extraction.judgeNames.join("; ") : "";
   const legalReferences = Array.isArray(extraction.legalReferences) && extraction.legalReferences.length ? extraction.legalReferences.join("; ") : "";
   const evidence = Array.isArray(extraction.evidence) && extraction.evidence.length ? extraction.evidence.join("; ") : "";
+  const language = labels.caseDetail === "Decision Detail" ? "en" : "id";
 
   return (
     <article className="case-detail-sheet">
@@ -2211,6 +2300,8 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
           ]}
         />
       </CaseDetailCard>
+
+      <PpnComponentsCard extraction={extraction} language={language} />
 
       <CaseDetailCard title={labels.disputeNarrative}>
         <div className="case-issue-card">
