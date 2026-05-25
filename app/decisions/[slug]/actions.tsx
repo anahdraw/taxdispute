@@ -11,16 +11,25 @@ type DecisionDetailActionsProps = {
   printLabel: string;
 };
 
+function friendlyActionError(value: unknown) {
+  const message = value instanceof Error ? value.message : String(value || "");
+  if (/unexpected token|not valid json|an error occurred|non-json|timed out|timeout/i.test(message)) {
+    return "Re-extraction could not finish for this document in the online serverless run. The existing extraction is still preserved. You can try again later, use Edit extraction to adjust this case, or re-upload a smaller/compressed PDF for a cleaner extraction.";
+  }
+  return message || "The action could not be completed.";
+}
+
 async function readActionResponse(response: Response): Promise<{ error?: string }> {
   const text = await response.text();
   if (!text.trim()) return {};
   try {
-    return JSON.parse(text) as { error?: string };
+    const parsed = JSON.parse(text) as { error?: string };
+    return parsed.error ? { ...parsed, error: friendlyActionError(parsed.error) } : parsed;
   } catch {
     return {
       error: response.ok
         ? ""
-        : "The server returned a non-JSON error. This usually means the extraction request timed out or the document is too large for one serverless run. Please try again, or edit the existing extraction manually."
+        : friendlyActionError(text)
     };
   }
 }
@@ -59,7 +68,7 @@ export function DecisionDetailActions({ document, backLabel, printLabel }: Decis
       setStatus("Re-extraction completed. Page refreshed with the latest data.");
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Re-extraction failed.");
+      setError(friendlyActionError(caught));
     } finally {
       setBusyAction("");
     }
@@ -86,7 +95,7 @@ export function DecisionDetailActions({ document, backLabel, printLabel }: Decis
       setStatus("Extraction edits saved.");
       router.refresh();
     } catch (caught) {
-      setError(caught instanceof SyntaxError ? "JSON is not valid. Please fix the extraction JSON first." : caught instanceof Error ? caught.message : "Could not save extraction edits.");
+      setError(caught instanceof SyntaxError ? "JSON is not valid. Please fix the extraction JSON first." : friendlyActionError(caught));
     } finally {
       setBusyAction("");
     }
@@ -107,7 +116,7 @@ export function DecisionDetailActions({ document, backLabel, printLabel }: Decis
       if (!response.ok) throw new Error(data.error || "Could not delete document.");
       router.push("/?page=database");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not delete document.");
+      setError(friendlyActionError(caught));
     } finally {
       setBusyAction("");
     }
