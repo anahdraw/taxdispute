@@ -3,7 +3,14 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "RSM Tax Dispute Agentic Advisor",
-  description: "Tax dispute workflow for extraction, comparable decisions, regulation questions, and advisor-ready Word/PDF drafts."
+  description: "Tax dispute workflow for extraction, comparable decisions, regulation questions, and advisor-ready Word/PDF drafts.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" }
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg"
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
