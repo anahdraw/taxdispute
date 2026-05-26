@@ -7,7 +7,7 @@ import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeI
 import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } from "@/lib/case-search";
 import { emptyPpnComponents, type ExtractionResult, type PpnComponents } from "@/lib/extraction";
 import { regulations, type Regulation } from "@/lib/mock-data";
-import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
+import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows, ppnStandardRows } from "@/lib/ppn-components";
 import { filterRegulationsByTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
@@ -748,6 +748,10 @@ function truncateText(value: unknown, maxLength = 520) {
   const text = cleanMergedText(value);
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength).replace(/\s+\S*$/, "")}...`;
+}
+
+function safeDomId(value: unknown) {
+  return String(value || "case").replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 96);
 }
 
 function extractionCompleteness(extraction: ExtractionResult | null | undefined) {
@@ -2187,6 +2191,36 @@ function PpnComponentsCard({ extraction, language }: { extraction: ExtractionRes
   );
 }
 
+function PpnStandardCard({ language }: { language: "id" | "en" }) {
+  const rows = ppnStandardRows(language);
+  const title = language === "en" ? "VAT calculation field standard" : "Standar field perhitungan PPN";
+
+  return (
+    <CaseDetailCard title={title}>
+      <div className="ppn-component-table">
+        <table>
+          <thead>
+            <tr>
+              <th>{language === "en" ? "Group" : "Grup"}</th>
+              <th>Key</th>
+              <th>{language === "en" ? "Definition" : "Definisi"}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key}>
+                <td>{row.group}</td>
+                <td className="mono-cell">{row.label}</td>
+                <td>{row.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </CaseDetailCard>
+  );
+}
+
 function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; document: StoredDecisionFile }) {
   const extraction = document.extraction;
   if (!extraction) {
@@ -2206,6 +2240,7 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
   const legalReferences = Array.isArray(extraction.legalReferences) && extraction.legalReferences.length ? extraction.legalReferences.join("; ") : "";
   const evidence = Array.isArray(extraction.evidence) && extraction.evidence.length ? extraction.evidence.join("; ") : "";
   const language = labels.caseDetail === "Decision Detail" ? "en" : "id";
+  const tabBase = `case-tabs-${safeDomId(document.id)}`;
 
   return (
     <article className="case-detail-sheet">
@@ -2231,111 +2266,147 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
         ))}
       </div>
 
-      <div className="case-file-stats">
-        <div>
-          <span>{labels.originalFile}</span>
-          <b>{document.filename}</b>
+      <div className="case-detail-tabs">
+        <input className="case-tab-radio" id={`${tabBase}-metadata`} name={tabBase} type="radio" defaultChecked />
+        <input className="case-tab-radio" id={`${tabBase}-calculation`} name={tabBase} type="radio" />
+        <input className="case-tab-radio" id={`${tabBase}-paragraphs`} name={tabBase} type="radio" />
+        <div className="case-tab-list" role="tablist" aria-label={language === "en" ? "Decision detail sections" : "Bagian detail putusan"}>
+          <label htmlFor={`${tabBase}-metadata`}>{language === "en" ? "1. Key metadata" : "1. Metadata penting"}</label>
+          <label htmlFor={`${tabBase}-calculation`}>{language === "en" ? "2. Calculation" : "2. Perhitungan"}</label>
+          <label htmlFor={`${tabBase}-paragraphs`}>{language === "en" ? "3. Key paragraphs" : "3. Paragraf penting"}</label>
         </div>
-        <div>
-          <span>{labels.fileSize}</span>
-          <b>{formatBytes(document.size)}</b>
-        </div>
-        <div>
-          <span>{labels.uploadedAt}</span>
-          <b>{new Date(document.uploadedAt).toLocaleString()}</b>
-        </div>
-        <div>
-          <span>LLM</span>
-          <b>{extraction.llmStatus?.model || "-"}</b>
+        <div className="case-tab-panels">
+          <section className="case-tab-panel">
+            <div className="case-file-stats">
+              <div>
+                <span>{labels.originalFile}</span>
+                <b>{document.filename}</b>
+              </div>
+              <div>
+                <span>{labels.fileSize}</span>
+                <b>{formatBytes(document.size)}</b>
+              </div>
+              <div>
+                <span>{labels.uploadedAt}</span>
+                <b>{new Date(document.uploadedAt).toLocaleString()}</b>
+              </div>
+              <div>
+                <span>LLM</span>
+                <b>{extraction.llmStatus?.model || "-"}</b>
+              </div>
+            </div>
+            <CaseDetailCard title={language === "en" ? "Key information" : "Informasi kunci"}>
+              <DetailRows
+                rows={[
+                  ["Outcome", dash(extraction.outcome)],
+                  [language === "en" ? "Classification" : "Klasifikasi", outcomeLabel],
+                  [labels.taxType, dash(extraction.taxType)],
+                  [language === "en" ? "Tax period" : "Masa/Tahun Pajak", dash(extraction.taxPeriod)],
+                  [labels.decisionNumber, dash(extraction.putusanNumber)],
+                  ["Nomor SKP/STP", dash(extraction.skpNumber)],
+                  ["Nomor KEP", dash(extraction.djpDecisionNumber)],
+                  [labels.disputedAmount, dash(extraction.correctionAmount)],
+                  [language === "en" ? "Correction object" : "Objek koreksi", dash(extraction.correctionObject)]
+                ]}
+              />
+            </CaseDetailCard>
+            <div className="case-detail-grid two">
+              <CaseDetailCard title={labels.taxpayerParty}>
+                <DetailRows
+                  rows={[
+                    ["Nama", dash(extraction.taxpayerName)],
+                    ["NPWP", dash(extraction.taxpayerNpwp)],
+                    ["Alamat", truncateText(extraction.taxpayerAddress, 220)],
+                    ["Wakil", dash(extraction.representativeName)],
+                    ["Kuasa hukum", dash(extraction.legalCounselName)],
+                    ["Lisensi kuasa", dash(extraction.legalCounselLicense)]
+                  ]}
+                />
+              </CaseDetailCard>
+              <CaseDetailCard title={labels.authorityParty}>
+                <DetailRows
+                  rows={[
+                    ["Unit", dash(extraction.djpUnit || extraction.appelleeName)],
+                    ["Nomor KEP", dash(extraction.djpDecisionNumber)],
+                    ["Nomor SKP/STP", dash(extraction.skpNumber)],
+                    ["Jenis pajak", dash(extraction.taxType)],
+                    ["Masa/Tahun Pajak", dash(extraction.taxPeriod)]
+                  ]}
+                />
+              </CaseDetailCard>
+            </div>
+            <CaseDetailCard title={labels.courtPanel}>
+              <DetailRows
+                rows={[
+                  ["Majelis", dash(extraction.courtPanel)],
+                  ["Hakim", judges || "-"],
+                  ["Panitera", dash(extraction.clerkName)],
+                  ["Jenis acara", dash(extraction.procedureType)],
+                  ["Tingkat pemeriksaan", dash(extraction.examinationLevel)],
+                  ["Nomor berkas", dash(extraction.caseFileNumber)],
+                  ["Tanggal putusan", dash(extraction.decisionDate)]
+                ]}
+              />
+            </CaseDetailCard>
+          </section>
+          <section className="case-tab-panel">
+            <PpnStandardCard language={language} />
+            {hasPpnComponentData(extraction) ? (
+              <PpnComponentsCard extraction={extraction} language={language} />
+            ) : (
+              <CaseDetailCard title={language === "en" ? "Extracted VAT components" : "Komponen PPN terekstraksi"}>
+                <p>
+                  {language === "en"
+                    ? "No structured VAT component has been extracted for this record yet. Use Re-extract to read the new VAT fields from the document."
+                    : "Belum ada komponen PPN terstruktur pada data ini. Gunakan Re-extract agar field PPN baru dibaca dari dokumen."}
+                </p>
+              </CaseDetailCard>
+            )}
+            <CaseDetailCard title={labels.disputedAmount}>
+              <DetailRows
+                rows={[
+                  ["Sebelum / nilai koreksi", dash(extraction.correctionAmount)],
+                  ["Objek koreksi", dash(extraction.correctionObject)],
+                  ["Outcome", dash(extraction.outcome)],
+                  ["Klasifikasi", outcomeLabel]
+                ]}
+              />
+            </CaseDetailCard>
+          </section>
+          <section className="case-tab-panel">
+            <CaseDetailCard title={labels.disputeNarrative}>
+              <div className="case-issue-card">
+                <b>{dash(extraction.issueType || extraction.issueSubtype || extraction.correctionObject)}</b>
+                <p>{truncateText(extraction.summary || extraction.correctionReason || extraction.taxAuthorityPosition, 700)}</p>
+              </div>
+            </CaseDetailCard>
+            <div className="case-detail-grid two">
+              <CaseDetailCard title={labels.authority}>
+                <p>{truncateText(extraction.taxAuthorityPosition || extraction.correctionReason, 700) || "-"}</p>
+              </CaseDetailCard>
+              <CaseDetailCard title={labels.taxpayerPosition}>
+                <p>{truncateText(extraction.taxpayerPosition || extraction.taxpayerRebuttal, 700) || "-"}</p>
+              </CaseDetailCard>
+            </div>
+            <div className="case-detail-grid two">
+              <CaseDetailCard title={labels.extractedEvidence}>
+                <p>{evidence || "-"}</p>
+              </CaseDetailCard>
+              <CaseDetailCard title={labels.relatedRules}>
+                <p>{legalReferences || "-"}</p>
+              </CaseDetailCard>
+            </div>
+            <CaseDetailCard title={labels.decisionContent}>
+              <DetailRows
+                rows={[
+                  ["Pertimbangan", truncateText(extraction.courtReasoning, 1000)],
+                  ["Amar putusan", truncateText(extraction.outcome, 520)]
+                ]}
+              />
+            </CaseDetailCard>
+          </section>
         </div>
       </div>
-
-      <div className="case-detail-grid two">
-        <CaseDetailCard title={labels.taxpayerParty}>
-          <DetailRows
-            rows={[
-              ["Nama", dash(extraction.taxpayerName)],
-              ["NPWP", dash(extraction.taxpayerNpwp)],
-              ["Alamat", truncateText(extraction.taxpayerAddress, 220)],
-              ["Wakil", dash(extraction.representativeName)],
-              ["Kuasa hukum", dash(extraction.legalCounselName)],
-              ["Lisensi kuasa", dash(extraction.legalCounselLicense)]
-            ]}
-          />
-        </CaseDetailCard>
-        <CaseDetailCard title={labels.authorityParty}>
-          <DetailRows
-            rows={[
-              ["Unit", dash(extraction.djpUnit || extraction.appelleeName)],
-              ["Nomor KEP", dash(extraction.djpDecisionNumber)],
-              ["Nomor SKP/STP", dash(extraction.skpNumber)],
-              ["Jenis pajak", dash(extraction.taxType)],
-              ["Masa/Tahun Pajak", dash(extraction.taxPeriod)]
-            ]}
-          />
-        </CaseDetailCard>
-      </div>
-
-      <CaseDetailCard title={labels.courtPanel}>
-        <DetailRows
-          rows={[
-            ["Majelis", dash(extraction.courtPanel)],
-            ["Hakim", judges || "-"],
-            ["Panitera", dash(extraction.clerkName)],
-            ["Jenis acara", dash(extraction.procedureType)],
-            ["Tingkat pemeriksaan", dash(extraction.examinationLevel)],
-            ["Nomor berkas", dash(extraction.caseFileNumber)],
-            ["Tanggal putusan", dash(extraction.decisionDate)]
-          ]}
-        />
-      </CaseDetailCard>
-
-      <CaseDetailCard title={labels.disputedAmount}>
-        <DetailRows
-          rows={[
-            ["Sebelum / nilai koreksi", dash(extraction.correctionAmount)],
-            ["Objek koreksi", dash(extraction.correctionObject)],
-            ["Outcome", dash(extraction.outcome)],
-            ["Klasifikasi", outcomeLabel]
-          ]}
-        />
-      </CaseDetailCard>
-
-      <PpnComponentsCard extraction={extraction} language={language} />
-
-      <CaseDetailCard title={labels.disputeNarrative}>
-        <div className="case-issue-card">
-          <b>{dash(extraction.issueType || extraction.issueSubtype || extraction.correctionObject)}</b>
-          <p>{truncateText(extraction.summary || extraction.correctionReason || extraction.taxAuthorityPosition, 620)}</p>
-        </div>
-      </CaseDetailCard>
-
-      <div className="case-detail-grid two">
-        <CaseDetailCard title={labels.authority}>
-          <p>{truncateText(extraction.taxAuthorityPosition || extraction.correctionReason, 520) || "-"}</p>
-        </CaseDetailCard>
-        <CaseDetailCard title={labels.taxpayerPosition}>
-          <p>{truncateText(extraction.taxpayerPosition || extraction.taxpayerRebuttal, 520) || "-"}</p>
-        </CaseDetailCard>
-      </div>
-
-      <div className="case-detail-grid two">
-        <CaseDetailCard title={labels.extractedEvidence}>
-          <p>{evidence || "-"}</p>
-        </CaseDetailCard>
-        <CaseDetailCard title={labels.relatedRules}>
-          <p>{legalReferences || "-"}</p>
-        </CaseDetailCard>
-      </div>
-
-      <CaseDetailCard title={labels.decisionContent}>
-        <DetailRows
-          rows={[
-            ["Pertimbangan", truncateText(extraction.courtReasoning, 680)],
-            ["Amar putusan", truncateText(extraction.outcome, 420)]
-          ]}
-        />
-      </CaseDetailCard>
     </article>
   );
 }
