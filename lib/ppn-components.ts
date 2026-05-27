@@ -13,13 +13,6 @@ export type PpnFormulaRow = {
   basis: string;
 };
 
-export type PpnStandardRow = {
-  group: string;
-  key: keyof PpnComponents;
-  label: string;
-  description: string;
-};
-
 const COMPONENTS: Array<{ key: keyof PpnComponents; id: string; en: string; hintId: string; hintEn: string }> = [
   { key: "ppn_dpp", id: "DPP menurut Pengadilan Pajak", en: "Tax Court VAT base", hintId: "Nilai final DPP setelah putusan", hintEn: "Final VAT base after decision" },
   { key: "ppn_pajak_keluaran", id: "Pajak Keluaran", en: "Output VAT", hintId: "PK = DPP x tarif", hintEn: "Output VAT = VAT base x rate" },
@@ -33,78 +26,6 @@ const COMPONENTS: Array<{ key: keyof PpnComponents; id: string; en: string; hint
   { key: "ppn_koreksi_dpp", id: "Koreksi DPP", en: "VAT base correction", hintId: "Nilai koreksi atas DPP", hintEn: "VAT base correction amount" },
   { key: "ppn_koreksi_pm", id: "Koreksi Pajak Masukan", en: "Input VAT correction", hintId: "Nilai koreksi atas PM/Kredit Pajak", hintEn: "Input VAT correction amount" }
 ];
-
-export function ppnStandardRows(language: "id" | "en"): PpnStandardRow[] {
-  const en = language === "en";
-  return [
-    {
-      group: en ? "A. Tax Court final value" : "A. Nilai final Pengadilan",
-      key: "ppn_dpp",
-      label: "ppn_dpp",
-      description: en ? "VAT base according to the Tax Court." : "DPP menurut Pengadilan Pajak."
-    },
-    {
-      group: en ? "A. Tax Court final value" : "A. Nilai final Pengadilan",
-      key: "ppn_pajak_keluaran",
-      label: "ppn_pajak_keluaran",
-      description: en ? "Output VAT, normally VAT base x tariff." : "Pajak Keluaran, umumnya DPP x tarif."
-    },
-    {
-      group: en ? "A. Tax Court final value" : "A. Nilai final Pengadilan",
-      key: "ppn_pajak_masukan",
-      label: "ppn_pajak_masukan",
-      description: en ? "Input VAT / tax credit according to the Tax Court." : "Pajak Masukan/Kredit Pajak menurut Pengadilan Pajak."
-    },
-    {
-      group: en ? "A. Tax Court final value" : "A. Nilai final Pengadilan",
-      key: "ppn_kb_lb",
-      label: "ppn_kb_lb",
-      description: en ? "Signed value: positive = underpayment, negative = overpayment." : "Signed value: positif = kurang bayar, negatif = lebih bayar."
-    },
-    {
-      group: en ? "A. Tax Court final value" : "A. Nilai final Pengadilan",
-      key: "ppn_kompensasi",
-      label: "ppn_kompensasi",
-      description: en ? "Compensation to the following tax period." : "Kompensasi ke masa pajak berikutnya."
-    },
-    {
-      group: en ? "A. Tax Court final value" : "A. Nilai final Pengadilan",
-      key: "ppn_masih_harus_bayar",
-      label: "ppn_masih_harus_bayar",
-      description: en ? "Final amount payable after the decision." : "Total yang masih harus dibayar setelah putusan."
-    },
-    {
-      group: en ? "B. DGT position before decision" : "B. Posisi DJP sebelum putusan",
-      key: "ppn_dpp_djp",
-      label: "ppn_dpp_djp",
-      description: en ? "VAT base according to DGT / appellee." : "DPP menurut DJP/Terbanding."
-    },
-    {
-      group: en ? "B. DGT position before decision" : "B. Posisi DJP sebelum putusan",
-      key: "ppn_pm_djp",
-      label: "ppn_pm_djp",
-      description: en ? "Input VAT according to DGT." : "Pajak Masukan menurut DJP."
-    },
-    {
-      group: en ? "C. Classification" : "C. Klasifikasi",
-      key: "ppn_is_lb",
-      label: "ppn_is_lb",
-      description: en ? "Boolean: whether the case is an overpayment/refund case." : "Boolean: apakah kasus Lebih Bayar/restitusi."
-    },
-    {
-      group: en ? "C. Classification" : "C. Klasifikasi",
-      key: "ppn_jenis_penyerahan",
-      label: "ppn_jenis_penyerahan",
-      description: "BKP_DN | JKP_Luar_Pabean | Impor | Ekspor | Mixed"
-    },
-    {
-      group: en ? "C. Classification" : "C. Klasifikasi",
-      key: "ppn_objek_sengketa",
-      label: "ppn_objek_sengketa",
-      description: "DPP | PM | DPP_dan_PM | Formal"
-    }
-  ];
-}
 
 export function hasPpnComponentData(extraction?: ExtractionResult | null) {
   const ppn = extraction?.ppnComponents;

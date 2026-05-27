@@ -7,7 +7,7 @@ import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeI
 import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } from "@/lib/case-search";
 import { emptyPpnComponents, type ExtractionResult, type PpnComponents } from "@/lib/extraction";
 import { regulations, type Regulation } from "@/lib/mock-data";
-import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows, ppnStandardRows } from "@/lib/ppn-components";
+import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
 import { filterRegulationsByTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
@@ -2130,8 +2130,10 @@ function CaseDetailCard({ title, children }: { title: string; children: React.Re
 
 function HoverHelp({ text, hint }: { text: React.ReactNode; hint: string }) {
   return (
-    <span className="hover-help" title={hint} aria-label={typeof text === "string" ? `${text}. ${hint}` : hint}>
-      {text}
+    <span className="hover-help" tabIndex={0} aria-label={typeof text === "string" ? `${text}. ${hint}` : hint}>
+      <span className="hover-help-label">{text}</span>
+      <span className="hover-help-icon" aria-hidden="true">i</span>
+      <span className="hover-help-tooltip" role="tooltip">{hint}</span>
     </span>
   );
 }
@@ -2158,7 +2160,7 @@ function PpnComponentsCard({ extraction, language }: { extraction: ExtractionRes
           </thead>
           <tbody>
             {[...componentRows, ...classificationRows].map((row) => (
-              <tr key={row.key} title={row.hint}>
+              <tr key={row.key}>
                 <td>
                   <HoverHelp text={row.label} hint={row.hint} />
                 </td>
@@ -2182,7 +2184,7 @@ function PpnComponentsCard({ extraction, language }: { extraction: ExtractionRes
               </thead>
               <tbody>
                 {formulaRows.map((row) => (
-                  <tr key={row.formula} title={row.basis}>
+                  <tr key={row.formula}>
                     <td>
                       <HoverHelp text={row.formula} hint={row.basis} />
                     </td>
@@ -2195,36 +2197,6 @@ function PpnComponentsCard({ extraction, language }: { extraction: ExtractionRes
         </>
       )}
       {ppn.ppn_notes && <p className="muted ppn-note">{ppn.ppn_notes}</p>}
-    </CaseDetailCard>
-  );
-}
-
-function PpnStandardCard({ language }: { language: "id" | "en" }) {
-  const rows = ppnStandardRows(language);
-  const title = language === "en" ? "VAT calculation field standard" : "Standar field perhitungan PPN";
-
-  return (
-    <CaseDetailCard title={title}>
-      <div className="ppn-component-table">
-        <table>
-          <thead>
-            <tr>
-              <th>{language === "en" ? "Group" : "Grup"}</th>
-              <th>Key</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.key} title={row.description}>
-                <td>{row.group}</td>
-                <td className="mono-cell">
-                  <HoverHelp text={row.label} hint={row.description} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </CaseDetailCard>
   );
 }
@@ -2358,7 +2330,6 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
             </CaseDetailCard>
           </section>
           <section className="case-tab-panel">
-            <PpnStandardCard language={language} />
             {hasPpnComponentData(extraction) ? (
               <PpnComponentsCard extraction={extraction} language={language} />
             ) : (

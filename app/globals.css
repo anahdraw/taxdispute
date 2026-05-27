@@ -1730,16 +1730,20 @@ pre {
 }
 
 .hover-help {
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-columns: auto 16px;
   align-items: center;
-  gap: 6px;
+  column-gap: 6px;
+  row-gap: 6px;
   cursor: help;
-  border-bottom: 1px dotted rgba(0, 161, 222, 0.55);
-  text-decoration: none;
+  outline: none;
 }
 
-.hover-help::after {
-  content: "i";
+.hover-help-label {
+  border-bottom: 1px dotted rgba(0, 161, 222, 0.55);
+}
+
+.hover-help-icon {
   display: inline-grid;
   place-items: center;
   width: 16px;
@@ -1751,6 +1755,28 @@ pre {
   font-weight: 900;
   line-height: 1;
   text-transform: none;
+}
+
+.hover-help-tooltip {
+  display: none;
+  grid-column: 1 / -1;
+  max-width: 420px;
+  border: 1px solid #b8e3f8;
+  border-left: 4px solid var(--rsm-blue);
+  border-radius: 8px;
+  background: #f2fbff;
+  box-shadow: 0 10px 22px rgba(84, 88, 90, 0.14);
+  color: var(--ink);
+  font: 800 var(--text-xs)/1.45 var(--font-sans);
+  padding: 8px 10px;
+  white-space: normal;
+  z-index: 3;
+}
+
+.hover-help:hover .hover-help-tooltip,
+.hover-help:focus .hover-help-tooltip,
+.hover-help:focus-within .hover-help-tooltip {
+  display: block;
 }
 
 .currency-cell {

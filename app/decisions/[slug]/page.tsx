@@ -3,7 +3,7 @@ import { DecisionDetailActions } from "./actions";
 import { decodeDecisionSlug } from "@/lib/decision-links";
 import { getDecisionDocumentById, hasDatabase } from "@/lib/db";
 import type { ExtractionResult } from "@/lib/extraction";
-import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows, ppnStandardRows } from "@/lib/ppn-components";
+import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 export const runtime = "nodejs";
@@ -122,8 +122,10 @@ function CaseDetailCard({ title, children }: { title: string; children: React.Re
 
 function HoverHelp({ text, hint }: { text: React.ReactNode; hint: string }) {
   return (
-    <span className="hover-help" title={hint} aria-label={typeof text === "string" ? `${text}. ${hint}` : hint}>
-      {text}
+    <span className="hover-help" tabIndex={0} aria-label={typeof text === "string" ? `${text}. ${hint}` : hint}>
+      <span className="hover-help-label">{text}</span>
+      <span className="hover-help-icon" aria-hidden="true">i</span>
+      <span className="hover-help-tooltip" role="tooltip">{hint}</span>
     </span>
   );
 }
@@ -148,7 +150,7 @@ function PpnComponentsCard({ extraction }: { extraction: ExtractionResult }) {
           </thead>
           <tbody>
             {[...componentRows, ...classificationRows].map((row) => (
-              <tr key={row.key} title={row.hint}>
+              <tr key={row.key}>
                 <td>
                   <HoverHelp text={row.label} hint={row.hint} />
                 </td>
@@ -172,7 +174,7 @@ function PpnComponentsCard({ extraction }: { extraction: ExtractionResult }) {
               </thead>
               <tbody>
                 {formulaRows.map((row) => (
-                  <tr key={row.formula} title={row.basis}>
+                  <tr key={row.formula}>
                     <td>
                       <HoverHelp text={row.formula} hint={row.basis} />
                     </td>
@@ -185,34 +187,6 @@ function PpnComponentsCard({ extraction }: { extraction: ExtractionResult }) {
         </>
       )}
       {ppn.ppn_notes && <p className="muted ppn-note">{ppn.ppn_notes}</p>}
-    </CaseDetailCard>
-  );
-}
-
-function PpnStandardCard() {
-  const rows = ppnStandardRows("id");
-  return (
-    <CaseDetailCard title="Standar field perhitungan PPN">
-      <div className="ppn-component-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Grup</th>
-              <th>Key</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.key} title={row.description}>
-                <td>{row.group}</td>
-                <td className="mono-cell">
-                  <HoverHelp text={row.label} hint={row.description} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </CaseDetailCard>
   );
 }
@@ -338,7 +312,6 @@ function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
             </CaseDetailCard>
           </section>
           <section className="case-tab-panel">
-            <PpnStandardCard />
             {hasPpnComponentData(extraction) ? (
               <PpnComponentsCard extraction={extraction} />
             ) : (
