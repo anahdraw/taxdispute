@@ -798,6 +798,7 @@ export default function Home() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [page, setPage] = useState<PageKey>("dashboard");
+  const [sidebarHidden, setSidebarHidden] = useState(false);
   const [form, setForm] = useState<AnalyzeInput>({ ...initialInput, language });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedName, setUploadedName] = useState("");
@@ -1563,7 +1564,7 @@ export default function Home() {
   }
 
   return (
-    <main>
+    <main className={`app-shell ${sidebarHidden ? "sidebar-hidden" : ""}`}>
       <aside className="sidebar">
         <RsmMark />
         <p className="caption">{APP_SHORT_NAME}</p>
@@ -1595,6 +1596,11 @@ export default function Home() {
       </aside>
 
       <section className="content">
+        <div className="content-toolbar">
+          <button className="table-button compact sidebar-visibility-button" onClick={() => setSidebarHidden((current) => !current)}>
+            {sidebarHidden ? (language === "en" ? "Show menu" : "Tampilkan menu") : language === "en" ? "Hide menu" : "Sembunyikan menu"}
+          </button>
+        </div>
         <header className="hero">
           <div>
             <h1>{APP_NAME}</h1>
@@ -2497,32 +2503,35 @@ function DecisionDatabasePanel({
 
   return (
     <section className="database-layout">
-      <Panel title={labels.databaseTitle}>
-        <p className="muted lead-copy">{labels.databaseIntro}</p>
-        <div className="upload-box">
-          <label>
-            {labels.uploadDecisionPdfs}
-            <input
-              type="file"
-              accept=".pdf,application/pdf"
-              multiple
-              onChange={(event) => onFilesChange(event.target.files)}
-            />
-          </label>
-          <p>
-            {files.length
-              ? `${files.length} file(s): ${files.map((file) => `${file.name} (${formatBytes(file.size)})`).join(", ")}`
-              : labels.databaseUploadHint}
-          </p>
-        </div>
-        {status && <div className="status-banner success">{status}</div>}
-        {error && <div className="status-banner error">{error}</div>}
-        <button className="primary-button" onClick={onUpload} disabled={loading || files.length === 0}>
-          {loading ? labels.uploadingToBlob : labels.uploadAndExtract}
-        </button>
-      </Panel>
-
       <Panel title={selectedDocument ? labels.caseDetail : labels.storedDocuments}>
+        {!selectedDocument && (
+          <>
+            <div className="database-upload-strip">
+              <div className="database-upload-copy">
+                <b>{labels.uploadDecisionPdfs}</b>
+                <span>
+                  {files.length
+                    ? `${files.length} file(s): ${files.map((file) => `${file.name} (${formatBytes(file.size)})`).join(", ")}`
+                    : labels.databaseUploadHint}
+                </span>
+              </div>
+              <label className="database-file-picker">
+                <span>{labels.uploadDecisionPdfs}</span>
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  multiple
+                  onChange={(event) => onFilesChange(event.target.files)}
+                />
+              </label>
+              <button className="primary-button database-upload-button" onClick={onUpload} disabled={loading || files.length === 0}>
+                {loading ? labels.uploadingToBlob : labels.uploadAndExtract}
+              </button>
+            </div>
+            {status && <div className="status-banner success compact-status">{status}</div>}
+            {error && <div className="status-banner error compact-status">{error}</div>}
+          </>
+        )}
         {storedDocuments.length === 0 ? (
           <div className="empty-state">{labels.noStoredDocuments}</div>
         ) : selectedDocument ? (
