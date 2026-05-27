@@ -235,6 +235,7 @@ export default async function ReferencePage({ params, searchParams }: PageProps)
           </section>
           <ReferenceViewer
             initialQuery={initialQuery}
+            kind={record.kind}
             pdfUrl={record.pdfUrl}
             sourceUrl={record.sourceUrl}
             sourceText={record.sourceText}

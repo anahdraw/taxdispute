@@ -4,6 +4,7 @@ import { decodeDecisionSlug } from "@/lib/decision-links";
 import { getDecisionDocumentById, hasDatabase } from "@/lib/db";
 import type { ExtractionResult } from "@/lib/extraction";
 import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
+import { referenceDetailPath } from "@/lib/reference-links";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 export const runtime = "nodejs";
@@ -394,8 +395,8 @@ export default async function DecisionDetailPage({ params }: PageProps) {
         </div>
         <DecisionDetailActions document={document} backLabel="Back to database" printLabel="Print / save PDF" />
         {(document.downloadUrl || document.url).startsWith("https://") && (
-          <a className="table-button detail-open-pdf" href={document.downloadUrl || document.url} target="_blank" rel="noreferrer">
-            Open original PDF
+          <a className="table-button detail-open-pdf" href={referenceDetailPath("decision", document.id)}>
+            Open PDF viewer
           </a>
         )}
       </aside>

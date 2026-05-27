@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 export type ReferenceViewerProps = {
   initialQuery: string;
+  kind: string;
   pdfUrl: string;
   sourceUrl: string;
   sourceText: string;
@@ -50,14 +51,93 @@ function TextPreview({ text, query }: { text: string; query: string }) {
   );
 }
 
-export function ReferenceViewer({ initialQuery, pdfUrl, sourceUrl, sourceText, title }: ReferenceViewerProps) {
+function InlineRichText({ text }: { text: string }) {
+  const parts = String(text || "").split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+  return (
+    <>
+      {parts.map((part, index) =>
+        part.startsWith("**") && part.endsWith("**") ? <strong key={`${part}-${index}`}>{part.slice(2, -2)}</strong> : <span key={`${part}-${index}`}>{part}</span>
+      )}
+    </>
+  );
+}
+
+function AnswerText({ text }: { text: string }) {
+  const blocks = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="rich-text reference-answer-text">
+      {blocks.map((block, index) => {
+        const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+        const isList = lines.every((line) => /^[-•]\s+/.test(line));
+        if (isList) {
+          return (
+            <ul key={`block-${index}`}>
+              {lines.map((line, lineIndex) => (
+                <li key={`line-${lineIndex}`}>
+                  <InlineRichText text={line.replace(/^[-•]\s+/, "")} />
+                </li>
+              ))}
+            </ul>
+          );
+        }
+        return (
+          <p key={`block-${index}`}>
+            <InlineRichText text={block.replace(/^#{1,6}\s*/, "")} />
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ReferenceViewer({ initialQuery, kind, pdfUrl, sourceUrl, sourceText, title }: ReferenceViewerProps) {
   const [query, setQuery] = useState(initialQuery);
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const pdfSrc = useMemo(() => (pdfUrl ? buildPdfSrc(pdfUrl, query) : ""), [pdfUrl, query]);
   const matchCount = useMemo(() => {
     const cleanQuery = query.trim();
     if (!cleanQuery) return 0;
     return (sourceText.match(new RegExp(escapeRegExp(cleanQuery), "gi")) || []).length;
   }, [query, sourceText]);
+
+  async function askReferenceBot() {
+    const trimmed = question.trim();
+    if (!trimmed) return;
+    setLoading(true);
+    setError("");
+    setStatus("");
+    setAnswer("");
+    try {
+      const response = await fetch("/api/reference-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: trimmed,
+          language: "id",
+          title,
+          kind,
+          sourceText
+        })
+      });
+      const data = (await response.json().catch(() => ({}))) as { answer?: string; error?: string; llmStatus?: { message?: string } };
+      if (!response.ok) throw new Error(data.error || "Smartbot referensi gagal menjawab.");
+      setAnswer(data.answer || "");
+      setStatus(data.llmStatus?.message || "Smartbot referensi menjawab dari konteks dokumen ini.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Smartbot referensi gagal menjawab.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <section className="reference-viewer">
@@ -85,6 +165,28 @@ export function ReferenceViewer({ initialQuery, pdfUrl, sourceUrl, sourceText, t
           {query.trim() ? ` Ditemukan ${matchCount} kecocokan di teks ringkasan.` : ""}
         </p>
       </div>
+
+      <section className="reference-chat-card">
+        <div>
+          <h3>Tanya Smartbot tentang referensi ini</h3>
+          <p className="muted">Jawaban dibatasi pada konteks referensi yang sedang dibuka agar lebih hemat token dan mudah diverifikasi.</p>
+        </div>
+        <label>
+          <span>Pertanyaan</span>
+          <textarea
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            placeholder="Contoh: Apa isu utama dalam putusan ini? Dasar hukum apa yang dipakai? Bagian mana yang relevan untuk PPN minyak?"
+            rows={3}
+          />
+        </label>
+        <button className="primary-button" onClick={askReferenceBot} disabled={loading || !question.trim()}>
+          {loading ? "Menjawab..." : "Tanya Smartbot Referensi"}
+        </button>
+        {status && <div className="status-banner success compact-status">{status}</div>}
+        {error && <div className="status-banner error compact-status">{error}</div>}
+        {answer && <AnswerText text={answer} />}
+      </section>
 
       {pdfUrl ? (
         <div className="reference-pdf-frame">

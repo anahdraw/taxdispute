@@ -2559,7 +2559,7 @@ function DecisionDatabasePanel({
                 {deletingDocumentId === selectedDocument.id ? labels.deletingStored : labels.deleteStored}
               </button>
               {(selectedDocument.downloadUrl || selectedDocument.url).startsWith("https://") && (
-                <a className="table-button" href={selectedDocument.downloadUrl || selectedDocument.url} target="_blank" rel="noreferrer">
+                <a className="table-button" href={referenceDetailPath("decision", selectedDocument.id)}>
                   {labels.openPdf}
                 </a>
               )}
@@ -2652,7 +2652,7 @@ function DecisionDatabasePanel({
                         </td>
                         <td>
                           {hasPdfUrl ? (
-                            <a href={item.downloadUrl || item.url} target="_blank" rel="noreferrer">
+                            <a href={referenceDetailPath("decision", item.id)}>
                               {labels.openPdf}
                             </a>
                           ) : (
