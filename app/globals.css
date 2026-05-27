@@ -55,6 +55,18 @@ button:disabled {
   opacity: 0.72;
 }
 
+@keyframes softIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 main {
   display: grid;
   grid-template-columns: 294px minmax(0, 1fr);
@@ -1326,8 +1338,77 @@ pre {
   min-width: min(320px, 100%);
 }
 
+.tabbed-toolbar {
+  align-items: end;
+  margin-bottom: 10px;
+}
+
 .import-hint {
   margin: -8px 0 14px;
+}
+
+.regulation-tabs {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.regulation-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid #e1e8ef;
+  border-radius: 8px;
+  background: #f7fafc;
+}
+
+.regulation-tab-list button {
+  cursor: pointer;
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 900;
+  padding: 0 14px;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.regulation-tab-list button:hover {
+  border-color: #b8e3f8;
+  background: #eef9fd;
+  color: var(--rsm-blue-dark);
+}
+
+.regulation-tab-list button.active {
+  border-color: #aee0f7;
+  background: #eaf7fd;
+  color: var(--rsm-blue-dark);
+  box-shadow: inset 0 3px 0 var(--rsm-blue);
+}
+
+.regulation-tab-panels {
+  min-height: 360px;
+}
+
+.regulation-tab-panel {
+  animation: softIn 0.16s ease;
+}
+
+.regulation-update-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  padding: 18px;
+}
+
+.regulation-update-panel h3 {
+  margin: 0 0 8px;
+  font-size: var(--text-lg);
 }
 
 .regulation-bot-box {
@@ -1339,6 +1420,26 @@ pre {
   background: #fff;
   margin: 16px 0 22px;
   padding: 18px;
+}
+
+.regulation-bot-box.compact {
+  margin: 0;
+}
+
+.regulation-bot-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.15fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.regulation-question-card {
+  display: grid;
+  gap: 12px;
+}
+
+.regulation-question-card .primary-button {
+  width: 100%;
 }
 
 .regulation-bot-box h3 {
@@ -1374,6 +1475,12 @@ pre {
   margin-top: 18px;
   padding-top: 18px;
   border-top: 1px solid var(--line);
+}
+
+.regulation-tab-panel.manual-rule-box {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }
 
 .stored-rule-list {
@@ -2263,6 +2370,7 @@ pre {
   .source-grid,
   .reference-search-card,
   .hero,
+  .regulation-bot-layout,
   .regulation-grid {
     grid-template-columns: 1fr;
   }

@@ -17,6 +17,7 @@ import { referenceDetailPath } from "@/lib/reference-links";
 type Language = "id" | "en";
 type PageKey = "dashboard" | "guided" | "analysis" | "database" | "smartchat" | "regulations" | "reports";
 type UserRole = "admin" | "user";
+type RegulationTabKey = "bot" | "update" | "list" | "manual";
 type DemoSession = {
   role: UserRole;
   name: string;
@@ -184,6 +185,12 @@ const copy = {
     enrichRuleSource: "Enrich sumber",
     sourceEnriched: "aturan berhasil dienrich dari link sumber.",
     noRulesWithSource: "Tidak ada aturan dengan link sumber yang bisa dienrich.",
+    regulationTabBot: "Smart Bot",
+    regulationTabUpdate: "Update & Import",
+    regulationTabList: "Aturan tersimpan",
+    regulationTabManual: "Input manual",
+    regulationUpdateTitle: "Update knowledge aturan",
+    regulationUpdateIntro: "Pilih topik, tarik referensi awal dari Ortax, import daftar aturan, atau enrich isi aturan dari link sumber.",
     editRule: "Edit",
     deleteRule: "Hapus",
     updateRule: "Update aturan",
@@ -389,6 +396,12 @@ const copy = {
     enrichRuleSource: "Enrich source",
     sourceEnriched: "regulation(s) enriched from source links.",
     noRulesWithSource: "No regulations with source links are available for enrichment.",
+    regulationTabBot: "Smart Bot",
+    regulationTabUpdate: "Update & Import",
+    regulationTabList: "Stored rules",
+    regulationTabManual: "Manual input",
+    regulationUpdateTitle: "Update regulation knowledge",
+    regulationUpdateIntro: "Choose a topic, pull starter references from Ortax, import rule lists, or enrich rule content from source links.",
     editRule: "Edit",
     deleteRule: "Delete",
     updateRule: "Update rule",
@@ -1002,6 +1015,7 @@ export default function Home() {
   const [regulationStatus, setRegulationStatus] = useState("");
   const [regulationError, setRegulationError] = useState("");
   const [regulationLoading, setRegulationLoading] = useState(false);
+  const [regulationTab, setRegulationTab] = useState<RegulationTabKey>("bot");
   const [manualRule, setManualRule] = useState({
     title: "",
     citation: "",
@@ -1683,6 +1697,7 @@ export default function Home() {
   }
 
   function startEditRegulation(item: Regulation) {
+    setRegulationTab("manual");
     setEditingRegulationId(item.id);
     setRegulationTopic(normalizeRegulationTopic(item.topic));
     setManualRule({
@@ -1694,7 +1709,9 @@ export default function Home() {
     });
     setRegulationStatus("");
     setRegulationError("");
-    document.getElementById("manual-regulation-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      document.getElementById("manual-regulation-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
   }
 
   function cancelEditRegulation() {
@@ -1765,6 +1782,7 @@ export default function Home() {
       }
       if (Array.isArray(data.records)) setRegulationRecords(data.records);
       setRegulationStatus(`${data.imported || records.length} ${labels.importedRegulations}`);
+      setRegulationTab("list");
     } catch (error) {
       setRegulationError(error instanceof Error ? error.message : "Could not import regulations.");
     } finally {
@@ -1863,6 +1881,7 @@ export default function Home() {
       setManualRule({ title: "", citation: "", focus: "", sourceUrl: "", content: "" });
       setEditingRegulationId("");
       setRegulationStatus(labels.regulationUpdated);
+      setRegulationTab("list");
     } catch (error) {
       setRegulationError(error instanceof Error ? error.message : "Could not save regulation.");
     } finally {
@@ -2145,185 +2164,234 @@ export default function Home() {
         {page === "regulations" && (
           <Panel title={labels.relatedRules}>
             <p className="muted lead-copy">{labels.regulationHelp}</p>
-            <div className="regulation-toolbar">
-              <label className="control">
-                <span>{labels.regulationTopic}</span>
-                <select
-                  value={regulationTopic}
-                  onChange={(event) => {
-                    setRegulationTopic(event.target.value as RegulationTopic);
-                    setRegulationPage(1);
-                  }}
-                >
-                  {regulationTopicOptions.map((topic) => (
-                    <option key={topic.key} value={topic.key}>
-                      {topic[language]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button className="primary-button" onClick={updateRegulationsFromOrtax} disabled={regulationLoading}>
-                {regulationLoading ? labels.updatingRules : labels.updateFromOrtax}
-              </button>
-              <button className="primary-button secondary-button" onClick={() => enrichRegulationSources()} disabled={sourceEnrichLoading}>
-                {sourceEnrichLoading ? labels.enrichingSources : labels.enrichSources}
-              </button>
-              <a className="table-button jump-link" href="#stored-regulations">
-                {labels.jumpToStoredRules}
-              </a>
-              <label className="table-button upload-inline">
-                {regulationImportLoading ? labels.importingRegulations : labels.bulkRegulationUpload}
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-                  onChange={(event) => {
-                    importRegulationList(event.target.files);
-                    event.currentTarget.value = "";
-                  }}
-                />
-              </label>
-            </div>
-            <p className="muted import-hint">{labels.bulkRegulationHint}</p>
             {regulationStatus && <div className="status-banner success">{regulationStatus}</div>}
             {regulationError && <div className="status-banner error">{regulationError}</div>}
-            <div className="regulation-bot-box">
-              <div>
-                <h3>{labels.regulationBotTitle}</h3>
-                <p className="muted">{labels.regulationBotIntro}</p>
-              </div>
-              <label className="control wide">
-                <span>{labels.regulationQuestion}</span>
-                <textarea
-                  value={regulationQuestion}
-                  onChange={(event) => setRegulationQuestion(event.target.value)}
-                  placeholder={labels.regulationQuestionPlaceholder}
-                  rows={4}
-                />
-              </label>
-              <button className="primary-button" onClick={askRegulationBot} disabled={regulationBotLoading || !regulationQuestion.trim()}>
-                {regulationBotLoading ? labels.askingRegulationBot : labels.askRegulationBot}
-              </button>
-              {regulationBotError && <div className="status-banner error">{regulationBotError}</div>}
-              <div className="regulation-bot-answer">
-                <h3>{labels.regulationBotAnswer}</h3>
-                {!regulationBotResponse ? (
-                  <div className="empty-state">{labels.noRegulationBotAnswer}</div>
-                ) : (
-                  <>
-                    {regulationBotStatus && <div className="status-banner success">{regulationBotStatus}</div>}
-                    <MarkdownText text={regulationBotResponse.answer} />
-                    <div className="source-list compact-source-list">
-                      {regulationBotResponse.ruleHits.slice(0, 6).map((item) => (
-                        <article key={item.id} className="source-card">
-                          <b>{item.title}</b>
-                          <span>{item.citation} · {item.topic}</span>
-                          <p>{item.snippet}</p>
-                          <small>Relevance {item.score}% · {item.source}</small>
-                          <a href={referenceDetailPath("regulation", item.id, regulationQuestion)}>{labels.openReference}</a>
-                        </article>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            <div id="stored-regulations" className="stored-rule-list">
-              <h3>{labels.storedRuleList}</h3>
-              {visibleRegulations.length === 0 ? (
-                <div className="empty-state">{labels.noRegulations}</div>
-              ) : (
-                <>
-                  <PaginationControls
-                    labels={labels}
-                    totalItems={visibleRegulations.length}
-                    currentPage={currentRegulationPage}
-                    perPage={regulationPerPage}
-                    perPageOptions={[3, 6, 9, 12]}
-                    onPageChange={setRegulationPage}
-                    onPerPageChange={setRegulationPerPage}
-                  />
-                  <div className="regulation-grid">
-                    {pagedRegulations.map((item) => (
-                      <article key={item.id} className="reg-card">
-                        <b>{item.title}</b>
-                        <span>{item.citation}</span>
-                        <p>{item.focus}</p>
-                        {item.content && <p className="muted">{truncateText(item.content, 420)}</p>}
-                        <small>
-                          {labels.source}: {item.source || "seed"}
-                          {item.sourceUrl && item.sourceUrl.startsWith("https://") ? (
-                            <>
-                              {" · "}
-                              <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-                                {labels.openSource}
-                              </a>
-                            </>
-                          ) : null}
-                        </small>
-                        <div className="score-pill">{item.relevance}% relevance</div>
-                        <div className="reg-card-actions">
-                          <a className="table-button compact" href={referenceDetailPath("regulation", item.id)}>
-                            {labels.openReference}
-                          </a>
-                          <button className="table-button compact" onClick={() => startEditRegulation(item)}>
-                            {labels.editRule}
-                          </button>
-                          <button
-                            className="table-button compact"
-                            onClick={() => enrichRegulationSources(item)}
-                            disabled={!/^https?:\/\//i.test(item.sourceUrl || "") || Boolean(enrichingRegulationId || sourceEnrichLoading)}
-                          >
-                            {enrichingRegulationId === item.id ? labels.enrichingSources : labels.enrichRuleSource}
-                          </button>
-                          <button
-                            className="table-button compact danger"
-                            onClick={() => deleteRegulation(item)}
-                            disabled={deletingRegulationId === item.id}
-                          >
-                            {deletingRegulationId === item.id ? labels.deletingStored : labels.deleteRule}
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                  <PaginationControls
-                    labels={labels}
-                    totalItems={visibleRegulations.length}
-                    currentPage={currentRegulationPage}
-                    perPage={regulationPerPage}
-                    perPageOptions={[3, 6, 9, 12]}
-                    onPageChange={setRegulationPage}
-                    onPerPageChange={setRegulationPerPage}
-                  />
-                </>
-              )}
-            </div>
-            <div id="manual-regulation-form" className="manual-rule-box">
-              <h3>{labels.manualRegulation}</h3>
-              {editingRegulationId && (
-                <div className="status-banner success compact-status">
-                  {language === "en" ? "Editing existing regulation." : "Sedang edit aturan tersimpan."}
-                </div>
-              )}
-              <div className="form-grid">
-                <Input label={labels.manualTitle} value={manualRule.title} onChange={(value) => setManualRule((current) => ({ ...current, title: value }))} />
-                <Input label={labels.manualCitation} value={manualRule.citation} onChange={(value) => setManualRule((current) => ({ ...current, citation: value }))} />
-                <Input label={labels.manualSourceUrl} value={manualRule.sourceUrl} onChange={(value) => setManualRule((current) => ({ ...current, sourceUrl: value }))} />
-              </div>
-              <TextArea label={labels.manualFocus} value={manualRule.focus} onChange={(value) => setManualRule((current) => ({ ...current, focus: value }))} />
-              <TextArea label={labels.manualContent} value={manualRule.content} onChange={(value) => setManualRule((current) => ({ ...current, content: value }))} />
-              <div className="regulation-actions">
-                <label className="table-button upload-inline">
-                  {labels.uploadManualRule}
-                  <input type="file" accept=".txt,.md,.text" onChange={(event) => onManualRuleFileChange(event.target.files)} />
-                </label>
-                <button className="primary-button secondary-button" onClick={saveManualRegulation} disabled={manualRuleSaving}>
-                  {manualRuleSaving ? labels.savingManualRule : editingRegulationId ? labels.updateRule : labels.saveManualRule}
-                </button>
-                {editingRegulationId && (
-                  <button className="table-button" onClick={cancelEditRegulation}>
-                    {labels.cancelEdit}
+            <div className="regulation-tabs">
+              <div className="regulation-tab-list" role="tablist" aria-label={labels.relatedRules}>
+                {[
+                  ["bot", labels.regulationTabBot],
+                  ["update", labels.regulationTabUpdate],
+                  ["list", labels.regulationTabList],
+                  ["manual", labels.regulationTabManual]
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={regulationTab === key ? "active" : ""}
+                    role="tab"
+                    aria-selected={regulationTab === key}
+                    onClick={() => setRegulationTab(key as RegulationTabKey)}
+                  >
+                    {label}
                   </button>
+                ))}
+              </div>
+
+              <div className="regulation-tab-panels">
+                {regulationTab === "bot" && (
+                  <section className="regulation-tab-panel">
+                    <div className="regulation-bot-box compact">
+                      <div>
+                        <h3>{labels.regulationBotTitle}</h3>
+                        <p className="muted">{labels.regulationBotIntro}</p>
+                      </div>
+                      <div className="regulation-bot-layout">
+                        <div className="regulation-question-card">
+                          <label className="control wide">
+                            <span>{labels.regulationQuestion}</span>
+                            <textarea
+                              value={regulationQuestion}
+                              onChange={(event) => setRegulationQuestion(event.target.value)}
+                              placeholder={labels.regulationQuestionPlaceholder}
+                              rows={6}
+                            />
+                          </label>
+                          <button className="primary-button" onClick={askRegulationBot} disabled={regulationBotLoading || !regulationQuestion.trim()}>
+                            {regulationBotLoading ? labels.askingRegulationBot : labels.askRegulationBot}
+                          </button>
+                          {regulationBotError && <div className="status-banner error">{regulationBotError}</div>}
+                        </div>
+                        <div className="regulation-bot-answer">
+                          <h3>{labels.regulationBotAnswer}</h3>
+                          {!regulationBotResponse ? (
+                            <div className="empty-state">{labels.noRegulationBotAnswer}</div>
+                          ) : (
+                            <>
+                              {regulationBotStatus && <div className="status-banner success">{regulationBotStatus}</div>}
+                              <MarkdownText text={regulationBotResponse.answer} />
+                              <div className="source-list compact-source-list">
+                                {regulationBotResponse.ruleHits.slice(0, 6).map((item) => (
+                                  <article key={item.id} className="source-card">
+                                    <b>{item.title}</b>
+                                    <span>{item.citation} · {item.topic}</span>
+                                    <p>{item.snippet}</p>
+                                    <small>Relevance {item.score}% · {item.source}</small>
+                                    <a href={referenceDetailPath("regulation", item.id, regulationQuestion)}>{labels.openReference}</a>
+                                  </article>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {regulationTab === "update" && (
+                  <section className="regulation-tab-panel">
+                    <div className="regulation-update-panel">
+                      <div>
+                        <h3>{labels.regulationUpdateTitle}</h3>
+                        <p className="muted">{labels.regulationUpdateIntro}</p>
+                      </div>
+                      <div className="regulation-toolbar tabbed-toolbar">
+                        <label className="control">
+                          <span>{labels.regulationTopic}</span>
+                          <select
+                            value={regulationTopic}
+                            onChange={(event) => {
+                              setRegulationTopic(event.target.value as RegulationTopic);
+                              setRegulationPage(1);
+                            }}
+                          >
+                            {regulationTopicOptions.map((topic) => (
+                              <option key={topic.key} value={topic.key}>
+                                {topic[language]}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <button className="primary-button" onClick={updateRegulationsFromOrtax} disabled={regulationLoading}>
+                          {regulationLoading ? labels.updatingRules : labels.updateFromOrtax}
+                        </button>
+                        <button className="primary-button secondary-button" onClick={() => enrichRegulationSources()} disabled={sourceEnrichLoading}>
+                          {sourceEnrichLoading ? labels.enrichingSources : labels.enrichSources}
+                        </button>
+                        <button className="table-button" onClick={() => setRegulationTab("list")}>
+                          {labels.jumpToStoredRules}
+                        </button>
+                        <label className="table-button upload-inline">
+                          {regulationImportLoading ? labels.importingRegulations : labels.bulkRegulationUpload}
+                          <input
+                            type="file"
+                            accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                            onChange={(event) => {
+                              importRegulationList(event.target.files);
+                              event.currentTarget.value = "";
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <p className="muted import-hint">{labels.bulkRegulationHint}</p>
+                    </div>
+                  </section>
+                )}
+
+                {regulationTab === "list" && (
+                  <section id="stored-regulations" className="regulation-tab-panel stored-rule-list">
+                    <h3>{labels.storedRuleList}</h3>
+                    {visibleRegulations.length === 0 ? (
+                      <div className="empty-state">{labels.noRegulations}</div>
+                    ) : (
+                      <>
+                        <PaginationControls
+                          labels={labels}
+                          totalItems={visibleRegulations.length}
+                          currentPage={currentRegulationPage}
+                          perPage={regulationPerPage}
+                          perPageOptions={[3, 6, 9, 12]}
+                          onPageChange={setRegulationPage}
+                          onPerPageChange={setRegulationPerPage}
+                        />
+                        <div className="regulation-grid">
+                          {pagedRegulations.map((item) => (
+                            <article key={item.id} className="reg-card">
+                              <b>{item.title}</b>
+                              <span>{item.citation}</span>
+                              <p>{item.focus}</p>
+                              {item.content && <p className="muted">{truncateText(item.content, 420)}</p>}
+                              <small>
+                                {labels.source}: {item.source || "seed"}
+                                {item.sourceUrl && item.sourceUrl.startsWith("https://") ? (
+                                  <>
+                                    {" · "}
+                                    <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                                      {labels.openSource}
+                                    </a>
+                                  </>
+                                ) : null}
+                              </small>
+                              <div className="score-pill">{item.relevance}% relevance</div>
+                              <div className="reg-card-actions">
+                                <a className="table-button compact" href={referenceDetailPath("regulation", item.id)}>
+                                  {labels.openReference}
+                                </a>
+                                <button className="table-button compact" onClick={() => startEditRegulation(item)}>
+                                  {labels.editRule}
+                                </button>
+                                <button
+                                  className="table-button compact"
+                                  onClick={() => enrichRegulationSources(item)}
+                                  disabled={!/^https?:\/\//i.test(item.sourceUrl || "") || Boolean(enrichingRegulationId || sourceEnrichLoading)}
+                                >
+                                  {enrichingRegulationId === item.id ? labels.enrichingSources : labels.enrichRuleSource}
+                                </button>
+                                <button
+                                  className="table-button compact danger"
+                                  onClick={() => deleteRegulation(item)}
+                                  disabled={deletingRegulationId === item.id}
+                                >
+                                  {deletingRegulationId === item.id ? labels.deletingStored : labels.deleteRule}
+                                </button>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                        <PaginationControls
+                          labels={labels}
+                          totalItems={visibleRegulations.length}
+                          currentPage={currentRegulationPage}
+                          perPage={regulationPerPage}
+                          perPageOptions={[3, 6, 9, 12]}
+                          onPageChange={setRegulationPage}
+                          onPerPageChange={setRegulationPerPage}
+                        />
+                      </>
+                    )}
+                  </section>
+                )}
+
+                {regulationTab === "manual" && (
+                  <section id="manual-regulation-form" className="regulation-tab-panel manual-rule-box">
+                    <h3>{labels.manualRegulation}</h3>
+                    {editingRegulationId && (
+                      <div className="status-banner success compact-status">
+                        {language === "en" ? "Editing existing regulation." : "Sedang edit aturan tersimpan."}
+                      </div>
+                    )}
+                    <div className="form-grid">
+                      <Input label={labels.manualTitle} value={manualRule.title} onChange={(value) => setManualRule((current) => ({ ...current, title: value }))} />
+                      <Input label={labels.manualCitation} value={manualRule.citation} onChange={(value) => setManualRule((current) => ({ ...current, citation: value }))} />
+                      <Input label={labels.manualSourceUrl} value={manualRule.sourceUrl} onChange={(value) => setManualRule((current) => ({ ...current, sourceUrl: value }))} />
+                    </div>
+                    <TextArea label={labels.manualFocus} value={manualRule.focus} onChange={(value) => setManualRule((current) => ({ ...current, focus: value }))} />
+                    <TextArea label={labels.manualContent} value={manualRule.content} onChange={(value) => setManualRule((current) => ({ ...current, content: value }))} />
+                    <div className="regulation-actions">
+                      <label className="table-button upload-inline">
+                        {labels.uploadManualRule}
+                        <input type="file" accept=".txt,.md,.text" onChange={(event) => onManualRuleFileChange(event.target.files)} />
+                      </label>
+                      <button className="primary-button secondary-button" onClick={saveManualRegulation} disabled={manualRuleSaving}>
+                        {manualRuleSaving ? labels.savingManualRule : editingRegulationId ? labels.updateRule : labels.saveManualRule}
+                      </button>
+                      {editingRegulationId && (
+                        <button className="table-button" onClick={cancelEditRegulation}>
+                          {labels.cancelEdit}
+                        </button>
+                      )}
+                    </div>
+                  </section>
                 )}
               </div>
             </div>
