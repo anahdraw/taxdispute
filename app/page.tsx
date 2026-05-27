@@ -799,6 +799,13 @@ function normalizeImportHeader(value: string) {
 }
 
 function csvRows(text: string): RegulationImportRow[] {
+  const firstLine = text.split(/\r?\n/).find((line) => line.trim()) || "";
+  const delimiter =
+    firstLine.split(";").length > firstLine.split(",").length && firstLine.split(";").length >= firstLine.split("\t").length
+      ? ";"
+      : firstLine.split("\t").length > firstLine.split(",").length
+        ? "\t"
+        : ",";
   const rows: string[][] = [];
   let field = "";
   let row: string[] = [];
@@ -812,7 +819,7 @@ function csvRows(text: string): RegulationImportRow[] {
       index += 1;
     } else if (char === '"') {
       quoted = !quoted;
-    } else if (char === "," && !quoted) {
+    } else if (char === delimiter && !quoted) {
       row.push(field.trim());
       field = "";
     } else if ((char === "\n" || char === "\r") && !quoted) {
@@ -838,20 +845,56 @@ function csvRows(text: string): RegulationImportRow[] {
 }
 
 function rowValue(row: RegulationImportRow, keys: string[]) {
+  const entries = Object.entries(row).map(([key, value]) => [normalizeImportHeader(key), value] as const);
   for (const key of keys) {
-    const value = row[normalizeImportHeader(key)];
+    const normalizedKey = normalizeImportHeader(key);
+    const value = row[normalizedKey];
     if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
+  }
+  for (const key of keys) {
+    const normalizedKey = normalizeImportHeader(key);
+    const match = entries.find(([entryKey, value]) => (entryKey.includes(normalizedKey) || normalizedKey.includes(entryKey)) && value !== undefined && value !== null && String(value).trim());
+    if (match) return String(match[1]).trim();
   }
   return "";
 }
 
+function inferRegulationTopic(row: RegulationImportRow) {
+  const explicit = rowValue(row, ["topic", "topik", "jenis", "category", "kategori"]);
+  const text = [
+    explicit,
+    rowValue(row, ["title", "name", "nama", "judul", "rule_name", "nama_aturan"]),
+    rowValue(row, ["focus", "summary", "ringkasan", "deskripsi_singkat", "deskripsi", "description"]),
+    rowValue(row, ["citation", "number", "nomor", "sitasi", "jenis_peraturan", "peraturan"])
+  ]
+    .join(" ")
+    .toLowerCase();
+  if (/transfer pricing|harga transfer|hubungan istimewa|arm.?s length|kewajaran|kelaziman|afiliasi/.test(text)) return "transfer_pricing";
+  if (/\bppn\b|vat|pajak pertambahan nilai|ppnbm|pajak masukan|faktur pajak|bkp|jkp/.test(text)) return "vat";
+  return normalizeRegulationTopic(explicit);
+}
+
+function buildRegulationCitation(row: RegulationImportRow) {
+  const ruleType = rowValue(row, ["jenis_peraturan", "jenis aturan", "jenis", "tipe", "type"]);
+  const number = rowValue(row, ["nomor", "number", "no", "no_peraturan"]);
+  const year = rowValue(row, ["tahun", "year"]);
+  const parts = [ruleType, number ? `No. ${number}` : "", year ? `Tahun ${year}` : ""].filter(Boolean);
+  if (parts.length) return parts.join(" ");
+  return rowValue(row, ["citation", "sitasi", "nomor_sitasi", "peraturan"]);
+}
+
 function rowRegulation(row: RegulationImportRow, index: number): Regulation | null {
   const title = rowValue(row, ["title", "name", "nama", "judul", "rule_name", "nama_aturan"]);
-  const citation = rowValue(row, ["citation", "number", "nomor", "sitasi", "nomor_sitasi", "peraturan"]);
-  const focus = rowValue(row, ["focus", "summary", "ringkasan", "fungsi", "description", "deskripsi"]);
+  const citation = buildRegulationCitation(row);
+  const focus = rowValue(row, ["focus", "summary", "ringkasan", "fungsi", "description", "deskripsi", "deskripsi_singkat", "uraian"]);
   if (!title || !citation || !focus) return null;
-  const topic = normalizeRegulationTopic(rowValue(row, ["topic", "topik", "jenis", "category", "kategori"]));
+  const topic = inferRegulationTopic(row);
   const relevance = Number(rowValue(row, ["relevance", "relevansi", "score", "skor"]) || 75);
+  const effectiveDate = rowValue(row, ["tanggal_berlaku", "berlaku", "effective_date", "tanggal"]);
+  const sourceNotes = rowValue(row, ["citations", "citation_notes", "source_notes", "catatan_sumber"]);
+  const content = [rowValue(row, ["content", "notes", "catatan", "kutipan", "excerpt"]), effectiveDate ? `Tanggal berlaku: ${effectiveDate}` : "", sourceNotes ? `Referensi: ${sourceNotes}` : ""]
+    .filter(Boolean)
+    .join("\n");
   return {
     id: rowValue(row, ["id"]) || `manual-${topic}-${safeDomId(`${citation}-${title}`) || index + 1}`.toLowerCase(),
     topic,
@@ -860,8 +903,8 @@ function rowRegulation(row: RegulationImportRow, index: number): Regulation | nu
     focus,
     relevance: Number.isFinite(relevance) ? Math.max(1, Math.min(100, relevance)) : 75,
     source: "manual",
-    sourceUrl: rowValue(row, ["source_url", "sourceUrl", "url", "link", "source", "sumber"]),
-    content: rowValue(row, ["content", "notes", "catatan", "kutipan", "excerpt"]) || focus,
+    sourceUrl: rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber"]),
+    content: content || focus,
     updatedAt: new Date(Date.now() + index).toISOString()
   };
 }
