@@ -1511,6 +1511,115 @@ pre {
   font-weight: 800;
 }
 
+.reference-page {
+  display: grid;
+  grid-template-columns: 294px minmax(0, 1fr);
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 52%, var(--soft) 100%);
+}
+
+.reference-main {
+  max-width: 1480px;
+}
+
+.reference-sheet {
+  min-height: calc(100vh - 64px);
+}
+
+.reference-header {
+  grid-template-columns: minmax(0, 1fr) 130px;
+}
+
+.reference-header .case-detail-meter strong {
+  font-size: 1.35rem;
+}
+
+.reference-viewer {
+  display: grid;
+  gap: 14px;
+}
+
+.reference-search-card {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  border: 1px solid #dce7ef;
+  border-left: 4px solid var(--rsm-blue);
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f3fbff 0%, #fff 100%);
+  padding: 12px 14px;
+}
+
+.reference-search-card label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.reference-search-card input {
+  color: var(--ink);
+  text-transform: none;
+}
+
+.reference-search-card p {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.reference-search-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.reference-pdf-frame {
+  overflow: hidden;
+  min-height: 680px;
+  border: 1px solid #dce7ef;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.reference-pdf-frame iframe {
+  width: 100%;
+  min-height: 680px;
+  border: 0;
+}
+
+.reference-no-pdf {
+  margin: 0;
+}
+
+.reference-text-card {
+  margin-bottom: 0;
+}
+
+.reference-text-preview {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.reference-text-preview p {
+  margin: 0;
+  padding: 0;
+}
+
+.reference-text-preview mark {
+  border-radius: 4px;
+  background: #fff2b8;
+  color: var(--ink);
+  font-weight: 900;
+  padding: 0 2px;
+}
+
 .text-link {
   color: var(--ink);
   font-weight: 800;
@@ -2042,6 +2151,10 @@ pre {
     grid-template-columns: 1fr;
   }
 
+  .reference-page {
+    grid-template-columns: 1fr;
+  }
+
   .login-shell {
     align-items: start;
   }
@@ -2067,9 +2180,14 @@ pre {
   .smart-chat-layout,
   .smart-chart-grid,
   .source-grid,
+  .reference-search-card,
   .hero,
   .regulation-grid {
     grid-template-columns: 1fr;
+  }
+
+  .reference-search-actions {
+    justify-content: flex-start;
   }
 
   nav {

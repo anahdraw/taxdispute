@@ -12,6 +12,7 @@ import { filterRegulationsByTopic, regulationTopicOptions, type RegulationTopic 
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { decisionDetailPath } from "@/lib/decision-links";
+import { referenceDetailPath } from "@/lib/reference-links";
 
 type Language = "id" | "en";
 type PageKey = "dashboard" | "guided" | "analysis" | "database" | "smartchat" | "regulations" | "reports";
@@ -2793,11 +2794,9 @@ function SmartChatPanel({
                         <span>{item.taxpayer} · {item.taxType} · {item.issue}</span>
                         <p>{item.outcome}</p>
                         <small>Cosine {item.score}%</small>
-                        {item.url.startsWith("https://") && (
-                          <a href={item.url} target="_blank" rel="noreferrer">
-                            {labels.openReference}
-                          </a>
-                        )}
+                        <a href={referenceDetailPath("decision", item.id, question)}>
+                          {labels.openReference}
+                        </a>
                       </article>
                     ))
                   ) : (
@@ -2815,11 +2814,9 @@ function SmartChatPanel({
                         <span>{item.citation} · {item.topic}</span>
                         <p>{item.snippet}</p>
                         <small>Cosine {item.score}% · {item.source}</small>
-                        {item.sourceUrl.startsWith("https://") && (
-                          <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-                            {labels.openReference}
-                          </a>
-                        )}
+                        <a href={referenceDetailPath("regulation", item.id, question)}>
+                          {labels.openReference}
+                        </a>
                       </article>
                     ))
                   ) : (
