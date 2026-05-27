@@ -119,7 +119,7 @@ export function ppnComponentRows(ppn: PpnComponents, language: "id" | "en"): Ppn
   return COMPONENTS.map((item) => ({
     label: language === "en" ? item.en : item.id,
     key: item.key,
-    value: String(ppn[item.key] || "").trim(),
+    value: formatPpnMoneyValue(ppn[item.key]),
     hint: language === "en" ? item.hintEn : item.hintId
   })).filter((row) => row.value);
 }
@@ -180,7 +180,17 @@ function parseRate(value: unknown) {
 }
 
 function formatRupiah(amount: number) {
-  return `Rp ${Math.round(amount).toLocaleString("id-ID")}`;
+  const rounded = Math.round(amount);
+  const prefix = rounded < 0 ? "-Rp " : "Rp ";
+  return `${prefix}${Math.abs(rounded).toLocaleString("id-ID")}`;
+}
+
+function formatPpnMoneyValue(value: unknown) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const amount = parseRupiah(raw);
+  if (amount === null) return raw;
+  return formatRupiah(amount);
 }
 
 export function ppnFormulaRows(ppn: PpnComponents, language: "id" | "en"): PpnFormulaRow[] {

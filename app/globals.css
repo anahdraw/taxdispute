@@ -1716,7 +1716,7 @@ pre {
 }
 
 .ppn-component-table table {
-  min-width: 760px;
+  min-width: 640px;
 }
 
 .ppn-component-table th,
@@ -1727,6 +1727,36 @@ pre {
 
 .ppn-component-table tbody tr:nth-child(odd) {
   background: #fbfdff;
+}
+
+.hover-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: help;
+  border-bottom: 1px dotted rgba(0, 161, 222, 0.55);
+  text-decoration: none;
+}
+
+.hover-help::after {
+  content: "i";
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #eaf7fd;
+  color: var(--rsm-blue-dark);
+  font-size: 0.65rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: none;
+}
+
+.currency-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .ppn-note {

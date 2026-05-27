@@ -120,6 +120,14 @@ function CaseDetailCard({ title, children }: { title: string; children: React.Re
   );
 }
 
+function HoverHelp({ text, hint }: { text: React.ReactNode; hint: string }) {
+  return (
+    <span className="hover-help" title={hint} aria-label={typeof text === "string" ? `${text}. ${hint}` : hint}>
+      {text}
+    </span>
+  );
+}
+
 function PpnComponentsCard({ extraction }: { extraction: ExtractionResult }) {
   if (!hasPpnComponentData(extraction)) return null;
   const ppn = extraction.ppnComponents;
@@ -136,16 +144,16 @@ function PpnComponentsCard({ extraction }: { extraction: ExtractionResult }) {
               <th>Komponen</th>
               <th>Key</th>
               <th>Nilai terekstraksi</th>
-              <th>Keterangan</th>
             </tr>
           </thead>
           <tbody>
             {[...componentRows, ...classificationRows].map((row) => (
-              <tr key={row.key}>
-                <td>{row.label}</td>
+              <tr key={row.key} title={row.hint}>
+                <td>
+                  <HoverHelp text={row.label} hint={row.hint} />
+                </td>
                 <td className="mono-cell">{row.key}</td>
-                <td>{row.value}</td>
-                <td>{row.hint}</td>
+                <td className={String(row.value).startsWith("Rp") || String(row.value).startsWith("-Rp") ? "currency-cell" : ""}>{row.value}</td>
               </tr>
             ))}
           </tbody>
@@ -160,15 +168,15 @@ function PpnComponentsCard({ extraction }: { extraction: ExtractionResult }) {
                 <tr>
                   <th>Rumus</th>
                   <th>Hasil indikatif</th>
-                  <th>Dasar</th>
                 </tr>
               </thead>
               <tbody>
                 {formulaRows.map((row) => (
-                  <tr key={row.formula}>
-                    <td>{row.formula}</td>
-                    <td>{row.result}</td>
-                    <td>{row.basis}</td>
+                  <tr key={row.formula} title={row.basis}>
+                    <td>
+                      <HoverHelp text={row.formula} hint={row.basis} />
+                    </td>
+                    <td className="currency-cell">{row.result}</td>
                   </tr>
                 ))}
               </tbody>
@@ -191,15 +199,15 @@ function PpnStandardCard() {
             <tr>
               <th>Grup</th>
               <th>Key</th>
-              <th>Definisi</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.key}>
+              <tr key={row.key} title={row.description}>
                 <td>{row.group}</td>
-                <td className="mono-cell">{row.label}</td>
-                <td>{row.description}</td>
+                <td className="mono-cell">
+                  <HoverHelp text={row.label} hint={row.description} />
+                </td>
               </tr>
             ))}
           </tbody>

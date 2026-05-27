@@ -2128,6 +2128,14 @@ function CaseDetailCard({ title, children }: { title: string; children: React.Re
   );
 }
 
+function HoverHelp({ text, hint }: { text: React.ReactNode; hint: string }) {
+  return (
+    <span className="hover-help" title={hint} aria-label={typeof text === "string" ? `${text}. ${hint}` : hint}>
+      {text}
+    </span>
+  );
+}
+
 function PpnComponentsCard({ extraction, language }: { extraction: ExtractionResult; language: "id" | "en" }) {
   if (!hasPpnComponentData(extraction)) return null;
   const ppn = extraction.ppnComponents;
@@ -2146,16 +2154,16 @@ function PpnComponentsCard({ extraction, language }: { extraction: ExtractionRes
               <th>{language === "en" ? "Component" : "Komponen"}</th>
               <th>Key</th>
               <th>{language === "en" ? "Extracted value" : "Nilai terekstraksi"}</th>
-              <th>{language === "en" ? "Meaning" : "Keterangan"}</th>
             </tr>
           </thead>
           <tbody>
             {[...componentRows, ...classificationRows].map((row) => (
-              <tr key={row.key}>
-                <td>{row.label}</td>
+              <tr key={row.key} title={row.hint}>
+                <td>
+                  <HoverHelp text={row.label} hint={row.hint} />
+                </td>
                 <td className="mono-cell">{row.key}</td>
-                <td>{row.value}</td>
-                <td>{row.hint}</td>
+                <td className={String(row.value).startsWith("Rp") || String(row.value).startsWith("-Rp") ? "currency-cell" : ""}>{row.value}</td>
               </tr>
             ))}
           </tbody>
@@ -2170,15 +2178,15 @@ function PpnComponentsCard({ extraction, language }: { extraction: ExtractionRes
                 <tr>
                   <th>{language === "en" ? "Formula" : "Rumus"}</th>
                   <th>{language === "en" ? "Indicative result" : "Hasil indikatif"}</th>
-                  <th>{language === "en" ? "Basis" : "Dasar"}</th>
                 </tr>
               </thead>
               <tbody>
                 {formulaRows.map((row) => (
-                  <tr key={row.formula}>
-                    <td>{row.formula}</td>
-                    <td>{row.result}</td>
-                    <td>{row.basis}</td>
+                  <tr key={row.formula} title={row.basis}>
+                    <td>
+                      <HoverHelp text={row.formula} hint={row.basis} />
+                    </td>
+                    <td className="currency-cell">{row.result}</td>
                   </tr>
                 ))}
               </tbody>
@@ -2203,15 +2211,15 @@ function PpnStandardCard({ language }: { language: "id" | "en" }) {
             <tr>
               <th>{language === "en" ? "Group" : "Grup"}</th>
               <th>Key</th>
-              <th>{language === "en" ? "Definition" : "Definisi"}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.key}>
+              <tr key={row.key} title={row.description}>
                 <td>{row.group}</td>
-                <td className="mono-cell">{row.label}</td>
-                <td>{row.description}</td>
+                <td className="mono-cell">
+                  <HoverHelp text={row.label} hint={row.description} />
+                </td>
               </tr>
             ))}
           </tbody>
