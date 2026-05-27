@@ -13,6 +13,7 @@ export type SmartChatDecisionHit = {
   outcome: string;
   score: number;
   snippet: string;
+  matchReasons?: string[];
   url: string;
 };
 
@@ -81,6 +82,19 @@ const STOP_WORDS = new Set([
   "this",
   "how",
   "many",
+  "is",
+  "are",
+  "was",
+  "were",
+  "does",
+  "did",
+  "do",
+  "ever",
+  "only",
+  "show",
+  "shows",
+  "dispute",
+  "disputes",
   "case",
   "cases",
   "decision",
@@ -89,8 +103,28 @@ const STOP_WORDS = new Set([
   "rules",
   "tax",
   "pajak",
+  "sengketa",
+  "apakah",
+  "pernah",
   "wp",
   "djp"
+]);
+
+const RANKING_INTENT_WORDS = new Set([
+  "win",
+  "lose",
+  "full",
+  "partial",
+  "outcome",
+  "relevant",
+  "similar",
+  "matched",
+  "terkait",
+  "mirip",
+  "dikabulkan",
+  "ditolak",
+  "menang",
+  "kalah"
 ]);
 
 function normalize(text: string) {
@@ -189,25 +223,108 @@ function ruleText(item: Regulation) {
   return [item.topic, item.title, item.citation, item.focus, item.content, item.source].filter(Boolean).join(" ");
 }
 
-export function rankDecisionDocuments(query: string, documents: StoredDecisionFile[], limit = 8) {
+function queryTokens(query: string) {
+  return normalize(query)
+    .split(" ")
+    .filter((token) => token.length > 2 && !STOP_WORDS.has(token));
+}
+
+function queryFocusTokens(query: string) {
+  return queryTokens(query).filter((token) => !RANKING_INTENT_WORDS.has(token));
+}
+
+function tokenHits(text: string, tokens: string[]) {
+  if (!tokens.length) return 0;
+  const normalized = normalize(text);
+  return tokens.filter((token) => normalized.includes(token)).length;
+}
+
+function outcomeIntent(query: string) {
+  const text = normalize(query);
+  if (/\b(partial|sebagian)\b/.test(text)) return "partial";
+  if (/\b(full|seluruhnya)\b/.test(text)) return "full";
+  if (/\b(win|menang|dikabulkan)\b/.test(text)) return "win";
+  if (/\b(lose|kalah|ditolak)\b/.test(text)) return "lose";
+  return "";
+}
+
+function outcomeMatchesIntent(outcome: string, intent: string) {
+  const text = normalize(outcome);
+  if (!intent) return false;
+  if (intent === "full") return /\bwin\b/.test(text) && /\bfull\b/.test(text);
+  if (intent === "partial") return /\bwin\b/.test(text) && /\bpartial\b/.test(text);
+  if (intent === "win") return /\bwin\b/.test(text);
+  if (intent === "lose") return /\blose\b/.test(text);
+  return false;
+}
+
+function hybridDecisionScore(query: string, item: StoredDecisionFile, text: string) {
   const queryVector = tokenFrequency(query);
+  const cosineScore = cosineSimilarity(queryVector, tokenFrequency(text)) * 100;
+  const focusTokens = queryFocusTokens(query);
+  const extraction = item.extraction;
+  const taxpayerHits = tokenHits(extraction?.taxpayerName || "", focusTokens);
+  const numberHits = tokenHits(extraction?.putusanNumber || "", focusTokens);
+  const issueHits = tokenHits([extraction?.taxType, extraction?.issueType, extraction?.issueSubtype, extraction?.correctionObject].filter(Boolean).join(" "), focusTokens);
+  const fullTextHits = tokenHits(text, focusTokens);
+  const focusCoverage = focusTokens.length ? fullTextHits / focusTokens.length : 0;
+  const intent = outcomeIntent(query);
+  const outcomeHit = outcomeMatchesIntent(extraction?.outcome || "", intent);
+  const reasons: string[] = [];
+
+  let score = cosineScore * 0.42;
+  if (focusTokens.length) {
+    score += focusCoverage * 30;
+    if (taxpayerHits) {
+      score += Math.min(34, 22 + taxpayerHits * 8);
+      reasons.push("taxpayer/entity match");
+    }
+    if (numberHits) {
+      score += 28;
+      reasons.push("decision number match");
+    }
+    if (issueHits) {
+      score += Math.min(18, 8 + issueHits * 5);
+      reasons.push("tax/issue match");
+    }
+    if (!fullTextHits) {
+      score *= 0.35;
+      reasons.push("no specific keyword match");
+    }
+  }
+  if (outcomeHit) {
+    score += focusTokens.length ? 8 : 20;
+    reasons.push("outcome intent match");
+  }
+
+  if (!reasons.length && cosineScore > 0) reasons.push("text similarity");
+  return {
+    score: Math.max(0, Math.min(100, score)),
+    cosineScore,
+    reasons
+  };
+}
+
+export function rankDecisionDocuments(query: string, documents: StoredDecisionFile[], limit = 8) {
   return documents
     .filter((item) => item.extraction)
     .map((item) => {
       const text = decisionText(item);
-      return { item, score: cosineSimilarity(queryVector, tokenFrequency(text)), text };
+      const scoring = hybridDecisionScore(query, item, text);
+      return { item, score: scoring.score, text, reasons: scoring.reasons };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map(({ item, score, text }) => ({
+    .map(({ item, score, text, reasons }) => ({
       id: item.id,
       number: item.extraction?.putusanNumber || item.filename,
       taxpayer: item.extraction?.taxpayerName || "-",
       taxType: item.extraction?.taxType || "-",
       issue: item.extraction?.issueType || item.extraction?.issueSubtype || item.extraction?.correctionObject || "-",
       outcome: item.extraction?.outcome || "-",
-      score: Math.round(score * 1000) / 10,
+      score: Math.round(score * 10) / 10,
       snippet: shorten(text),
+      matchReasons: reasons,
       url: item.downloadUrl || item.url || ""
     }));
 }
@@ -247,8 +364,11 @@ function hasChartIntent(question: string) {
 
 function filterForStats(question: string, documents: StoredDecisionFile[]) {
   const ranked = rankDecisionDocuments(question, documents, Math.min(120, documents.length));
-  const scored = ranked.filter((item) => item.score >= 2);
-  const selectedIds = new Set((scored.length >= 5 ? scored : ranked.slice(0, 60)).map((item) => item.id));
+  const focusTokens = queryFocusTokens(question);
+  const minimumScore = focusTokens.length ? 18 : 6;
+  const scored = ranked.filter((item) => item.score >= minimumScore);
+  const fallbackSize = focusTokens.length ? 12 : 60;
+  const selectedIds = new Set((scored.length ? scored : ranked.slice(0, fallbackSize)).map((item) => item.id));
   return documents.filter((item) => selectedIds.has(item.id));
 }
 
@@ -323,7 +443,7 @@ function localSmartAnswer(
 
   if (language === "en") {
     return [
-      `I screened the database with cosine retrieval before forming the answer. Relevant decisions: ${decisionLine}.`,
+      `I screened the database with hybrid RAG retrieval before forming the answer. Relevant decisions: ${decisionLine}.`,
       `Relevant regulations: ${ruleLine}.`,
       chartLine ? `For the matched decisions, the outcome split is: ${chartLine}.` : "",
       "Use this as an initial research answer. For filing or client advice, review the cited decisions and regulations directly."
@@ -332,7 +452,7 @@ function localSmartAnswer(
       .join("\n\n");
   }
   return [
-    `Saya menyaring database dengan cosine retrieval sebelum menyusun jawaban. Putusan relevan: ${decisionLine}.`,
+    `Saya menyaring database dengan hybrid RAG retrieval sebelum menyusun jawaban. Putusan relevan: ${decisionLine}.`,
     `Peraturan relevan: ${ruleLine}.`,
     chartLine ? `Untuk putusan yang relevan, distribusi outcome adalah: ${chartLine}.` : "",
     "Gunakan ini sebagai jawaban riset awal. Untuk filing atau advice ke klien, tetap review langsung putusan dan peraturan yang dirujuk."
@@ -381,20 +501,21 @@ export async function answerSmartChat({
 
   const system =
     language === "en"
-      ? "You are a smart Indonesian tax dispute chatbot. Answer using only the retrieved decision and regulation context. Be concise but useful, cite decision numbers and rule citations, and say when context is insufficient."
-      : "Anda adalah smart chatbot sengketa pajak Indonesia. Jawab hanya dari konteks putusan dan peraturan yang diambil melalui retrieval. Ringkas tetapi berguna, sebutkan nomor putusan dan sitasi aturan, dan katakan bila konteks belum cukup.";
+      ? "You are Smart Dispute Bot, an Indonesian tax dispute RAG assistant. Answer using only the retrieved decision and regulation context. Prioritize exact taxpayer/company matches, decision numbers, and issue matches over generic outcome matches. Be concise but useful, cite decision numbers and rule citations, and say when context is insufficient."
+      : "Anda adalah Smart Dispute Bot, asisten RAG sengketa pajak Indonesia. Jawab hanya dari konteks putusan dan peraturan yang diambil melalui retrieval. Prioritaskan kecocokan nama WP/perusahaan, nomor putusan, dan isu dibanding kecocokan outcome yang generik. Ringkas tetapi berguna, sebutkan nomor putusan dan sitasi aturan, dan katakan bila konteks belum cukup.";
   const prompt = JSON.stringify(
     {
       question,
       retrievalPolicy:
-        "The app already ranked context with cosine similarity. Use only these compact top hits to keep token usage efficient.",
+        "The app already ranked context with hybrid relevance: cosine similarity plus boosts for exact taxpayer/company, decision number, tax/issue, and outcome intent. Use only these compact top hits to keep token usage efficient.",
       decisionContext: decisionHits.slice(0, 5).map((item) => ({
         number: item.number,
         taxpayer: item.taxpayer,
         taxType: item.taxType,
         issue: item.issue,
         outcome: item.outcome,
-        similarity: item.score,
+        relevance: item.score,
+        matchReasons: item.matchReasons || [],
         snippet: item.snippet
       })),
       regulationContext: ruleHits.slice(0, 5).map((item) => ({
@@ -421,7 +542,7 @@ export async function answerSmartChat({
       llmStatus: {
         used: true,
         model: configuredModel(),
-        message: language === "en" ? "Smart chatbot answered with retrieved context" : "Smart chatbot menjawab dengan konteks retrieval"
+        message: language === "en" ? "Smart Dispute Bot answered with hybrid RAG context" : "Smart Dispute Bot menjawab dengan konteks hybrid RAG"
       },
       retrieval
     };

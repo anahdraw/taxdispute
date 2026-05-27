@@ -49,7 +49,7 @@ const copy = {
     guided: "Alur Terpandu",
     analysis: "Analisis Kasus WP",
     database: "Database Putusan",
-    smartchat: "Chatbot Pintar",
+    smartchat: "Smart Dispute Bot",
     regulations: "Peraturan",
     reports: "Reports",
     dataSummary: "Ringkasan Data",
@@ -167,15 +167,15 @@ const copy = {
     storedRuleList: "List aturan tersimpan",
     jumpToStoredRules: "Lihat list aturan tersimpan",
     noRegulations: "Belum ada aturan untuk topik ini.",
-    smartChatTitle: "Chatbot Pintar",
-    smartChatIntro: "Tanya putusan dan peraturan dalam satu tempat. Aplikasi menyaring konteks dengan cosine retrieval lebih dulu agar token LLM lebih hemat.",
+    smartChatTitle: "Smart Dispute Bot",
+    smartChatIntro: "Tanya langsung dengan RAG berbasis putusan dan peraturan. Relevansi memakai hybrid retrieval: kecocokan nama WP/perusahaan, nomor putusan, isu, outcome, lalu similarity teks.",
     smartQuestion: "Pertanyaan",
     smartQuestionPlaceholder: "Contoh: Untuk sengketa transfer pricing jasa afiliasi, berapa putusan yang WP menang atau kalah dan aturan apa yang relevan?",
     smartMode: "Sumber jawaban",
     smartModeAll: "Putusan + Peraturan",
     smartModeDecisions: "Putusan saja",
     smartModeRegulations: "Peraturan saja",
-    askSmartChat: "Tanya Smart Chatbot",
+    askSmartChat: "Tanya Smart Dispute Bot",
     askingSmartChat: "Menyaring RAG dan menjawab...",
     smartAnswer: "Jawaban",
     smartCharts: "Visualisasi",
@@ -199,7 +199,7 @@ const copy = {
     roleUser: "User",
     quickStart: "Mulai Cepat",
     quickGuided: "Upload dan analisis dokumen",
-    quickChat: "Tanya Smart Chatbot",
+    quickChat: "Tanya Smart Dispute Bot",
     quickAdmin: "Kelola database dan peraturan",
     openAction: "Buka",
     scoreMethodology: "Metodologi skor",
@@ -232,7 +232,7 @@ const copy = {
     guided: "Guided Flow",
     analysis: "Taxpayer Case Analysis",
     database: "Decision Database",
-    smartchat: "Smart Chatbot",
+    smartchat: "Smart Dispute Bot",
     regulations: "Regulations",
     reports: "Reports",
     dataSummary: "Data Summary",
@@ -350,15 +350,15 @@ const copy = {
     storedRuleList: "Stored regulation list",
     jumpToStoredRules: "View stored regulation list",
     noRegulations: "No regulations yet for this topic.",
-    smartChatTitle: "Smart Chatbot",
-    smartChatIntro: "Ask decisions and regulations in one place. The app filters context with cosine retrieval first so LLM token usage stays efficient.",
+    smartChatTitle: "Smart Dispute Bot",
+    smartChatIntro: "Ask the RAG bot directly across decisions and regulations. Relevance uses hybrid retrieval: taxpayer/company, decision number, issue, outcome intent, then text similarity.",
     smartQuestion: "Question",
     smartQuestionPlaceholder: "Example: For a transfer pricing dispute on related-party services, how many decisions were won or lost and what rules are relevant?",
     smartMode: "Answer source",
     smartModeAll: "Decisions + Regulations",
     smartModeDecisions: "Decisions only",
     smartModeRegulations: "Regulations only",
-    askSmartChat: "Ask Smart Chatbot",
+    askSmartChat: "Ask Smart Dispute Bot",
     askingSmartChat: "Retrieving RAG context and answering...",
     smartAnswer: "Answer",
     smartCharts: "Visualization",
@@ -382,7 +382,7 @@ const copy = {
     roleUser: "User",
     quickStart: "Quick Start",
     quickGuided: "Upload and analyze a document",
-    quickChat: "Ask Smart Chatbot",
+    quickChat: "Ask Smart Dispute Bot",
     quickAdmin: "Manage database and regulations",
     openAction: "Open",
     scoreMethodology: "Scoring methodology",
@@ -798,7 +798,7 @@ export default function Home() {
   const [loginUsername, setLoginUsername] = useState(DEMO_USERS.admin.username);
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [page, setPage] = useState<PageKey>("dashboard");
+  const [page, setPage] = useState<PageKey>("smartchat");
   const [sidebarHidden, setSidebarHidden] = useState(false);
   const [form, setForm] = useState<AnalyzeInput>({ ...initialInput, language });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -967,7 +967,7 @@ export default function Home() {
     saveDemoSession(nextSession);
     setLoginPassword("");
     setLoginError("");
-    setPage(loginRole === "admin" ? "dashboard" : "smartchat");
+    setPage("smartchat");
   }
 
   function logout() {
@@ -1612,14 +1612,6 @@ export default function Home() {
         {page === "dashboard" && (
           <>
             <section className="quick-actions" aria-label={labels.quickStart}>
-              <article className="quick-action-card quick-action-blue">
-                <div>
-                  <span>{labels.quickStart}</span>
-                  <b>{labels.quickGuided}</b>
-                  <button className="table-button" onClick={() => setPage("guided")}>{labels.openAction}</button>
-                </div>
-                <QuickActionIcon type="document" />
-              </article>
               <article className="quick-action-card quick-action-green">
                 <div>
                   <span>{labels.quickStart}</span>
@@ -1627,6 +1619,14 @@ export default function Home() {
                   <button className="table-button" onClick={() => setPage("smartchat")}>{labels.openAction}</button>
                 </div>
                 <QuickActionIcon type="chatbot" />
+              </article>
+              <article className="quick-action-card quick-action-blue">
+                <div>
+                  <span>{labels.quickStart}</span>
+                  <b>{labels.quickGuided}</b>
+                  <button className="table-button" onClick={() => setPage("guided")}>{labels.openAction}</button>
+                </div>
+                <QuickActionIcon type="document" />
               </article>
               {session.role === "admin" && (
                 <article className="quick-action-card quick-action-gray">
@@ -2793,7 +2793,7 @@ function SmartChatPanel({
                         <b>{item.number}</b>
                         <span>{item.taxpayer} · {item.taxType} · {item.issue}</span>
                         <p>{item.outcome}</p>
-                        <small>Cosine {item.score}%</small>
+                        <small>Relevance {item.score}%{item.matchReasons?.length ? ` · ${item.matchReasons.join(", ")}` : ""}</small>
                         <a href={referenceDetailPath("decision", item.id, question)}>
                           {labels.openReference}
                         </a>
@@ -2813,7 +2813,7 @@ function SmartChatPanel({
                         <b>{item.title}</b>
                         <span>{item.citation} · {item.topic}</span>
                         <p>{item.snippet}</p>
-                        <small>Cosine {item.score}% · {item.source}</small>
+                        <small>Relevance {item.score}% · {item.source}</small>
                         <a href={referenceDetailPath("regulation", item.id, question)}>
                           {labels.openReference}
                         </a>
