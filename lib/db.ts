@@ -264,3 +264,8 @@ export async function upsertTaxRegulations(records: Regulation[]) {
     );
   }
 }
+
+export async function deleteTaxRegulation(id: string) {
+  await ensureRegulationSchema();
+  await getPool().query(`DELETE FROM tax_regulations WHERE id = $1`, [id]);
+}

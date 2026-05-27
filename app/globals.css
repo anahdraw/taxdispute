@@ -1326,12 +1326,48 @@ pre {
   min-width: min(320px, 100%);
 }
 
+.import-hint {
+  margin: -8px 0 14px;
+}
+
+.regulation-bot-box {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--rsm-blue);
+  border-radius: 8px;
+  background: #fff;
+  margin: 16px 0 22px;
+  padding: 18px;
+}
+
+.regulation-bot-box h3 {
+  margin: 0 0 8px;
+  font-size: var(--text-lg);
+}
+
+.regulation-bot-answer {
+  display: grid;
+  gap: 12px;
+}
+
+.compact-source-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .reg-card small {
   display: block;
   margin-top: 10px;
   color: var(--muted);
   font-size: var(--text-xs);
   line-height: 1.45;
+}
+
+.reg-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .manual-rule-box {

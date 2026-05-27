@@ -8,7 +8,7 @@ import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } fr
 import { emptyPpnComponents, type ExtractionResult, type PpnComponents } from "@/lib/extraction";
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
-import { filterRegulationsByTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
+import { filterRegulationsByTopic, normalizeRegulationTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { decisionDetailPath } from "@/lib/decision-links";
@@ -167,6 +167,23 @@ const copy = {
     storedRuleList: "List aturan tersimpan",
     jumpToStoredRules: "Lihat list aturan tersimpan",
     noRegulations: "Belum ada aturan untuk topik ini.",
+    regulationBotTitle: "Smart Regulation Bot",
+    regulationBotIntro: "Tanya banyak aturan sekaligus. Bot memakai RAG khusus peraturan agar jawaban tetap ringkas, berbasis sumber, dan efisien token.",
+    regulationQuestion: "Pertanyaan aturan",
+    regulationQuestionPlaceholder: "Contoh: aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?",
+    askRegulationBot: "Tanya Bot Aturan",
+    askingRegulationBot: "Menelaah aturan...",
+    regulationBotAnswer: "Jawaban bot aturan",
+    noRegulationBotAnswer: "Ajukan pertanyaan untuk menelaah seluruh aturan tersimpan.",
+    bulkRegulationUpload: "Upload list aturan Excel/CSV",
+    bulkRegulationHint: "Kolom yang didukung: title/nama, citation/nomor, topic/topik, focus/ringkasan, sourceUrl/link, content/catatan, relevance.",
+    importingRegulations: "Mengimpor aturan...",
+    importedRegulations: "aturan berhasil diimpor/diperbarui.",
+    editRule: "Edit",
+    deleteRule: "Hapus",
+    updateRule: "Update aturan",
+    cancelEdit: "Batal edit",
+    cannotDeleteSeed: "Aturan bawaan seed tidak bisa dihapus dari database. Edit/salin sebagai aturan manual jika perlu.",
     smartChatTitle: "Smart Dispute Bot",
     smartChatIntro: "Tanya langsung dengan RAG berbasis putusan dan peraturan. Relevansi memakai hybrid retrieval: kecocokan nama WP/perusahaan, nomor putusan, isu, outcome, lalu similarity teks.",
     smartQuestion: "Pertanyaan",
@@ -350,6 +367,23 @@ const copy = {
     storedRuleList: "Stored regulation list",
     jumpToStoredRules: "View stored regulation list",
     noRegulations: "No regulations yet for this topic.",
+    regulationBotTitle: "Smart Regulation Bot",
+    regulationBotIntro: "Ask across stored regulations. The bot uses regulation-only RAG so answers stay source-based and token-efficient.",
+    regulationQuestion: "Regulation question",
+    regulationQuestionPlaceholder: "Example: which rules govern transfer pricing documentation and the arm's length principle?",
+    askRegulationBot: "Ask Regulation Bot",
+    askingRegulationBot: "Reviewing regulations...",
+    regulationBotAnswer: "Regulation bot answer",
+    noRegulationBotAnswer: "Ask a question to review all stored regulation cards.",
+    bulkRegulationUpload: "Upload regulation list Excel/CSV",
+    bulkRegulationHint: "Supported columns: title/name, citation/number, topic, focus/summary, sourceUrl/link, content/notes, relevance.",
+    importingRegulations: "Importing regulations...",
+    importedRegulations: "regulation(s) imported/updated.",
+    editRule: "Edit",
+    deleteRule: "Delete",
+    updateRule: "Update rule",
+    cancelEdit: "Cancel edit",
+    cannotDeleteSeed: "Seed regulations cannot be deleted from the database. Edit/save a manual copy if needed.",
     smartChatTitle: "Smart Dispute Bot",
     smartChatIntro: "Ask the RAG bot directly across decisions and regulations. Relevance uses hybrid retrieval: taxpayer/company, decision number, issue, outcome intent, then text similarity.",
     smartQuestion: "Question",
@@ -755,6 +789,83 @@ function safeDomId(value: unknown) {
   return String(value || "case").replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 96);
 }
 
+type RegulationImportRow = Record<string, string | number | boolean | null | undefined>;
+
+function normalizeImportHeader(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function csvRows(text: string): RegulationImportRow[] {
+  const rows: string[][] = [];
+  let field = "";
+  let row: string[] = [];
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === '"' && quoted && next === '"') {
+      field += '"';
+      index += 1;
+    } else if (char === '"') {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      row.push(field.trim());
+      field = "";
+    } else if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(field.trim());
+      field = "";
+      if (row.some(Boolean)) rows.push(row);
+      row = [];
+    } else {
+      field += char;
+    }
+  }
+
+  row.push(field.trim());
+  if (row.some(Boolean)) rows.push(row);
+  const headers = (rows.shift() || []).map(normalizeImportHeader);
+  return rows.map((cells) =>
+    headers.reduce<RegulationImportRow>((record, header, index) => {
+      if (header) record[header] = cells[index] || "";
+      return record;
+    }, {})
+  );
+}
+
+function rowValue(row: RegulationImportRow, keys: string[]) {
+  for (const key of keys) {
+    const value = row[normalizeImportHeader(key)];
+    if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
+  }
+  return "";
+}
+
+function rowRegulation(row: RegulationImportRow, index: number): Regulation | null {
+  const title = rowValue(row, ["title", "name", "nama", "judul", "rule_name", "nama_aturan"]);
+  const citation = rowValue(row, ["citation", "number", "nomor", "sitasi", "nomor_sitasi", "peraturan"]);
+  const focus = rowValue(row, ["focus", "summary", "ringkasan", "fungsi", "description", "deskripsi"]);
+  if (!title || !citation || !focus) return null;
+  const topic = normalizeRegulationTopic(rowValue(row, ["topic", "topik", "jenis", "category", "kategori"]));
+  const relevance = Number(rowValue(row, ["relevance", "relevansi", "score", "skor"]) || 75);
+  return {
+    id: rowValue(row, ["id"]) || `manual-${topic}-${safeDomId(`${citation}-${title}`) || index + 1}`.toLowerCase(),
+    topic,
+    title,
+    citation,
+    focus,
+    relevance: Number.isFinite(relevance) ? Math.max(1, Math.min(100, relevance)) : 75,
+    source: "manual",
+    sourceUrl: rowValue(row, ["source_url", "sourceUrl", "url", "link", "source", "sumber"]),
+    content: rowValue(row, ["content", "notes", "catatan", "kutipan", "excerpt"]) || focus,
+    updatedAt: new Date(Date.now() + index).toISOString()
+  };
+}
+
 function extractionCompleteness(extraction: ExtractionResult | null | undefined) {
   if (!extraction) return 0;
   const scalarFields: Array<keyof ExtractionResult> = [
@@ -848,6 +959,18 @@ export default function Home() {
   const [manualRuleSaving, setManualRuleSaving] = useState(false);
   const [regulationPage, setRegulationPage] = useState(1);
   const [regulationPerPage, setRegulationPerPage] = useState(6);
+  const [editingRegulationId, setEditingRegulationId] = useState("");
+  const [deletingRegulationId, setDeletingRegulationId] = useState("");
+  const [regulationImportLoading, setRegulationImportLoading] = useState(false);
+  const [regulationQuestion, setRegulationQuestion] = useState(
+    language === "en"
+      ? "Which regulations govern transfer pricing documentation and the arm's length principle?"
+      : "Aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?"
+  );
+  const [regulationBotResponse, setRegulationBotResponse] = useState<SmartChatResponse | null>(null);
+  const [regulationBotStatus, setRegulationBotStatus] = useState("");
+  const [regulationBotError, setRegulationBotError] = useState("");
+  const [regulationBotLoading, setRegulationBotLoading] = useState(false);
   const labels = copy[language];
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }, extraction), [form, language, extraction]);
   const analysis = serverAnalysis ?? localAnalysis;
@@ -941,6 +1064,13 @@ export default function Home() {
         nextLanguage === "en"
           ? "For transfer pricing disputes, how many matched decisions were won or lost and what rules are relevant?"
           : "Untuk sengketa transfer pricing, berapa putusan relevan yang menang atau kalah dan aturan apa yang relevan?"
+      );
+    }
+    if (!regulationBotResponse) {
+      setRegulationQuestion(
+        nextLanguage === "en"
+          ? "Which regulations govern transfer pricing documentation and the arm's length principle?"
+          : "Aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?"
       );
     }
     if (caseSearchText || caseSearchExtraction) {
@@ -1473,6 +1603,120 @@ export default function Home() {
     }
   }
 
+  async function askRegulationBot() {
+    setRegulationBotLoading(true);
+    setRegulationBotStatus("");
+    setRegulationBotError("");
+    try {
+      const response = await fetch("/api/smart-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: regulationQuestion, language, mode: "regulations" })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Regulation chatbot request failed.");
+      }
+      setRegulationBotResponse(data as SmartChatResponse);
+      setRegulationBotStatus(data.llmStatus?.message || "");
+    } catch (error) {
+      setRegulationBotResponse(null);
+      setRegulationBotError(error instanceof Error ? error.message : "Regulation chatbot request failed.");
+    } finally {
+      setRegulationBotLoading(false);
+    }
+  }
+
+  function startEditRegulation(item: Regulation) {
+    setEditingRegulationId(item.id);
+    setRegulationTopic(normalizeRegulationTopic(item.topic));
+    setManualRule({
+      title: item.title,
+      citation: item.citation,
+      focus: item.focus,
+      sourceUrl: item.sourceUrl || "",
+      content: item.content || ""
+    });
+    setRegulationStatus("");
+    setRegulationError("");
+    document.getElementById("manual-regulation-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function cancelEditRegulation() {
+    setEditingRegulationId("");
+    setManualRule({ title: "", citation: "", focus: "", sourceUrl: "", content: "" });
+  }
+
+  async function deleteRegulation(item: Regulation) {
+    if ((item.source || "seed") === "seed") {
+      setRegulationError(labels.cannotDeleteSeed);
+      return;
+    }
+    if (!window.confirm(`${labels.deleteRule}: ${item.title}?`)) return;
+    setDeletingRegulationId(item.id);
+    setRegulationStatus("");
+    setRegulationError("");
+    try {
+      const response = await fetch("/api/regulations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: item.id })
+      });
+      const data = (await response.json()) as { records?: Regulation[]; error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Could not delete regulation.");
+      }
+      if (Array.isArray(data.records)) setRegulationRecords(data.records);
+      setRegulationStatus(language === "en" ? "Regulation deleted." : "Aturan dihapus.");
+    } catch (error) {
+      setRegulationError(error instanceof Error ? error.message : "Could not delete regulation.");
+    } finally {
+      setDeletingRegulationId("");
+    }
+  }
+
+  async function importRegulationList(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    setRegulationImportLoading(true);
+    setRegulationStatus("");
+    setRegulationError("");
+    try {
+      let rows: RegulationImportRow[] = [];
+      if (/\.(xlsx|xls)$/i.test(file.name)) {
+        const XLSX = await import("xlsx");
+        const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json<RegulationImportRow>(sheet, { defval: "" });
+      } else {
+        rows = csvRows(await file.text());
+      }
+      const records = rows.map(rowRegulation).filter((item): item is Regulation => Boolean(item));
+      if (!records.length) {
+        throw new Error(
+          language === "en"
+            ? "No valid regulations found. Include title, citation, and focus/summary columns."
+            : "Tidak ada aturan valid. Sertakan kolom title/nama, citation/nomor, dan focus/ringkasan."
+        );
+      }
+      const response = await fetch("/api/regulations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ records })
+      });
+      const data = (await response.json()) as { records?: Regulation[]; imported?: number; error?: string };
+      if (!response.ok) {
+        throw new Error(data.error || "Could not import regulations.");
+      }
+      if (Array.isArray(data.records)) setRegulationRecords(data.records);
+      setRegulationStatus(`${data.imported || records.length} ${labels.importedRegulations}`);
+    } catch (error) {
+      setRegulationError(error instanceof Error ? error.message : "Could not import regulations.");
+    } finally {
+      setRegulationImportLoading(false);
+    }
+  }
+
   async function updateRegulationsFromOrtax() {
     setRegulationLoading(true);
     setRegulationStatus("");
@@ -1507,6 +1751,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: editingRegulationId || undefined,
           topic: regulationTopic,
           ...manualRule,
           relevance: 75
@@ -1520,6 +1765,7 @@ export default function Home() {
         setRegulationRecords(data.records);
       }
       setManualRule({ title: "", citation: "", focus: "", sourceUrl: "", content: "" });
+      setEditingRegulationId("");
       setRegulationStatus(labels.regulationUpdated);
     } catch (error) {
       setRegulationError(error instanceof Error ? error.message : "Could not save regulation.");
@@ -1826,9 +2072,62 @@ export default function Home() {
               <a className="table-button jump-link" href="#stored-regulations">
                 {labels.jumpToStoredRules}
               </a>
+              <label className="table-button upload-inline">
+                {regulationImportLoading ? labels.importingRegulations : labels.bulkRegulationUpload}
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                  onChange={(event) => {
+                    importRegulationList(event.target.files);
+                    event.currentTarget.value = "";
+                  }}
+                />
+              </label>
             </div>
+            <p className="muted import-hint">{labels.bulkRegulationHint}</p>
             {regulationStatus && <div className="status-banner success">{regulationStatus}</div>}
             {regulationError && <div className="status-banner error">{regulationError}</div>}
+            <div className="regulation-bot-box">
+              <div>
+                <h3>{labels.regulationBotTitle}</h3>
+                <p className="muted">{labels.regulationBotIntro}</p>
+              </div>
+              <label className="control wide">
+                <span>{labels.regulationQuestion}</span>
+                <textarea
+                  value={regulationQuestion}
+                  onChange={(event) => setRegulationQuestion(event.target.value)}
+                  placeholder={labels.regulationQuestionPlaceholder}
+                  rows={4}
+                />
+              </label>
+              <button className="primary-button" onClick={askRegulationBot} disabled={regulationBotLoading || !regulationQuestion.trim()}>
+                {regulationBotLoading ? labels.askingRegulationBot : labels.askRegulationBot}
+              </button>
+              {regulationBotError && <div className="status-banner error">{regulationBotError}</div>}
+              <div className="regulation-bot-answer">
+                <h3>{labels.regulationBotAnswer}</h3>
+                {!regulationBotResponse ? (
+                  <div className="empty-state">{labels.noRegulationBotAnswer}</div>
+                ) : (
+                  <>
+                    {regulationBotStatus && <div className="status-banner success">{regulationBotStatus}</div>}
+                    <MarkdownText text={regulationBotResponse.answer} />
+                    <div className="source-list compact-source-list">
+                      {regulationBotResponse.ruleHits.slice(0, 6).map((item) => (
+                        <article key={item.id} className="source-card">
+                          <b>{item.title}</b>
+                          <span>{item.citation} · {item.topic}</span>
+                          <p>{item.snippet}</p>
+                          <small>Relevance {item.score}% · {item.source}</small>
+                          <a href={referenceDetailPath("regulation", item.id, regulationQuestion)}>{labels.openReference}</a>
+                        </article>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
             <div id="stored-regulations" className="stored-rule-list">
               <h3>{labels.storedRuleList}</h3>
               {visibleRegulations.length === 0 ? (
@@ -1863,6 +2162,21 @@ export default function Home() {
                           ) : null}
                         </small>
                         <div className="score-pill">{item.relevance}% relevance</div>
+                        <div className="reg-card-actions">
+                          <a className="table-button compact" href={referenceDetailPath("regulation", item.id)}>
+                            {labels.openReference}
+                          </a>
+                          <button className="table-button compact" onClick={() => startEditRegulation(item)}>
+                            {labels.editRule}
+                          </button>
+                          <button
+                            className="table-button compact danger"
+                            onClick={() => deleteRegulation(item)}
+                            disabled={deletingRegulationId === item.id}
+                          >
+                            {deletingRegulationId === item.id ? labels.deletingStored : labels.deleteRule}
+                          </button>
+                        </div>
                       </article>
                     ))}
                   </div>
@@ -1878,8 +2192,13 @@ export default function Home() {
                 </>
               )}
             </div>
-            <div className="manual-rule-box">
+            <div id="manual-regulation-form" className="manual-rule-box">
               <h3>{labels.manualRegulation}</h3>
+              {editingRegulationId && (
+                <div className="status-banner success compact-status">
+                  {language === "en" ? "Editing existing regulation." : "Sedang edit aturan tersimpan."}
+                </div>
+              )}
               <div className="form-grid">
                 <Input label={labels.manualTitle} value={manualRule.title} onChange={(value) => setManualRule((current) => ({ ...current, title: value }))} />
                 <Input label={labels.manualCitation} value={manualRule.citation} onChange={(value) => setManualRule((current) => ({ ...current, citation: value }))} />
@@ -1893,8 +2212,13 @@ export default function Home() {
                   <input type="file" accept=".txt,.md,.text" onChange={(event) => onManualRuleFileChange(event.target.files)} />
                 </label>
                 <button className="primary-button secondary-button" onClick={saveManualRegulation} disabled={manualRuleSaving}>
-                  {manualRuleSaving ? labels.savingManualRule : labels.saveManualRule}
+                  {manualRuleSaving ? labels.savingManualRule : editingRegulationId ? labels.updateRule : labels.saveManualRule}
                 </button>
+                {editingRegulationId && (
+                  <button className="table-button" onClick={cancelEditRegulation}>
+                    {labels.cancelEdit}
+                  </button>
+                )}
               </div>
             </div>
           </Panel>
