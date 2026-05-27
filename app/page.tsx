@@ -179,6 +179,11 @@ const copy = {
     bulkRegulationHint: "Kolom yang didukung: title/nama, citation/nomor, topic/topik, focus/ringkasan, sourceUrl/link, content/catatan, relevance.",
     importingRegulations: "Mengimpor aturan...",
     importedRegulations: "aturan berhasil diimpor/diperbarui.",
+    enrichSources: "Enrich dari link sumber",
+    enrichingSources: "Mengambil isi sumber...",
+    enrichRuleSource: "Enrich sumber",
+    sourceEnriched: "aturan berhasil dienrich dari link sumber.",
+    noRulesWithSource: "Tidak ada aturan dengan link sumber yang bisa dienrich.",
     editRule: "Edit",
     deleteRule: "Hapus",
     updateRule: "Update aturan",
@@ -379,6 +384,11 @@ const copy = {
     bulkRegulationHint: "Supported columns: title/name, citation/number, topic, focus/summary, sourceUrl/link, content/notes, relevance.",
     importingRegulations: "Importing regulations...",
     importedRegulations: "regulation(s) imported/updated.",
+    enrichSources: "Enrich from source links",
+    enrichingSources: "Fetching source content...",
+    enrichRuleSource: "Enrich source",
+    sourceEnriched: "regulation(s) enriched from source links.",
+    noRulesWithSource: "No regulations with source links are available for enrichment.",
     editRule: "Edit",
     deleteRule: "Delete",
     updateRule: "Update rule",
@@ -1005,6 +1015,8 @@ export default function Home() {
   const [editingRegulationId, setEditingRegulationId] = useState("");
   const [deletingRegulationId, setDeletingRegulationId] = useState("");
   const [regulationImportLoading, setRegulationImportLoading] = useState(false);
+  const [sourceEnrichLoading, setSourceEnrichLoading] = useState(false);
+  const [enrichingRegulationId, setEnrichingRegulationId] = useState("");
   const [regulationQuestion, setRegulationQuestion] = useState(
     language === "en"
       ? "Which regulations govern transfer pricing documentation and the arm's length principle?"
@@ -1760,6 +1772,47 @@ export default function Home() {
     }
   }
 
+  async function enrichRegulationSources(item?: Regulation) {
+    const ids = item
+      ? [item.id]
+      : regulationRecords.filter((record) => /^https?:\/\//i.test(record.sourceUrl || "")).map((record) => record.id);
+    if (!ids.length) {
+      setRegulationError(labels.noRulesWithSource);
+      return;
+    }
+    if (item) setEnrichingRegulationId(item.id);
+    else setSourceEnrichLoading(true);
+    setRegulationStatus("");
+    setRegulationError("");
+    try {
+      const response = await fetch("/api/regulations/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids, limit: item ? 1 : Math.min(30, ids.length) })
+      });
+      const data = (await response.json()) as {
+        records?: Regulation[];
+        error?: string;
+        requested?: number;
+        enriched?: number;
+        skipped?: number;
+        results?: Array<{ title: string; enriched: boolean; message: string }>;
+      };
+      if (!response.ok) {
+        throw new Error(data.error || "Could not enrich regulation sources.");
+      }
+      if (Array.isArray(data.records)) setRegulationRecords(data.records);
+      const failed = (data.results || []).filter((result) => !result.enriched).slice(0, 2);
+      const note = failed.length ? ` ${failed.map((result) => `${result.title}: ${result.message}`).join(" | ")}` : "";
+      setRegulationStatus(`${data.enriched || 0}/${data.requested || ids.length} ${labels.sourceEnriched}${note}`);
+    } catch (error) {
+      setRegulationError(error instanceof Error ? error.message : "Could not enrich regulation sources.");
+    } finally {
+      setSourceEnrichLoading(false);
+      setEnrichingRegulationId("");
+    }
+  }
+
   async function updateRegulationsFromOrtax() {
     setRegulationLoading(true);
     setRegulationStatus("");
@@ -2112,6 +2165,9 @@ export default function Home() {
               <button className="primary-button" onClick={updateRegulationsFromOrtax} disabled={regulationLoading}>
                 {regulationLoading ? labels.updatingRules : labels.updateFromOrtax}
               </button>
+              <button className="primary-button secondary-button" onClick={() => enrichRegulationSources()} disabled={sourceEnrichLoading}>
+                {sourceEnrichLoading ? labels.enrichingSources : labels.enrichSources}
+              </button>
               <a className="table-button jump-link" href="#stored-regulations">
                 {labels.jumpToStoredRules}
               </a>
@@ -2192,7 +2248,7 @@ export default function Home() {
                         <b>{item.title}</b>
                         <span>{item.citation}</span>
                         <p>{item.focus}</p>
-                        {item.content && <p className="muted">{item.content}</p>}
+                        {item.content && <p className="muted">{truncateText(item.content, 420)}</p>}
                         <small>
                           {labels.source}: {item.source || "seed"}
                           {item.sourceUrl && item.sourceUrl.startsWith("https://") ? (
@@ -2211,6 +2267,13 @@ export default function Home() {
                           </a>
                           <button className="table-button compact" onClick={() => startEditRegulation(item)}>
                             {labels.editRule}
+                          </button>
+                          <button
+                            className="table-button compact"
+                            onClick={() => enrichRegulationSources(item)}
+                            disabled={!/^https?:\/\//i.test(item.sourceUrl || "") || Boolean(enrichingRegulationId || sourceEnrichLoading)}
+                          >
+                            {enrichingRegulationId === item.id ? labels.enrichingSources : labels.enrichRuleSource}
                           </button>
                           <button
                             className="table-button compact danger"

@@ -176,6 +176,18 @@ function shorten(text: string, length = 620) {
     .slice(0, length);
 }
 
+function focusedSnippet(text: string, query: string, length = 720) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  const lower = clean.toLowerCase();
+  const tokens = Array.from(new Set([...queryFocusTokens(query), ...queryTokens(query)])).filter((token) => token.length > 2);
+  const hit = tokens
+    .map((token) => lower.indexOf(token.toLowerCase()))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b)[0];
+  if (hit === undefined || hit < 180) return shorten(clean, length);
+  return `... ${shorten(clean.slice(Math.max(0, hit - 220)), length)}`;
+}
+
 function classifyOutcome(outcome: string, language: "id" | "en") {
   const text = outcome.toLowerCase();
   if (/dikabulkan seluruh|fully|granted in full|seluruhnya/.test(text)) {
@@ -346,7 +358,7 @@ export function rankRegulations(query: string, records: Regulation[], limit = 8)
       source: item.source || "seed",
       sourceUrl: item.sourceUrl || "",
       score: Math.round(score * 1000) / 10,
-      snippet: shorten(text)
+      snippet: focusedSnippet(text, query)
     }));
 }
 
