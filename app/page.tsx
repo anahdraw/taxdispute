@@ -11,19 +11,23 @@ import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormul
 import { filterRegulationsByTopic, normalizeRegulationTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
+import { buildReportKey, buildStoredReport, type StoredReport } from "@/lib/stored-reports";
 import { decisionDetailPath } from "@/lib/decision-links";
 import { referenceDetailPath } from "@/lib/reference-links";
 
 type Language = "id" | "en";
-type PageKey = "dashboard" | "guided" | "analysis" | "database" | "smartchat" | "regulations" | "reports";
+type PageKey = "dashboard" | "guided" | "database" | "smartchat" | "regulations" | "reports";
 type UserRole = "admin" | "user";
 type RegulationTabKey = "bot" | "update" | "list" | "manual";
+type GuidedTabKey = "analysis" | "reports";
+type DisputeTabKey = "chat" | "similar";
 type DemoSession = {
   role: UserRole;
   name: string;
 };
 const MAX_UPLOAD_BYTES = 3.6 * 1024 * 1024;
 const STORED_DECISIONS_KEY = "tax-dispute-stored-decisions";
+const STORED_REPORTS_KEY = "tax-dispute-stored-reports";
 const DEMO_SESSION_KEY = "tax-dispute-demo-session";
 const APP_NAME = "RSM Tax Dispute Agentic Advisor";
 const APP_SHORT_NAME = "Tax Dispute Agentic Advisor";
@@ -34,7 +38,7 @@ const DEMO_USERS: Record<UserRole, { username: string; password: string; name: s
 
 function canAccessPage(role: UserRole, key: PageKey) {
   if (role === "admin") return true;
-  return ["dashboard", "guided", "analysis", "smartchat", "reports"].includes(key);
+  return ["dashboard", "guided", "smartchat", "reports"].includes(key);
 }
 
 const evidenceOptions = {
@@ -48,9 +52,8 @@ const copy = {
     appGuidance: "Gunakan alur ini untuk upload putusan, ekstraksi data, mencari pembanding, tanya peraturan PPN atau Transfer Pricing, lalu membuat draft Word/PDF untuk review advisor.",
     dashboard: "Dashboard",
     guided: "Alur Terpandu",
-    analysis: "Analisis Kasus WP",
     database: "Database Putusan",
-    smartchat: "Smart Dispute Bot",
+    smartchat: "Dispute Analysis",
     regulations: "Peraturan",
     reports: "Reports",
     dataSummary: "Ringkasan Data",
@@ -108,6 +111,19 @@ const copy = {
     useInArgument: "Cara pakai dalam argumentasi",
     noCaseQuery: "Isi narasi/kata kunci atau upload PDF terlebih dahulu.",
     extractedForSearch: "Dokumen berhasil diekstrak untuk pencarian.",
+    guidedTabAnalysis: "Analisis baru",
+    guidedTabReports: "Database report",
+    reportDatabaseTitle: "Database Report",
+    reportDatabaseIntro: "Report yang sudah pernah dibuat disimpan agar bisa dibuka dan diunduh ulang tanpa analisis ulang.",
+    savedReports: "Report tersimpan",
+    noSavedReports: "Belum ada report tersimpan. Buat analisis di tab Analisis baru terlebih dahulu.",
+    reportSaved: "Report tersimpan di database.",
+    reportLoaded: "Report tersimpan dipakai ulang. Klik Update Analysis jika ingin menghitung ulang.",
+    updateAnalysis: "Update Analysis",
+    openReportDetail: "Lihat detail",
+    redownloadReport: "Unduh ulang",
+    reportUpdatedAt: "Update terakhir",
+    useSavedReport: "Pakai report ini",
     databaseTitle: "Database Putusan",
     databaseIntro: "Upload PDF putusan besar langsung ke Vercel Blob. Setelah upload, aplikasi akan mengekstrak informasi utama dengan LLM dan menyimpan metadata beserta hasil ekstraksi ke database.",
     databaseUploadHint: "PDF akan disimpan ke Blob. Setelah itu klik Upload + Ekstrak, atau gunakan tombol Ekstrak pada dokumen yang sudah tersimpan.",
@@ -196,15 +212,17 @@ const copy = {
     updateRule: "Update aturan",
     cancelEdit: "Batal edit",
     cannotDeleteSeed: "Aturan bawaan seed tidak bisa dihapus dari database. Edit/salin sebagai aturan manual jika perlu.",
-    smartChatTitle: "Smart Dispute Bot",
-    smartChatIntro: "Tanya langsung dengan RAG berbasis putusan dan peraturan. Relevansi memakai hybrid retrieval: kecocokan nama WP/perusahaan, nomor putusan, isu, outcome, lalu similarity teks.",
+    smartChatTitle: "Dispute Analysis",
+    smartChatIntro: "Tanya langsung dengan RAG atau cari kasus mirip dari narasi/PDF. Relevansi memakai hybrid retrieval: kecocokan nama WP/perusahaan, nomor putusan, isu, outcome, lalu similarity teks.",
+    disputeTabChat: "RAG Chatbot",
+    disputeTabSimilar: "Cari kasus mirip",
     smartQuestion: "Pertanyaan",
     smartQuestionPlaceholder: "Contoh: Untuk sengketa transfer pricing jasa afiliasi, berapa putusan yang WP menang atau kalah dan aturan apa yang relevan?",
     smartMode: "Sumber jawaban",
     smartModeAll: "Putusan + Peraturan",
     smartModeDecisions: "Putusan saja",
     smartModeRegulations: "Peraturan saja",
-    askSmartChat: "Tanya Smart Dispute Bot",
+    askSmartChat: "Tanya Dispute Analysis",
     askingSmartChat: "Menyaring RAG dan menjawab...",
     smartAnswer: "Jawaban",
     smartCharts: "Visualisasi",
@@ -228,7 +246,7 @@ const copy = {
     roleUser: "User",
     quickStart: "Mulai Cepat",
     quickGuided: "Upload dan analisis dokumen",
-    quickChat: "Tanya Smart Dispute Bot",
+    quickChat: "Buka Dispute Analysis",
     quickAdmin: "Kelola database dan peraturan",
     openAction: "Buka",
     scoreMethodology: "Metodologi skor",
@@ -259,9 +277,8 @@ const copy = {
     appGuidance: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT or Transfer Pricing regulation questions, then produce Word/PDF drafts for advisor review.",
     dashboard: "Dashboard",
     guided: "Guided Flow",
-    analysis: "Taxpayer Case Analysis",
     database: "Decision Database",
-    smartchat: "Smart Dispute Bot",
+    smartchat: "Dispute Analysis",
     regulations: "Regulations",
     reports: "Reports",
     dataSummary: "Data Summary",
@@ -319,6 +336,19 @@ const copy = {
     useInArgument: "How to use in argument",
     noCaseQuery: "Enter a narrative/keyword or upload a PDF first.",
     extractedForSearch: "Document extracted for search.",
+    guidedTabAnalysis: "New analysis",
+    guidedTabReports: "Report database",
+    reportDatabaseTitle: "Report Database",
+    reportDatabaseIntro: "Previously generated reports are saved so they can be reopened and downloaded again without running analysis twice.",
+    savedReports: "Saved reports",
+    noSavedReports: "No saved reports yet. Create an analysis in the New analysis tab first.",
+    reportSaved: "Report saved to database.",
+    reportLoaded: "Saved report reused. Click Update Analysis if you want to rerun it.",
+    updateAnalysis: "Update Analysis",
+    openReportDetail: "View detail",
+    redownloadReport: "Download again",
+    reportUpdatedAt: "Last updated",
+    useSavedReport: "Use this report",
     databaseTitle: "Decision Database",
     databaseIntro: "Upload large decision PDFs directly to Vercel Blob. After upload, the app extracts key information with the LLM and saves both metadata and extraction JSON to the database.",
     databaseUploadHint: "PDFs are stored in Blob. Then click Upload + Extract, or use the Extract button for already stored documents.",
@@ -407,15 +437,17 @@ const copy = {
     updateRule: "Update rule",
     cancelEdit: "Cancel edit",
     cannotDeleteSeed: "Seed regulations cannot be deleted from the database. Edit/save a manual copy if needed.",
-    smartChatTitle: "Smart Dispute Bot",
-    smartChatIntro: "Ask the RAG bot directly across decisions and regulations. Relevance uses hybrid retrieval: taxpayer/company, decision number, issue, outcome intent, then text similarity.",
+    smartChatTitle: "Dispute Analysis",
+    smartChatIntro: "Ask the RAG bot directly or find similar cases from a narrative/PDF. Relevance uses hybrid retrieval: taxpayer/company, decision number, issue, outcome intent, then text similarity.",
+    disputeTabChat: "RAG Chatbot",
+    disputeTabSimilar: "Similar case search",
     smartQuestion: "Question",
     smartQuestionPlaceholder: "Example: For a transfer pricing dispute on related-party services, how many decisions were won or lost and what rules are relevant?",
     smartMode: "Answer source",
     smartModeAll: "Decisions + Regulations",
     smartModeDecisions: "Decisions only",
     smartModeRegulations: "Regulations only",
-    askSmartChat: "Ask Smart Dispute Bot",
+    askSmartChat: "Ask Dispute Analysis",
     askingSmartChat: "Retrieving RAG context and answering...",
     smartAnswer: "Answer",
     smartCharts: "Visualization",
@@ -439,7 +471,7 @@ const copy = {
     roleUser: "User",
     quickStart: "Quick Start",
     quickGuided: "Upload and analyze a document",
-    quickChat: "Ask Smart Dispute Bot",
+    quickChat: "Open Dispute Analysis",
     quickAdmin: "Manage database and regulations",
     openAction: "Open",
     scoreMethodology: "Scoring methodology",
@@ -639,6 +671,21 @@ function loadStoredDecisions(): StoredDecisionFile[] {
 function saveStoredDecisions(items: StoredDecisionFile[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORED_DECISIONS_KEY, JSON.stringify(items));
+}
+
+function loadStoredReports(): StoredReport[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORED_REPORTS_KEY);
+    return raw ? (JSON.parse(raw) as StoredReport[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredReports(items: StoredReport[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORED_REPORTS_KEY, JSON.stringify(items));
 }
 
 function loadDemoSession(): DemoSession | null {
@@ -987,6 +1034,11 @@ export default function Home() {
   const [serverAnalysis, setServerAnalysis] = useState<AnalysisResultType | null>(null);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisError, setAnalysisError] = useState("");
+  const [reportStatus, setReportStatus] = useState("");
+  const [storedReports, setStoredReports] = useState<StoredReport[]>(() => loadStoredReports());
+  const [selectedReportId, setSelectedReportId] = useState("");
+  const [activeReportId, setActiveReportId] = useState("");
+  const [guidedTab, setGuidedTab] = useState<GuidedTabKey>("analysis");
   const [exportLoading, setExportLoading] = useState<"docx" | "pdf" | "">("");
   const [exportError, setExportError] = useState("");
   const [smartQuestion, setSmartQuestion] = useState("For transfer pricing disputes, how many matched decisions were won or lost and what rules are relevant?");
@@ -1043,6 +1095,15 @@ export default function Home() {
   const labels = copy[language];
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }, extraction), [form, language, extraction]);
   const analysis = serverAnalysis ?? localAnalysis;
+  const currentReportKey = useMemo(() => buildReportKey({ ...form, language }, extraction), [form, language, extraction]);
+  const reusableReport = useMemo(
+    () => storedReports.find((report) => report.language === language && report.reportKey === currentReportKey) || null,
+    [storedReports, language, currentReportKey]
+  );
+  const selectedReport = useMemo(
+    () => storedReports.find((report) => report.id === selectedReportId) || storedReports[0] || null,
+    [storedReports, selectedReportId]
+  );
   const dynamicDashboard = useMemo(() => buildDynamicDashboard(storedDocuments, language, regulationRecords.length), [storedDocuments, language, regulationRecords.length]);
   const visibleRegulations = useMemo(() => filterRegulationsByTopic(regulationRecords, regulationTopic), [regulationRecords, regulationTopic]);
   const regulationTotalPages = Math.max(1, Math.ceil(visibleRegulations.length / regulationPerPage));
@@ -1054,7 +1115,6 @@ export default function Home() {
   const pages: Array<[PageKey, string]> = [
     ["dashboard", labels.dashboard],
     ["guided", labels.guided],
-    ["analysis", labels.analysis],
     ["database", labels.database],
     ["smartchat", labels.smartchat],
     ["regulations", labels.regulations],
@@ -1082,6 +1142,29 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadReportDatabase() {
+      try {
+        const response = await fetch("/api/reports");
+        if (!response.ok) return;
+        const data = (await response.json()) as { records?: StoredReport[] };
+        if (!cancelled && Array.isArray(data.records)) {
+          const next = data.records.length ? data.records : loadStoredReports();
+          setStoredReports(next);
+          saveStoredReports(next);
+          if (!selectedReportId && next[0]) setSelectedReportId(next[0].id);
+        }
+      } catch {
+        // Local browser cache remains the fallback until database connectivity is available.
+      }
+    }
+    loadReportDatabase();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedReportId]);
 
   useEffect(() => {
     if (session && !canAccessPage(session.role, page)) {
@@ -1592,20 +1675,40 @@ export default function Home() {
   }
 
   async function runAnalysis() {
+    const currentInput = { ...form, language };
+    if (reusableReport) {
+      setServerAnalysis(reusableReport.analysis);
+      setActiveReportId(reusableReport.id);
+      setSelectedReportId(reusableReport.id);
+      setReportStatus(labels.reportLoaded);
+      setGuidedTab("analysis");
+      return;
+    }
+    await runAnalysisRequest(currentInput);
+  }
+
+  async function runAnalysisRequest(currentInput = { ...form, language }) {
     setAnalysisLoading(true);
     setAnalysisError("");
     setExportError("");
+    setReportStatus("");
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: { ...form, language }, extraction })
+        body: JSON.stringify({ input: currentInput, extraction })
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Analysis request failed.");
       }
-      setServerAnalysis(data as AnalysisResultType);
+      const nextAnalysis = data as AnalysisResultType;
+      setServerAnalysis(nextAnalysis);
+      const report = buildStoredReport({ input: currentInput, extraction, analysis: nextAnalysis, language });
+      await persistReport(report);
+      setActiveReportId(report.id);
+      setSelectedReportId(report.id);
+      setReportStatus(labels.reportSaved);
     } catch (error) {
       setAnalysisError(error instanceof Error ? error.message : "Analysis request failed.");
     } finally {
@@ -1613,19 +1716,55 @@ export default function Home() {
     }
   }
 
-  async function downloadReport(format: "docx" | "pdf") {
+  async function persistReport(report: StoredReport) {
+    const next = [report, ...storedReports.filter((item) => item.id !== report.id && !(item.reportKey === report.reportKey && item.language === report.language))];
+    setStoredReports(next);
+    saveStoredReports(next);
+    try {
+      const response = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ report })
+      });
+      const data = (await response.json().catch(() => ({}))) as { records?: StoredReport[] };
+      if (response.ok && Array.isArray(data.records) && data.records.length) {
+        setStoredReports(data.records);
+        saveStoredReports(data.records);
+      }
+    } catch {
+      // Browser-local saved reports remain available if the database call fails.
+    }
+  }
+
+  function loadReportIntoGuided(report: StoredReport) {
+    setForm(report.input);
+    setExtraction(report.extraction || null);
+    setServerAnalysis(report.analysis);
+    setActiveReportId(report.id);
+    setSelectedReportId(report.id);
+    setLanguage(report.language);
+    setReportStatus(labels.reportLoaded);
+    setGuidedTab("analysis");
+    setPage("guided");
+  }
+
+  async function downloadReport(format: "docx" | "pdf", report?: StoredReport) {
     setExportLoading(format);
     setExportError("");
+    const payloadInput = report?.input || { ...form, language };
+    const payloadExtraction = report ? report.extraction || null : extraction;
+    const payloadAnalysis = report?.analysis || analysis;
+    const payloadLanguage = report?.language || language;
     try {
       const response = await fetch("/api/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           format,
-          input: { ...form, language },
-          analysis,
-          extraction,
-          language
+          input: payloadInput,
+          analysis: payloadAnalysis,
+          extraction: payloadExtraction,
+          language: payloadLanguage
         })
       });
       if (!response.ok) {
@@ -1636,7 +1775,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `${buildReportFilename(format, form, extraction)}`;
+      anchor.download = `${buildReportFilename(format, payloadInput, payloadExtraction)}`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
@@ -2062,71 +2201,87 @@ export default function Home() {
         )}
 
         {page === "guided" && (
-          <section className="workbench">
-            <Panel title={page === "guided" ? labels.guided : labels.analysis}>
-              <div className="upload-box">
-                <label>
-                  {labels.upload}
-                  <input
-                    type="file"
-                    accept=".pdf,application/pdf"
-                    onChange={(event) => onFileChange(event.target.files)}
-                  />
-                </label>
-                <p>{uploadedName || labels.uploadHint}</p>
-                {extractionError && <div className="status-banner error">{extractionError}</div>}
-                {extractionProgress && <div className="status-banner">{extractionProgress}</div>}
-                <button className="primary-button secondary-button" onClick={runExtraction} disabled={extractionLoading || !uploadedFile}>
-                  {extractionLoading ? labels.extracting : labels.extractWithLlm}
-                </button>
-              </div>
-              {extraction && <ExtractionSummary labels={labels} extraction={extraction} />}
-              <div className="form-grid">
-                <Input label={labels.taxpayer} value={form.taxpayerName} onChange={(value) => updateForm("taxpayerName", value)} />
-                <Input label={labels.taxType} value={form.taxType} onChange={(value) => updateForm("taxType", value)} />
-                <Input label={labels.issueType} value={form.issueType} onChange={(value) => updateForm("issueType", value)} />
-                <Input label={labels.stage} value={form.stage} onChange={(value) => updateForm("stage", value)} />
-                <Input label={labels.amount} value={form.correctionAmount} onChange={(value) => updateForm("correctionAmount", value)} />
-              </div>
-              <TextArea label={labels.authority} value={form.taxAuthorityPosition} onChange={(value) => updateForm("taxAuthorityPosition", value)} />
-              <TextArea label={labels.taxpayerPosition} value={form.taxpayerPosition} onChange={(value) => updateForm("taxpayerPosition", value)} />
-              <div className="chips">
-                {evidenceOptions[language].map((item) => (
-                  <button key={item} className={form.evidence.includes(item) ? "selected" : ""} onClick={() => toggleEvidence(item)}>
-                    {item}
-                  </button>
-                ))}
-              </div>
-              {analysisError && <div className="status-banner error">{analysisError}</div>}
-              <button className="primary-button" onClick={runAnalysis} disabled={analysisLoading}>
-                {analysisLoading ? labels.analyzing : labels.startAnalysis}
+          <section className="guided-page">
+            <div className="regulation-tab-list guided-tab-list" role="tablist" aria-label={labels.guided}>
+              <button className={guidedTab === "analysis" ? "active" : ""} onClick={() => setGuidedTab("analysis")}>
+                {labels.guidedTabAnalysis}
               </button>
-            </Panel>
-            <AnalysisResult
-              labels={labels}
-              analysis={analysis}
-              canExport={Boolean(serverAnalysis)}
-              exportLoading={exportLoading}
-              exportError={exportError}
-              onDownload={downloadReport}
-            />
-          </section>
-        )}
+              <button className={guidedTab === "reports" ? "active" : ""} onClick={() => setGuidedTab("reports")}>
+                {labels.guidedTabReports}
+              </button>
+            </div>
 
-        {page === "analysis" && (
-          <CaseSearchPanel
-            labels={labels}
-            text={caseSearchText}
-            fileName={caseSearchFileName}
-            extraction={caseSearchExtraction}
-            results={caseSearchResults}
-            loading={caseSearchLoading}
-            status={caseSearchStatus}
-            error={caseSearchError}
-            onTextChange={updateCaseSearchText}
-            onFileChange={onCaseSearchFileChange}
-            onSearch={runCaseSearch}
-          />
+            {guidedTab === "analysis" ? (
+              <section className="workbench">
+                <Panel title={labels.guided}>
+                  <div className="upload-box">
+                    <label>
+                      {labels.upload}
+                      <input
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        onChange={(event) => onFileChange(event.target.files)}
+                      />
+                    </label>
+                    <p>{uploadedName || labels.uploadHint}</p>
+                    {extractionError && <div className="status-banner error">{extractionError}</div>}
+                    {extractionProgress && <div className="status-banner">{extractionProgress}</div>}
+                    <button className="primary-button secondary-button" onClick={runExtraction} disabled={extractionLoading || !uploadedFile}>
+                      {extractionLoading ? labels.extracting : labels.extractWithLlm}
+                    </button>
+                  </div>
+                  {extraction && <ExtractionSummary labels={labels} extraction={extraction} />}
+                  <div className="form-grid">
+                    <Input label={labels.taxpayer} value={form.taxpayerName} onChange={(value) => updateForm("taxpayerName", value)} />
+                    <Input label={labels.taxType} value={form.taxType} onChange={(value) => updateForm("taxType", value)} />
+                    <Input label={labels.issueType} value={form.issueType} onChange={(value) => updateForm("issueType", value)} />
+                    <Input label={labels.stage} value={form.stage} onChange={(value) => updateForm("stage", value)} />
+                    <Input label={labels.amount} value={form.correctionAmount} onChange={(value) => updateForm("correctionAmount", value)} />
+                  </div>
+                  <TextArea label={labels.authority} value={form.taxAuthorityPosition} onChange={(value) => updateForm("taxAuthorityPosition", value)} />
+                  <TextArea label={labels.taxpayerPosition} value={form.taxpayerPosition} onChange={(value) => updateForm("taxpayerPosition", value)} />
+                  <div className="chips">
+                    {evidenceOptions[language].map((item) => (
+                      <button key={item} className={form.evidence.includes(item) ? "selected" : ""} onClick={() => toggleEvidence(item)}>
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                  {analysisError && <div className="status-banner error">{analysisError}</div>}
+                  {reportStatus && <div className="status-banner success">{reportStatus}</div>}
+                  <div className="analysis-action-row">
+                    <button className="primary-button" onClick={runAnalysis} disabled={analysisLoading}>
+                      {analysisLoading ? labels.analyzing : labels.startAnalysis}
+                    </button>
+                    {(reusableReport || activeReportId) && (
+                      <button className="primary-button secondary-button" onClick={() => runAnalysisRequest({ ...form, language })} disabled={analysisLoading}>
+                        {analysisLoading ? labels.analyzing : labels.updateAnalysis}
+                      </button>
+                    )}
+                  </div>
+                </Panel>
+                <AnalysisResult
+                  labels={labels}
+                  analysis={analysis}
+                  canExport={Boolean(serverAnalysis)}
+                  exportLoading={exportLoading}
+                  exportError={exportError}
+                  onDownload={downloadReport}
+                />
+              </section>
+            ) : (
+              <ReportDatabasePanel
+                labels={labels}
+                reports={storedReports}
+                selectedReport={selectedReport}
+                exportLoading={exportLoading}
+                exportError={exportError}
+                onSelect={setSelectedReportId}
+                onLoad={loadReportIntoGuided}
+                onDownload={downloadReport}
+              />
+            )}
+          </section>
         )}
 
         {page === "database" && (
@@ -2158,6 +2313,16 @@ export default function Home() {
             onQuestionChange={setSmartQuestion}
             onModeChange={setSmartMode}
             onAsk={askSmartChat}
+            caseText={caseSearchText}
+            caseFileName={caseSearchFileName}
+            caseExtraction={caseSearchExtraction}
+            caseResults={caseSearchResults}
+            caseLoading={caseSearchLoading}
+            caseStatus={caseSearchStatus}
+            caseError={caseSearchError}
+            onCaseTextChange={updateCaseSearchText}
+            onCaseFileChange={onCaseSearchFileChange}
+            onCaseSearch={runCaseSearch}
           />
         )}
 
@@ -2399,13 +2564,14 @@ export default function Home() {
         )}
 
         {page === "reports" && (
-          <AnalysisResult
+          <ReportDatabasePanel
             labels={labels}
-            analysis={analysis}
-            expanded
-            canExport={Boolean(serverAnalysis)}
+            reports={storedReports}
+            selectedReport={selectedReport}
             exportLoading={exportLoading}
             exportError={exportError}
+            onSelect={setSelectedReportId}
+            onLoad={loadReportIntoGuided}
             onDownload={downloadReport}
           />
         )}
@@ -3199,6 +3365,103 @@ function SmartChart({ chart }: { chart: SmartChatResponse["charts"][number] }) {
   );
 }
 
+function formatReportDate(value: string) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
+}
+
+function ReportDatabasePanel({
+  labels,
+  reports,
+  selectedReport,
+  exportLoading,
+  exportError,
+  onSelect,
+  onLoad,
+  onDownload
+}: {
+  labels: (typeof copy)["en"];
+  reports: StoredReport[];
+  selectedReport: StoredReport | null;
+  exportLoading: "docx" | "pdf" | "";
+  exportError: string;
+  onSelect: (id: string) => void;
+  onLoad: (report: StoredReport) => void;
+  onDownload: (format: "docx" | "pdf", report?: StoredReport) => void;
+}) {
+  return (
+    <section className="report-database-layout">
+      <Panel title={labels.reportDatabaseTitle}>
+        <p className="muted lead-copy">{labels.reportDatabaseIntro}</p>
+        {!reports.length ? (
+          <div className="empty-state">{labels.noSavedReports}</div>
+        ) : (
+          <div className="report-database-grid">
+            <div className="report-list-panel">
+              <h3>{labels.savedReports}</h3>
+              <div className="report-list">
+                {reports.map((report) => (
+                  <button
+                    key={report.id}
+                    className={`report-card ${selectedReport?.id === report.id ? "active" : ""}`}
+                    onClick={() => onSelect(report.id)}
+                  >
+                    <b>{report.title}</b>
+                    <span>
+                      {report.taxType || "-"} · {report.issueType || "-"}
+                    </span>
+                    <small>
+                      {labels.reportUpdatedAt}: {formatReportDate(report.updatedAt)}
+                    </small>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="report-detail-panel">
+              {selectedReport ? (
+                <>
+                  <div className="report-detail-head">
+                    <div>
+                      <span>{labels.openReportDetail}</span>
+                      <h3>{selectedReport.title}</h3>
+                      <p>
+                        {selectedReport.caseNumber || "-"} · {selectedReport.language.toUpperCase()} ·{" "}
+                        {formatReportDate(selectedReport.updatedAt)}
+                      </p>
+                    </div>
+                    <div className="report-detail-actions">
+                      <button className="table-button" onClick={() => onLoad(selectedReport)}>
+                        {labels.useSavedReport}
+                      </button>
+                      <button className="table-button" onClick={() => onDownload("docx", selectedReport)} disabled={Boolean(exportLoading)}>
+                        {exportLoading === "docx" ? labels.exporting : labels.exportWord}
+                      </button>
+                      <button className="table-button" onClick={() => onDownload("pdf", selectedReport)} disabled={Boolean(exportLoading)}>
+                        {exportLoading === "pdf" ? labels.exporting : labels.exportPdf}
+                      </button>
+                    </div>
+                  </div>
+                  {exportError && <div className="status-banner error">{exportError}</div>}
+                  <AnalysisResult
+                    labels={labels}
+                    analysis={selectedReport.analysis}
+                    expanded
+                    canExport={false}
+                  />
+                </>
+              ) : (
+                <div className="empty-state">{labels.noSavedReports}</div>
+              )}
+            </div>
+          </div>
+        )}
+      </Panel>
+    </section>
+  );
+}
+
 function SmartChatPanel({
   labels,
   question,
@@ -3209,7 +3472,17 @@ function SmartChatPanel({
   loading,
   onQuestionChange,
   onModeChange,
-  onAsk
+  onAsk,
+  caseText,
+  caseFileName,
+  caseExtraction,
+  caseResults,
+  caseLoading,
+  caseStatus,
+  caseError,
+  onCaseTextChange,
+  onCaseFileChange,
+  onCaseSearch
 }: {
   labels: (typeof copy)["en"];
   question: string;
@@ -3221,111 +3494,150 @@ function SmartChatPanel({
   onQuestionChange: (value: string) => void;
   onModeChange: (value: SmartChatSourceMode) => void;
   onAsk: () => void;
+  caseText: string;
+  caseFileName: string;
+  caseExtraction: ExtractionResult | null;
+  caseResults: SimilarCaseResult[];
+  caseLoading: boolean;
+  caseStatus: string;
+  caseError: string;
+  onCaseTextChange: (value: string) => void;
+  onCaseFileChange: (fileList: FileList | null) => void;
+  onCaseSearch: () => void;
 }) {
-  return (
-    <section className="smart-chat-layout">
-      <Panel title={labels.smartChatTitle}>
-        <p className="muted lead-copy">{labels.smartChatIntro}</p>
-        <div className="smart-chat-form">
-          <label className="control wide">
-            <span>{labels.smartQuestion}</span>
-            <textarea
-              value={question}
-              onChange={(event) => onQuestionChange(event.target.value)}
-              placeholder={labels.smartQuestionPlaceholder}
-              rows={5}
-            />
-          </label>
-          <div className="control">
-            <span>{labels.smartMode}</span>
-            <div className="mode-segment">
-              {[
-                ["all", labels.smartModeAll],
-                ["decisions", labels.smartModeDecisions],
-                ["regulations", labels.smartModeRegulations]
-              ].map(([value, title]) => (
-                <button key={value} className={mode === value ? "active" : ""} onClick={() => onModeChange(value as SmartChatSourceMode)}>
-                  {title}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        {error && <div className="status-banner error">{error}</div>}
-        <button className="primary-button" onClick={onAsk} disabled={loading || !question.trim()}>
-          {loading ? labels.askingSmartChat : labels.askSmartChat}
-        </button>
-      </Panel>
+  const [activeTab, setActiveTab] = useState<DisputeTabKey>("chat");
 
-      <Panel title={labels.smartAnswer}>
-        {!response ? (
-          <div className="empty-state">{labels.noSmartAnswer}</div>
-        ) : (
-          <>
-            {status && <div className="status-banner success">{status}</div>}
-            <MarkdownText text={response.answer} />
-            <div className="retrieval-summary">
-              <b>{labels.retrievalSummary}</b>
-              <span>
-                {response.retrieval.usedDecisions}/{response.retrieval.totalDecisions} decisions ·{" "}
-                {response.retrieval.usedRegulations}/{response.retrieval.totalRegulations} regulations
-              </span>
-            </div>
-            {response.charts.length > 0 && (
-              <>
-                <h3 className="section-subtitle">{labels.smartCharts}</h3>
-                <div className="smart-chart-grid">
-                  {response.charts.map((chart) => (
-                    <SmartChart key={chart.title} chart={chart} />
+  return (
+    <section className="dispute-analysis-page">
+      <div className="regulation-tab-list dispute-tab-list" role="tablist" aria-label={labels.smartChatTitle}>
+        <button className={activeTab === "chat" ? "active" : ""} onClick={() => setActiveTab("chat")}>
+          {labels.disputeTabChat}
+        </button>
+        <button className={activeTab === "similar" ? "active" : ""} onClick={() => setActiveTab("similar")}>
+          {labels.disputeTabSimilar}
+        </button>
+      </div>
+
+      {activeTab === "chat" ? (
+        <section className="smart-chat-layout">
+          <Panel title={labels.smartChatTitle}>
+            <p className="muted lead-copy">{labels.smartChatIntro}</p>
+            <div className="smart-chat-form">
+              <label className="control wide">
+                <span>{labels.smartQuestion}</span>
+                <textarea
+                  value={question}
+                  onChange={(event) => onQuestionChange(event.target.value)}
+                  placeholder={labels.smartQuestionPlaceholder}
+                  rows={5}
+                />
+              </label>
+              <div className="control">
+                <span>{labels.smartMode}</span>
+                <div className="mode-segment">
+                  {[
+                    ["all", labels.smartModeAll],
+                    ["decisions", labels.smartModeDecisions],
+                    ["regulations", labels.smartModeRegulations]
+                  ].map(([value, title]) => (
+                    <button key={value} className={mode === value ? "active" : ""} onClick={() => onModeChange(value as SmartChatSourceMode)}>
+                      {title}
+                    </button>
                   ))}
+                </div>
+              </div>
+            </div>
+            {error && <div className="status-banner error">{error}</div>}
+            <button className="primary-button" onClick={onAsk} disabled={loading || !question.trim()}>
+              {loading ? labels.askingSmartChat : labels.askSmartChat}
+            </button>
+          </Panel>
+
+          <Panel title={labels.smartAnswer}>
+            {!response ? (
+              <div className="empty-state">{labels.noSmartAnswer}</div>
+            ) : (
+              <>
+                {status && <div className="status-banner success">{status}</div>}
+                <MarkdownText text={response.answer} />
+                <div className="retrieval-summary">
+                  <b>{labels.retrievalSummary}</b>
+                  <span>
+                    {response.retrieval.usedDecisions}/{response.retrieval.totalDecisions} decisions ·{" "}
+                    {response.retrieval.usedRegulations}/{response.retrieval.totalRegulations} regulations
+                  </span>
+                </div>
+                {response.charts.length > 0 && (
+                  <>
+                    <h3 className="section-subtitle">{labels.smartCharts}</h3>
+                    <div className="smart-chart-grid">
+                      {response.charts.map((chart) => (
+                        <SmartChart key={chart.title} chart={chart} />
+                      ))}
+                    </div>
+                  </>
+                )}
+                <div className="source-grid">
+                  <div>
+                    <h3 className="section-subtitle">{labels.retrievedDecisions}</h3>
+                    <div className="source-list">
+                      {response.decisionHits.length ? (
+                        response.decisionHits.slice(0, 5).map((item) => (
+                          <article key={item.id} className="source-card">
+                            <b>{item.number}</b>
+                            <span>{item.taxpayer} · {item.taxType} · {item.issue}</span>
+                            <p>{item.outcome}</p>
+                            <small>Relevance {item.score}%{item.matchReasons?.length ? ` · ${item.matchReasons.join(", ")}` : ""}</small>
+                            <a href={referenceDetailPath("decision", item.id, question)}>
+                              {labels.openReference}
+                            </a>
+                          </article>
+                        ))
+                      ) : (
+                        <div className="empty-state">{labels.noDynamicDocuments}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="section-subtitle">{labels.retrievedRules}</h3>
+                    <div className="source-list">
+                      {response.ruleHits.length ? (
+                        response.ruleHits.slice(0, 5).map((item) => (
+                          <article key={item.id} className="source-card">
+                            <b>{item.title}</b>
+                            <span>{item.citation} · {item.topic}</span>
+                            <p>{item.snippet}</p>
+                            <small>Relevance {item.score}% · {item.source}</small>
+                            <a href={referenceDetailPath("regulation", item.id, question)}>
+                              {labels.openReference}
+                            </a>
+                          </article>
+                        ))
+                      ) : (
+                        <div className="empty-state">{labels.noRegulations}</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </>
             )}
-            <div className="source-grid">
-              <div>
-                <h3 className="section-subtitle">{labels.retrievedDecisions}</h3>
-                <div className="source-list">
-                  {response.decisionHits.length ? (
-                    response.decisionHits.slice(0, 5).map((item) => (
-                      <article key={item.id} className="source-card">
-                        <b>{item.number}</b>
-                        <span>{item.taxpayer} · {item.taxType} · {item.issue}</span>
-                        <p>{item.outcome}</p>
-                        <small>Relevance {item.score}%{item.matchReasons?.length ? ` · ${item.matchReasons.join(", ")}` : ""}</small>
-                        <a href={referenceDetailPath("decision", item.id, question)}>
-                          {labels.openReference}
-                        </a>
-                      </article>
-                    ))
-                  ) : (
-                    <div className="empty-state">{labels.noDynamicDocuments}</div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <h3 className="section-subtitle">{labels.retrievedRules}</h3>
-                <div className="source-list">
-                  {response.ruleHits.length ? (
-                    response.ruleHits.slice(0, 5).map((item) => (
-                      <article key={item.id} className="source-card">
-                        <b>{item.title}</b>
-                        <span>{item.citation} · {item.topic}</span>
-                        <p>{item.snippet}</p>
-                        <small>Relevance {item.score}% · {item.source}</small>
-                        <a href={referenceDetailPath("regulation", item.id, question)}>
-                          {labels.openReference}
-                        </a>
-                      </article>
-                    ))
-                  ) : (
-                    <div className="empty-state">{labels.noRegulations}</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </Panel>
+          </Panel>
+        </section>
+      ) : (
+        <CaseSearchPanel
+          labels={labels}
+          text={caseText}
+          fileName={caseFileName}
+          extraction={caseExtraction}
+          results={caseResults}
+          loading={caseLoading}
+          status={caseStatus}
+          error={caseError}
+          onTextChange={onCaseTextChange}
+          onFileChange={onCaseFileChange}
+          onSearch={onCaseSearch}
+        />
+      )}
     </section>
   );
 }

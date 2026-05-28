@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import type { StoredDecisionFile } from "./stored-decisions";
+import type { StoredReport } from "./stored-reports";
 import type { ExtractionResult } from "./extraction";
 import type { Regulation } from "./mock-data";
 import { normalizeRegulationTopic } from "./regulation-knowledge";
@@ -268,4 +269,101 @@ export async function upsertTaxRegulations(records: Regulation[]) {
 export async function deleteTaxRegulation(id: string) {
   await ensureRegulationSchema();
   await getPool().query(`DELETE FROM tax_regulations WHERE id = $1`, [id]);
+}
+
+export async function ensureReportSchema() {
+  const pool = getPool();
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tax_reports (
+      id TEXT PRIMARY KEY,
+      report_key TEXT NOT NULL,
+      title TEXT NOT NULL,
+      taxpayer_name TEXT NOT NULL DEFAULT '',
+      case_number TEXT NOT NULL DEFAULT '',
+      tax_type TEXT NOT NULL DEFAULT '',
+      issue_type TEXT NOT NULL DEFAULT '',
+      language TEXT NOT NULL DEFAULT 'en',
+      input JSONB NOT NULL,
+      extraction JSONB,
+      analysis JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS tax_reports_report_key_language_idx
+      ON tax_reports (report_key, language);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS tax_reports_updated_at_idx
+      ON tax_reports (updated_at DESC);
+  `);
+}
+
+export async function listTaxReports(): Promise<StoredReport[]> {
+  await ensureReportSchema();
+  const result = await getPool().query(`
+    SELECT id, report_key, title, taxpayer_name, case_number, tax_type, issue_type, language, input, extraction, analysis, created_at, updated_at
+    FROM tax_reports
+    ORDER BY updated_at DESC
+    LIMIT 500;
+  `);
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    reportKey: String(row.report_key),
+    title: String(row.title),
+    taxpayerName: String(row.taxpayer_name || ""),
+    caseNumber: String(row.case_number || ""),
+    taxType: String(row.tax_type || ""),
+    issueType: String(row.issue_type || ""),
+    language: row.language === "id" ? "id" : "en",
+    input: row.input,
+    extraction: row.extraction || null,
+    analysis: row.analysis,
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString()
+  }));
+}
+
+export async function upsertTaxReport(report: StoredReport) {
+  await ensureReportSchema();
+  await getPool().query(
+    `
+      INSERT INTO tax_reports
+        (id, report_key, title, taxpayer_name, case_number, tax_type, issue_type, language, input, extraction, analysis, created_at, updated_at)
+      VALUES
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10::jsonb, $11::jsonb, $12, $13)
+      ON CONFLICT (report_key, language) DO UPDATE SET
+        id = EXCLUDED.id,
+        title = EXCLUDED.title,
+        taxpayer_name = EXCLUDED.taxpayer_name,
+        case_number = EXCLUDED.case_number,
+        tax_type = EXCLUDED.tax_type,
+        issue_type = EXCLUDED.issue_type,
+        input = EXCLUDED.input,
+        extraction = EXCLUDED.extraction,
+        analysis = EXCLUDED.analysis,
+        updated_at = EXCLUDED.updated_at;
+    `,
+    [
+      report.id,
+      report.reportKey,
+      report.title,
+      report.taxpayerName,
+      report.caseNumber,
+      report.taxType,
+      report.issueType,
+      report.language,
+      JSON.stringify(report.input),
+      report.extraction ? JSON.stringify(report.extraction) : null,
+      JSON.stringify(report.analysis),
+      report.createdAt,
+      report.updatedAt
+    ]
+  );
+}
+
+export async function deleteTaxReport(id: string) {
+  await ensureReportSchema();
+  await getPool().query(`DELETE FROM tax_reports WHERE id = $1`, [id]);
 }
