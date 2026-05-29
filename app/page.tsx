@@ -14,26 +14,31 @@ import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { buildReportKey, buildStoredReport, type StoredReport } from "@/lib/stored-reports";
 import { decisionDetailPath } from "@/lib/decision-links";
 import { referenceDetailPath } from "@/lib/reference-links";
+import type { ActivityLog, ManagedUser, SystemCheck, UserRole } from "@/lib/admin";
+import { normalizeUsername, seedUsers, userIdFromUsername } from "@/lib/admin";
 
 type Language = "id" | "en";
-type PageKey = "dashboard" | "guided" | "database" | "smartchat" | "regulations" | "reports";
-type UserRole = "admin" | "user";
+type PageKey = "dashboard" | "guided" | "database" | "smartchat" | "regulations" | "reports" | "admin";
 type RegulationTabKey = "bot" | "update" | "list" | "manual";
 type GuidedTabKey = "analysis" | "reports";
 type DisputeTabKey = "chat" | "similar";
+type AdminTabKey = "logs" | "users" | "api";
 type DemoSession = {
   role: UserRole;
   name: string;
+  username?: string;
 };
 const MAX_UPLOAD_BYTES = 3.6 * 1024 * 1024;
 const STORED_DECISIONS_KEY = "tax-dispute-stored-decisions";
 const STORED_REPORTS_KEY = "tax-dispute-stored-reports";
 const DEMO_SESSION_KEY = "tax-dispute-demo-session";
+const ADMIN_USERS_KEY = "tax-dispute-admin-users";
+const ACTIVITY_LOGS_KEY = "tax-dispute-activity-logs";
 const APP_NAME = "RSM Tax Dispute Agentic Advisor";
 const APP_SHORT_NAME = "Tax Dispute Agentic Advisor";
-const DEMO_USERS: Record<UserRole, { username: string; password: string; name: string }> = {
-  admin: { username: "admin", password: "Admin@RSM2026", name: "Admin RSM" },
-  user: { username: "user", password: "User@RSM2026", name: "Tax Advisor User" }
+const DEFAULT_USER_BY_ROLE = {
+  admin: seedUsers.find((user) => user.role === "admin") || seedUsers[0],
+  user: seedUsers.find((user) => user.role === "user") || seedUsers[1]
 };
 
 function canAccessPage(role: UserRole, key: PageKey) {
@@ -56,6 +61,7 @@ const copy = {
     smartchat: "Dispute Analysis",
     regulations: "Peraturan",
     reports: "Reports",
+    admin: "Admin",
     dataSummary: "Ringkasan Data",
     dataVisualization: "Visualisasi Data",
     indexed: "Putusan terindeks",
@@ -270,7 +276,43 @@ const copy = {
     originalFile: "File asli",
     extractionConfidence: "Confidence ekstraksi",
     noCaseDetail: "Dokumen ini belum punya hasil ekstraksi. Klik Ekstrak dulu untuk membuat detail putusan.",
-    casePageLink: "Halaman"
+    casePageLink: "Halaman",
+    adminTitle: "Admin Center",
+    adminIntro: "Kelola pengguna demo, lihat log aktivitas, dan cek kesiapan API sebelum digunakan advisor.",
+    adminLogs: "Log aktivitas",
+    adminUsers: "User management",
+    adminCheckApi: "Check API",
+    activityLogs: "Log aktivitas aplikasi",
+    noActivityLogs: "Belum ada log aktivitas.",
+    refresh: "Refresh",
+    logAction: "Aktivitas",
+    logTarget: "Target",
+    logStatus: "Status",
+    logDetail: "Detail",
+    logActor: "Aktor",
+    logTime: "Waktu",
+    userManagement: "Manajemen user",
+    addOrUpdateUser: "Tambah / update user",
+    managedUsers: "Daftar user",
+    displayName: "Nama tampilan",
+    userStatus: "Status user",
+    active: "Aktif",
+    inactive: "Nonaktif",
+    saveUser: "Simpan user",
+    resetForm: "Reset form",
+    deleteUser: "Hapus user",
+    editUser: "Edit user",
+    cannotDeleteSelf: "User yang sedang login tidak bisa dihapus.",
+    userSaved: "User berhasil disimpan.",
+    userDeleted: "User berhasil dihapus.",
+    apiCheck: "API & integrasi",
+    runApiCheck: "Jalankan check",
+    apiCheckIntro: "Cek koneksi OpenAI, Vercel Blob, database, dan tabel utama aplikasi.",
+    lastChecked: "Terakhir dicek",
+    okStatus: "OK",
+    warningStatus: "Warning",
+    errorStatus: "Error",
+    openHealthPage: "Buka halaman health"
   },
   en: {
     subtitle: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT or Transfer Pricing regulation questions, then produce Word/PDF drafts for advisor review.",
@@ -281,6 +323,7 @@ const copy = {
     smartchat: "Dispute Analysis",
     regulations: "Regulations",
     reports: "Reports",
+    admin: "Admin",
     dataSummary: "Data Summary",
     dataVisualization: "Data Visualization",
     indexed: "Indexed decisions",
@@ -495,7 +538,43 @@ const copy = {
     originalFile: "Original file",
     extractionConfidence: "Extraction confidence",
     noCaseDetail: "This document does not have extraction data yet. Click Extract first to create the decision detail.",
-    casePageLink: "Page"
+    casePageLink: "Page",
+    adminTitle: "Admin Center",
+    adminIntro: "Manage demo users, review activity logs, and check API readiness before advisors use the app.",
+    adminLogs: "Activity logs",
+    adminUsers: "User management",
+    adminCheckApi: "API check",
+    activityLogs: "Application activity logs",
+    noActivityLogs: "No activity logs yet.",
+    refresh: "Refresh",
+    logAction: "Action",
+    logTarget: "Target",
+    logStatus: "Status",
+    logDetail: "Detail",
+    logActor: "Actor",
+    logTime: "Time",
+    userManagement: "User management",
+    addOrUpdateUser: "Add / update user",
+    managedUsers: "Managed users",
+    displayName: "Display name",
+    userStatus: "User status",
+    active: "Active",
+    inactive: "Inactive",
+    saveUser: "Save user",
+    resetForm: "Reset form",
+    deleteUser: "Delete user",
+    editUser: "Edit user",
+    cannotDeleteSelf: "The signed-in user cannot be deleted.",
+    userSaved: "User saved.",
+    userDeleted: "User deleted.",
+    apiCheck: "API & integrations",
+    runApiCheck: "Run check",
+    apiCheckIntro: "Check OpenAI, Vercel Blob, database, and core application tables.",
+    lastChecked: "Last checked",
+    okStatus: "OK",
+    warningStatus: "Warning",
+    errorStatus: "Error",
+    openHealthPage: "Open health page"
   }
 };
 
@@ -707,6 +786,62 @@ function saveDemoSession(session: DemoSession | null) {
     return;
   }
   window.localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
+}
+
+function mergeManagedUsers(users: ManagedUser[]) {
+  const byUsername = new Map<string, ManagedUser>();
+  [...users, ...seedUsers].forEach((user) => {
+    const username = normalizeUsername(user.username);
+    if (!username) return;
+    byUsername.set(username, { ...user, username });
+  });
+  return Array.from(byUsername.values()).sort((a, b) => `${a.role}-${a.username}`.localeCompare(`${b.role}-${b.username}`));
+}
+
+function loadManagedUsers(): ManagedUser[] {
+  if (typeof window === "undefined") return seedUsers;
+  try {
+    const raw = window.localStorage.getItem(ADMIN_USERS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as ManagedUser[]) : [];
+    return mergeManagedUsers(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return seedUsers;
+  }
+}
+
+function saveManagedUsers(users: ManagedUser[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(mergeManagedUsers(users)));
+}
+
+function loadActivityLogs(): ActivityLog[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(ACTIVITY_LOGS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as ActivityLog[]) : [];
+    return Array.isArray(parsed) ? parsed.slice(0, 200) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveActivityLogs(logs: ActivityLog[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ACTIVITY_LOGS_KEY, JSON.stringify(logs.slice(0, 200)));
+}
+
+function createBlankUser(role: UserRole = "user"): ManagedUser {
+  const now = new Date().toISOString();
+  return {
+    id: "",
+    username: "",
+    password: "",
+    name: "",
+    role,
+    status: "active",
+    createdAt: now,
+    updatedAt: now
+  };
 }
 
 function formatBytes(bytes: number) {
@@ -1018,8 +1153,19 @@ function printCaseDetail() {
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
   const [session, setSession] = useState<DemoSession | null>(() => loadDemoSession());
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => loadManagedUsers());
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadActivityLogs());
+  const [adminTab, setAdminTab] = useState<AdminTabKey>("logs");
+  const [adminStatus, setAdminStatus] = useState("");
+  const [adminError, setAdminError] = useState("");
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [userForm, setUserForm] = useState<ManagedUser>(() => createBlankUser());
+  const [editingUserId, setEditingUserId] = useState("");
+  const [systemChecks, setSystemChecks] = useState<SystemCheck[]>([]);
+  const [systemCounts, setSystemCounts] = useState<Record<string, number>>({});
+  const [systemCheckedAt, setSystemCheckedAt] = useState("");
   const [loginRole, setLoginRole] = useState<UserRole>("admin");
-  const [loginUsername, setLoginUsername] = useState(DEMO_USERS.admin.username);
+  const [loginUsername, setLoginUsername] = useState(DEFAULT_USER_BY_ROLE.admin.username);
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [page, setPage] = useState<PageKey>("smartchat");
@@ -1118,7 +1264,8 @@ export default function Home() {
     ["database", labels.database],
     ["smartchat", labels.smartchat],
     ["regulations", labels.regulations],
-    ["reports", labels.reports]
+    ["reports", labels.reports],
+    ["admin", labels.admin]
   ];
   const visiblePages = pages.filter(([key]) => (session ? canAccessPage(session.role, key) : false));
 
@@ -1205,6 +1352,226 @@ export default function Home() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadUsers() {
+      try {
+        const response = await fetch("/api/admin/users");
+        if (!response.ok) return;
+        const data = (await response.json()) as { records?: ManagedUser[] };
+        if (!cancelled && Array.isArray(data.records) && data.records.length) {
+          const next = mergeManagedUsers(data.records);
+          setManagedUsers(next);
+          saveManagedUsers(next);
+        }
+      } catch {
+        // Browser-local users remain available when the admin API is offline.
+      }
+    }
+    loadUsers();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session || session.role !== "admin") return;
+    refreshActivityLogs();
+    runSystemCheck(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.role]);
+
+  async function recordActivity(
+    action: string,
+    target: string,
+    status: ActivityLog["status"] = "success",
+    detail = "",
+    actorSession: DemoSession | null = session
+  ) {
+    const log: ActivityLog = {
+      id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+      createdAt: new Date().toISOString(),
+      actor: actorSession?.name || "Guest",
+      role: actorSession?.role || "guest",
+      action,
+      target,
+      status,
+      detail
+    };
+    const next = [log, ...activityLogs].slice(0, 200);
+    setActivityLogs(next);
+    saveActivityLogs(next);
+    try {
+      const response = await fetch("/api/admin/logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(log)
+      });
+      const data = (await response.json().catch(() => ({}))) as { records?: ActivityLog[] };
+      if (response.ok && Array.isArray(data.records) && data.records.length) {
+        setActivityLogs(data.records);
+        saveActivityLogs(data.records);
+      }
+    } catch {
+      // Local log remains available when the database is unavailable.
+    }
+  }
+
+  async function refreshActivityLogs() {
+    setAdminError("");
+    try {
+      const response = await fetch("/api/admin/logs?limit=200");
+      const data = (await response.json()) as { records?: ActivityLog[]; error?: string };
+      if (!response.ok) throw new Error(data.error || "Could not load activity logs.");
+      if (Array.isArray(data.records)) {
+        const next = data.records.length ? data.records : loadActivityLogs();
+        setActivityLogs(next);
+        saveActivityLogs(next);
+      }
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : "Could not load activity logs.");
+    }
+  }
+
+  async function refreshManagedUsers() {
+    setAdminError("");
+    try {
+      const response = await fetch("/api/admin/users");
+      const data = (await response.json()) as { records?: ManagedUser[]; error?: string };
+      if (!response.ok) throw new Error(data.error || "Could not load users.");
+      if (Array.isArray(data.records)) {
+        const next = mergeManagedUsers(data.records);
+        setManagedUsers(next);
+        saveManagedUsers(next);
+      }
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : "Could not load users.");
+    }
+  }
+
+  async function runSystemCheck(showStatus = true) {
+    setAdminLoading(true);
+    setAdminError("");
+    if (showStatus) setAdminStatus("");
+    try {
+      const response = await fetch("/api/admin/check");
+      const data = (await response.json()) as {
+        checks?: SystemCheck[];
+        counts?: Record<string, number>;
+        generatedAt?: string;
+        error?: string;
+      };
+      if (!response.ok) throw new Error(data.error || "Could not run API check.");
+      setSystemChecks(data.checks || []);
+      setSystemCounts(data.counts || {});
+      setSystemCheckedAt(data.generatedAt || new Date().toISOString());
+      if (showStatus) {
+        setAdminStatus(language === "en" ? "API check completed." : "Check API selesai.");
+        void recordActivity("API check", "Admin", "success", "System integration check completed.");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not run API check.";
+      setAdminError(message);
+      if (showStatus) void recordActivity("API check", "Admin", "error", message);
+    } finally {
+      setAdminLoading(false);
+    }
+  }
+
+  function startEditUser(user: ManagedUser) {
+    setEditingUserId(user.id);
+    setUserForm(user);
+    setAdminTab("users");
+    setAdminStatus("");
+    setAdminError("");
+  }
+
+  function resetUserForm() {
+    setEditingUserId("");
+    setUserForm(createBlankUser());
+    setAdminError("");
+  }
+
+  async function saveUser() {
+    setAdminLoading(true);
+    setAdminStatus("");
+    setAdminError("");
+    try {
+      const username = normalizeUsername(userForm.username);
+      if (!username || !userForm.password || !userForm.name) {
+        throw new Error(language === "en" ? "Username, password, and display name are required." : "Username, password, dan nama tampilan wajib diisi.");
+      }
+      const now = new Date().toISOString();
+      const user: ManagedUser = {
+        ...userForm,
+        id: userForm.id || userIdFromUsername(username),
+        username,
+        createdAt: userForm.createdAt || now,
+        updatedAt: now
+      };
+      const localNext = mergeManagedUsers([user, ...managedUsers.filter((item) => item.id !== user.id && normalizeUsername(item.username) !== username)]);
+      setManagedUsers(localNext);
+      saveManagedUsers(localNext);
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(user)
+      });
+      const data = (await response.json().catch(() => ({}))) as { records?: ManagedUser[]; error?: string };
+      if (!response.ok) throw new Error(data.error || "Could not save user.");
+      if (Array.isArray(data.records)) {
+        const next = mergeManagedUsers(data.records);
+        setManagedUsers(next);
+        saveManagedUsers(next);
+      }
+      setAdminStatus(labels.userSaved);
+      resetUserForm();
+      void recordActivity(editingUserId ? "Update user" : "Create user", username, "success", `${user.name} (${user.role})`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not save user.";
+      setAdminError(message);
+      void recordActivity("Save user", userForm.username || "unknown", "error", message);
+    } finally {
+      setAdminLoading(false);
+    }
+  }
+
+  async function deleteUser(user: ManagedUser) {
+    if ((session?.username && normalizeUsername(user.username) === normalizeUsername(session.username)) || user.name === session?.name) {
+      setAdminError(labels.cannotDeleteSelf);
+      return;
+    }
+    if (!window.confirm(`${labels.deleteUser}: ${user.name}?`)) return;
+    setAdminLoading(true);
+    setAdminStatus("");
+    setAdminError("");
+    try {
+      const localNext = managedUsers.filter((item) => item.id !== user.id);
+      setManagedUsers(localNext);
+      saveManagedUsers(localNext);
+      const response = await fetch("/api/admin/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: user.id })
+      });
+      const data = (await response.json().catch(() => ({}))) as { records?: ManagedUser[]; error?: string };
+      if (!response.ok) throw new Error(data.error || "Could not delete user.");
+      if (Array.isArray(data.records)) {
+        const next = mergeManagedUsers(data.records);
+        setManagedUsers(next);
+        saveManagedUsers(next);
+      }
+      setAdminStatus(labels.userDeleted);
+      void recordActivity("Delete user", user.username, "warning", user.name);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not delete user.";
+      setAdminError(message);
+      void recordActivity("Delete user", user.username, "error", message);
+    } finally {
+      setAdminLoading(false);
+    }
+  }
+
   function changeLanguage(nextLanguage: Language) {
     setLanguage(nextLanguage);
     setForm((current) => ({ ...current, language: nextLanguage }));
@@ -1233,26 +1600,40 @@ export default function Home() {
 
   function changeLoginRole(nextRole: UserRole) {
     setLoginRole(nextRole);
-    setLoginUsername(DEMO_USERS[nextRole].username);
+    setLoginUsername((managedUsers.find((user) => user.role === nextRole && user.status === "active") || DEFAULT_USER_BY_ROLE[nextRole]).username);
     setLoginPassword("");
     setLoginError("");
   }
 
   function signIn() {
-    const user = DEMO_USERS[loginRole];
-    if (loginUsername.trim().toLowerCase() !== user.username || loginPassword !== user.password) {
+    const username = normalizeUsername(loginUsername);
+    const user = managedUsers.find((item) => normalizeUsername(item.username) === username && item.role === loginRole);
+    if (!user || user.status !== "active" || loginPassword !== user.password) {
       setLoginError(labels.loginError);
+      void recordActivity("Login failed", username || "unknown", "warning", "Invalid username, password, or role.", null);
       return;
     }
-    const nextSession = { role: loginRole, name: user.name };
+    const nextSession = { role: user.role, name: user.name, username: user.username };
     setSession(nextSession);
     saveDemoSession(nextSession);
+    const nextUsers = managedUsers.map((item) =>
+      normalizeUsername(item.username) === username ? { ...item, lastLoginAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : item
+    );
+    setManagedUsers(nextUsers);
+    saveManagedUsers(nextUsers);
     setLoginPassword("");
     setLoginError("");
     setPage("smartchat");
+    fetch("/api/admin/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...user, login: true, lastLoginAt: new Date().toISOString() })
+    }).catch(() => undefined);
+    void recordActivity("Login", "Authentication", "success", `${user.name} signed in as ${user.role}.`, nextSession);
   }
 
   function logout() {
+    void recordActivity("Logout", "Authentication", "success", `${session?.name || "User"} signed out.`);
     setSession(null);
     saveDemoSession(null);
     setPage("dashboard");
@@ -1475,8 +1856,11 @@ export default function Home() {
         language
       });
       setServerAnalysis(null);
+      void recordActivity("Extract PDF", uploadedFile.name, "success", `${mergedExtraction.putusanNumber || mergedExtraction.taxpayerName || "Document"} extracted.`);
     } catch (error) {
-      setExtractionError(error instanceof Error ? error.message : "PDF extraction failed.");
+      const message = error instanceof Error ? error.message : "PDF extraction failed.";
+      setExtractionError(message);
+      void recordActivity("Extract PDF", uploadedFile.name, "error", message);
     } finally {
       setExtractionLoading(false);
       setExtractionProgress("");
@@ -1523,8 +1907,11 @@ export default function Home() {
         throw new Error(labels.noCaseQuery);
       }
       setCaseSearchResults(searchSimilarCases(query, language));
+      void recordActivity("Similar case search", "Dispute Analysis", "success", query.slice(0, 140));
     } catch (error) {
-      setCaseSearchError(error instanceof Error ? error.message : "Case search failed.");
+      const message = error instanceof Error ? error.message : "Case search failed.";
+      setCaseSearchError(message);
+      void recordActivity("Similar case search", "Dispute Analysis", "error", message);
     } finally {
       setCaseSearchLoading(false);
     }
@@ -1613,9 +2000,11 @@ export default function Home() {
           savedToDatabase === uploaded.length ? labels.databaseSaved : labels.databaseFallback
         } ${uploaded.every((item) => item.extraction) ? labels.extractionSaved : labels.extractionPending}`
       );
+      void recordActivity("Upload decisions", "Decision Database", "success", `${uploaded.length} document(s), ${savedToDatabase} saved to database.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Blob upload failed.";
       setBlobUploadError(message.includes("BLOB_READ_WRITE_TOKEN") ? labels.blobMissing : message);
+      void recordActivity("Upload decisions", "Decision Database", "error", message);
     } finally {
       setBlobUploadLoading(false);
     }
@@ -1641,8 +2030,11 @@ export default function Home() {
       setStoredDocuments(next);
       saveStoredDecisions(next);
       setBlobUploadStatus(labels.extractionSaved);
+      void recordActivity("Re-extract decision", item.filename, "success", data.extraction.putusanNumber || item.id);
     } catch (error) {
-      setBlobUploadError(error instanceof Error ? error.message : "Stored document extraction failed.");
+      const message = error instanceof Error ? error.message : "Stored document extraction failed.";
+      setBlobUploadError(message);
+      void recordActivity("Re-extract decision", item.filename, "error", message);
     } finally {
       setExtractingDocumentId("");
     }
@@ -1667,8 +2059,11 @@ export default function Home() {
       setStoredDocuments(next);
       saveStoredDecisions(next);
       setBlobUploadStatus(data.blobWarning ? `${labels.deleteSaved} Blob: ${data.blobWarning}` : labels.deleteSaved);
+      void recordActivity("Delete decision", item.filename, "warning", item.extraction?.putusanNumber || item.id);
     } catch (error) {
-      setBlobUploadError(error instanceof Error ? error.message : "Could not delete document.");
+      const message = error instanceof Error ? error.message : "Could not delete document.";
+      setBlobUploadError(message);
+      void recordActivity("Delete decision", item.filename, "error", message);
     } finally {
       setDeletingDocumentId("");
     }
@@ -1709,8 +2104,11 @@ export default function Home() {
       setActiveReportId(report.id);
       setSelectedReportId(report.id);
       setReportStatus(labels.reportSaved);
+      void recordActivity("Create report", report.title, "success", `${report.caseNumber || report.taxpayerName || report.id}`);
     } catch (error) {
-      setAnalysisError(error instanceof Error ? error.message : "Analysis request failed.");
+      const message = error instanceof Error ? error.message : "Analysis request failed.";
+      setAnalysisError(message);
+      void recordActivity("Create report", "Guided Flow", "error", message);
     } finally {
       setAnalysisLoading(false);
     }
@@ -1780,8 +2178,11 @@ export default function Home() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+      void recordActivity("Download report", format.toUpperCase(), "success", anchor.download);
     } catch (error) {
-      setExportError(error instanceof Error ? error.message : "Report export failed.");
+      const message = error instanceof Error ? error.message : "Report export failed.";
+      setExportError(message);
+      void recordActivity("Download report", format.toUpperCase(), "error", message);
     } finally {
       setExportLoading("");
     }
@@ -1803,9 +2204,12 @@ export default function Home() {
       }
       setSmartResponse(data as SmartChatResponse);
       setSmartStatus(data.llmStatus?.message || "");
+      void recordActivity("Ask dispute bot", "Dispute Analysis", "success", smartQuestion.slice(0, 160));
     } catch (error) {
       setSmartResponse(null);
-      setSmartError(error instanceof Error ? error.message : "Smart chatbot request failed.");
+      const message = error instanceof Error ? error.message : "Smart chatbot request failed.";
+      setSmartError(message);
+      void recordActivity("Ask dispute bot", "Dispute Analysis", "error", message);
     } finally {
       setSmartLoading(false);
     }
@@ -1827,9 +2231,12 @@ export default function Home() {
       }
       setRegulationBotResponse(data as SmartChatResponse);
       setRegulationBotStatus(data.llmStatus?.message || "");
+      void recordActivity("Ask regulation bot", "Regulations", "success", regulationQuestion.slice(0, 160));
     } catch (error) {
       setRegulationBotResponse(null);
-      setRegulationBotError(error instanceof Error ? error.message : "Regulation chatbot request failed.");
+      const message = error instanceof Error ? error.message : "Regulation chatbot request failed.";
+      setRegulationBotError(message);
+      void recordActivity("Ask regulation bot", "Regulations", "error", message);
     } finally {
       setRegulationBotLoading(false);
     }
@@ -1879,8 +2286,11 @@ export default function Home() {
       }
       if (Array.isArray(data.records)) setRegulationRecords(data.records);
       setRegulationStatus(language === "en" ? "Regulation deleted." : "Aturan dihapus.");
+      void recordActivity("Delete regulation", item.title, "warning", item.citation);
     } catch (error) {
-      setRegulationError(error instanceof Error ? error.message : "Could not delete regulation.");
+      const message = error instanceof Error ? error.message : "Could not delete regulation.";
+      setRegulationError(message);
+      void recordActivity("Delete regulation", item.title, "error", message);
     } finally {
       setDeletingRegulationId("");
     }
@@ -1922,8 +2332,11 @@ export default function Home() {
       if (Array.isArray(data.records)) setRegulationRecords(data.records);
       setRegulationStatus(`${data.imported || records.length} ${labels.importedRegulations}`);
       setRegulationTab("list");
+      void recordActivity("Import regulations", file.name, "success", `${data.imported || records.length} record(s).`);
     } catch (error) {
-      setRegulationError(error instanceof Error ? error.message : "Could not import regulations.");
+      const message = error instanceof Error ? error.message : "Could not import regulations.";
+      setRegulationError(message);
+      void recordActivity("Import regulations", file.name, "error", message);
     } finally {
       setRegulationImportLoading(false);
     }
@@ -1962,8 +2375,11 @@ export default function Home() {
       const failed = (data.results || []).filter((result) => !result.enriched).slice(0, 2);
       const note = failed.length ? ` ${failed.map((result) => `${result.title}: ${result.message}`).join(" | ")}` : "";
       setRegulationStatus(`${data.enriched || 0}/${data.requested || ids.length} ${labels.sourceEnriched}${note}`);
+      void recordActivity("Enrich regulation", "Regulations", "success", `${data.enriched || 0}/${data.requested || ids.length} source(s).`);
     } catch (error) {
-      setRegulationError(error instanceof Error ? error.message : "Could not enrich regulation sources.");
+      const message = error instanceof Error ? error.message : "Could not enrich regulation sources.";
+      setRegulationError(message);
+      void recordActivity("Enrich regulation", "Regulations", "error", message);
     } finally {
       setSourceEnrichLoading(false);
       setEnrichingRegulationId("");
@@ -1988,8 +2404,11 @@ export default function Home() {
         setRegulationRecords(data.records);
       }
       setRegulationStatus(`${labels.regulationUpdated} ${data.imported || 0} ${language === "en" ? "record(s)" : "data"}.`);
+      void recordActivity("Update Ortax regulations", regulationTopic, "success", `${data.imported || 0} record(s).`);
     } catch (error) {
-      setRegulationError(error instanceof Error ? error.message : "Could not update Ortax regulations.");
+      const message = error instanceof Error ? error.message : "Could not update Ortax regulations.";
+      setRegulationError(message);
+      void recordActivity("Update Ortax regulations", regulationTopic, "error", message);
     } finally {
       setRegulationLoading(false);
     }
@@ -2021,8 +2440,11 @@ export default function Home() {
       setEditingRegulationId("");
       setRegulationStatus(labels.regulationUpdated);
       setRegulationTab("list");
+      void recordActivity(editingRegulationId ? "Update regulation" : "Create regulation", manualRule.title, "success", manualRule.citation);
     } catch (error) {
-      setRegulationError(error instanceof Error ? error.message : "Could not save regulation.");
+      const message = error instanceof Error ? error.message : "Could not save regulation.";
+      setRegulationError(message);
+      void recordActivity("Save regulation", manualRule.title || "Manual rule", "error", message);
     } finally {
       setManualRuleSaving(false);
     }
@@ -2091,9 +2513,17 @@ export default function Home() {
             </button>
           ))}
         </nav>
-        <a className="health-link" href="/api/health">
-          {labels.health}
-        </a>
+        {session.role === "admin" && (
+          <button
+            className="health-link"
+            onClick={() => {
+              setAdminTab("api");
+              setPage("admin");
+            }}
+          >
+            {labels.health}
+          </button>
+        )}
       </aside>
 
       <section className="content">
@@ -2133,7 +2563,7 @@ export default function Home() {
                   <div>
                     <span>{labels.quickStart}</span>
                     <b>{labels.quickAdmin}</b>
-                    <button className="table-button" onClick={() => setPage("database")}>{labels.openAction}</button>
+                    <button className="table-button" onClick={() => setPage("admin")}>{labels.openAction}</button>
                   </div>
                   <QuickActionIcon type="database" />
                 </article>
@@ -2573,6 +3003,33 @@ export default function Home() {
             onSelect={setSelectedReportId}
             onLoad={loadReportIntoGuided}
             onDownload={downloadReport}
+          />
+        )}
+
+        {page === "admin" && session.role === "admin" && (
+          <AdminPanel
+            labels={labels}
+            activeTab={adminTab}
+            logs={activityLogs}
+            users={managedUsers}
+            userForm={userForm}
+            editingUserId={editingUserId}
+            checks={systemChecks}
+            counts={systemCounts}
+            checkedAt={systemCheckedAt}
+            status={adminStatus}
+            error={adminError}
+            loading={adminLoading}
+            currentSession={session}
+            onTabChange={setAdminTab}
+            onRefreshLogs={refreshActivityLogs}
+            onRefreshUsers={refreshManagedUsers}
+            onRunCheck={() => runSystemCheck(true)}
+            onUserFormChange={setUserForm}
+            onSaveUser={saveUser}
+            onResetUser={resetUserForm}
+            onEditUser={startEditUser}
+            onDeleteUser={deleteUser}
           />
         )}
       </section>
@@ -3456,6 +3913,246 @@ function ReportDatabasePanel({
               )}
             </div>
           </div>
+        )}
+      </Panel>
+    </section>
+  );
+}
+
+function AdminPanel({
+  labels,
+  activeTab,
+  logs,
+  users,
+  userForm,
+  editingUserId,
+  checks,
+  counts,
+  checkedAt,
+  status,
+  error,
+  loading,
+  currentSession,
+  onTabChange,
+  onRefreshLogs,
+  onRefreshUsers,
+  onRunCheck,
+  onUserFormChange,
+  onSaveUser,
+  onResetUser,
+  onEditUser,
+  onDeleteUser
+}: {
+  labels: (typeof copy)["en"];
+  activeTab: AdminTabKey;
+  logs: ActivityLog[];
+  users: ManagedUser[];
+  userForm: ManagedUser;
+  editingUserId: string;
+  checks: SystemCheck[];
+  counts: Record<string, number>;
+  checkedAt: string;
+  status: string;
+  error: string;
+  loading: boolean;
+  currentSession: DemoSession;
+  onTabChange: (tab: AdminTabKey) => void;
+  onRefreshLogs: () => void;
+  onRefreshUsers: () => void;
+  onRunCheck: () => void;
+  onUserFormChange: (user: ManagedUser) => void;
+  onSaveUser: () => void;
+  onResetUser: () => void;
+  onEditUser: (user: ManagedUser) => void;
+  onDeleteUser: (user: ManagedUser) => void;
+}) {
+  const tabs: Array<[AdminTabKey, string]> = [
+    ["logs", labels.adminLogs],
+    ["users", labels.adminUsers],
+    ["api", labels.adminCheckApi]
+  ];
+  const countsEntries = Object.entries(counts || {});
+  const logRows = logs.slice(0, 120);
+
+  return (
+    <section className="admin-page">
+      <Panel title={labels.adminTitle}>
+        <p className="muted lead-copy">{labels.adminIntro}</p>
+        {status && <div className="status-banner success">{status}</div>}
+        {error && <div className="status-banner error">{error}</div>}
+        <div className="regulation-tab-list admin-tab-list" role="tablist" aria-label={labels.adminTitle}>
+          {tabs.map(([key, title]) => (
+            <button key={key} className={activeTab === key ? "active" : ""} onClick={() => onTabChange(key)}>
+              {title}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === "logs" && (
+          <section className="admin-section">
+            <div className="admin-section-head">
+              <div>
+                <h3>{labels.activityLogs}</h3>
+                <p className="muted">{labels.totalRecords}: {logs.length}</p>
+              </div>
+              <button className="table-button" onClick={onRefreshLogs}>
+                {labels.refresh}
+              </button>
+            </div>
+            {logRows.length === 0 ? (
+              <div className="empty-state">{labels.noActivityLogs}</div>
+            ) : (
+              <div className="admin-log-list">
+                {logRows.map((log) => (
+                  <article key={log.id} className={`admin-log-card ${log.status}`}>
+                    <div>
+                      <b>{log.action}</b>
+                      <span>{log.target || "-"}</span>
+                    </div>
+                    <p>{log.detail || "-"}</p>
+                    <div className="admin-log-meta">
+                      <span>{log.actor} · {log.role}</span>
+                      <span>{new Date(log.createdAt).toLocaleString()}</span>
+                      <i>{log.status}</i>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {activeTab === "users" && (
+          <section className="admin-section">
+            <div className="admin-section-head">
+              <div>
+                <h3>{labels.userManagement}</h3>
+                <p className="muted">{labels.totalRecords}: {users.length}</p>
+              </div>
+              <button className="table-button" onClick={onRefreshUsers}>
+                {labels.refresh}
+              </button>
+            </div>
+            <div className="admin-user-layout">
+              <div className="admin-user-form">
+                <h3>{labels.addOrUpdateUser}</h3>
+                <div className="form-grid">
+                  <Input label={labels.username} value={userForm.username} onChange={(value) => onUserFormChange({ ...userForm, username: normalizeUsername(value) })} />
+                  <Input label={labels.password} value={userForm.password} onChange={(value) => onUserFormChange({ ...userForm, password: value })} />
+                  <Input label={labels.displayName} value={userForm.name} onChange={(value) => onUserFormChange({ ...userForm, name: value })} />
+                  <label className="control">
+                    <span>{labels.adminLogin}</span>
+                    <select value={userForm.role} onChange={(event) => onUserFormChange({ ...userForm, role: event.target.value as UserRole })}>
+                      <option value="admin">{labels.roleAdmin}</option>
+                      <option value="user">{labels.roleUser}</option>
+                    </select>
+                  </label>
+                  <label className="control">
+                    <span>{labels.userStatus}</span>
+                    <select value={userForm.status} onChange={(event) => onUserFormChange({ ...userForm, status: event.target.value as ManagedUser["status"] })}>
+                      <option value="active">{labels.active}</option>
+                      <option value="inactive">{labels.inactive}</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="admin-actions">
+                  <button className="primary-button" onClick={onSaveUser} disabled={loading}>
+                    {labels.saveUser}
+                  </button>
+                  <button className="table-button" onClick={onResetUser} disabled={loading}>
+                    {labels.resetForm}
+                  </button>
+                  {editingUserId && <span className="admin-edit-pill">{labels.editUser}</span>}
+                </div>
+              </div>
+              <div className="admin-user-table table-wrap">
+                <h3>{labels.managedUsers}</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{labels.username}</th>
+                      <th>{labels.displayName}</th>
+                      <th>Role</th>
+                      <th>{labels.userStatus}</th>
+                      <th>{labels.lastChecked}</th>
+                      <th>{labels.action}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((user) => {
+                      const isCurrent = user.name === currentSession.name || normalizeUsername(user.username) === normalizeUsername(currentSession.username || "");
+                      return (
+                        <tr key={user.id}>
+                          <td>{user.username}</td>
+                          <td>{user.name}</td>
+                          <td>
+                            <span className={`db-status ${user.role === "admin" ? "extracted" : ""}`}>{user.role}</span>
+                          </td>
+                          <td>
+                            <span className={`confidence-pill ${user.status === "active" ? "high" : "low"}`}>
+                              {user.status === "active" ? labels.active : labels.inactive}
+                            </span>
+                          </td>
+                          <td>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : "-"}</td>
+                          <td className="action-cell">
+                            <button className="table-button" onClick={() => onEditUser(user)}>
+                              {labels.editUser}
+                            </button>
+                            <button className="table-button danger" onClick={() => onDeleteUser(user)} disabled={isCurrent || user.id === "user-admin-rsm"}>
+                              {labels.deleteUser}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "api" && (
+          <section className="admin-section">
+            <div className="admin-section-head">
+              <div>
+                <h3>{labels.apiCheck}</h3>
+                <p className="muted">
+                  {labels.apiCheckIntro}
+                  {checkedAt ? ` ${labels.lastChecked}: ${new Date(checkedAt).toLocaleString()}` : ""}
+                </p>
+              </div>
+              <div className="admin-actions">
+                <button className="primary-button secondary-button" onClick={onRunCheck} disabled={loading}>
+                  {loading ? labels.updatingRules : labels.runApiCheck}
+                </button>
+                <a className="table-button" href="/api/health" target="_blank" rel="noreferrer">
+                  {labels.openHealthPage}
+                </a>
+              </div>
+            </div>
+            <div className="admin-check-grid">
+              {checks.map((item) => (
+                <article key={item.name} className={`admin-check-card ${item.status}`}>
+                  <span>{item.name}</span>
+                  <b>{item.status === "ok" ? labels.okStatus : item.status === "warning" ? labels.warningStatus : labels.errorStatus}</b>
+                  <p>{item.detail}</p>
+                  {item.metric && <small>{item.metric}</small>}
+                </article>
+              ))}
+              {!checks.length && <div className="empty-state">{labels.apiCheckIntro}</div>}
+            </div>
+            {countsEntries.length > 0 && (
+              <div className="admin-count-grid">
+                {countsEntries.map(([key, value]) => (
+                  <article key={key} className="kpi gray">
+                    <span>{key.replace(/_/g, " ")}</span>
+                    <strong>{value}</strong>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
         )}
       </Panel>
     </section>

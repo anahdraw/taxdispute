@@ -1,4 +1,6 @@
 import { Pool } from "pg";
+import type { ActivityLog, ManagedUser } from "./admin";
+import { normalizeUsername, seedUsers, userIdFromUsername } from "./admin";
 import type { StoredDecisionFile } from "./stored-decisions";
 import type { StoredReport } from "./stored-reports";
 import type { ExtractionResult } from "./extraction";
@@ -366,4 +368,185 @@ export async function upsertTaxReport(report: StoredReport) {
 export async function deleteTaxReport(id: string) {
   await ensureReportSchema();
   await getPool().query(`DELETE FROM tax_reports WHERE id = $1`, [id]);
+}
+
+export async function ensureAdminSchema() {
+  const pool = getPool();
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user',
+      status TEXT NOT NULL DEFAULT 'active',
+      last_login_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS app_users_role_status_idx
+      ON app_users (role, status);
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS activity_logs (
+      id TEXT PRIMARY KEY,
+      actor TEXT NOT NULL DEFAULT '',
+      role TEXT NOT NULL DEFAULT 'guest',
+      action TEXT NOT NULL,
+      target TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'success',
+      detail TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS activity_logs_created_at_idx
+      ON activity_logs (created_at DESC);
+  `);
+  for (const user of seedUsers) {
+    await pool.query(
+      `
+        INSERT INTO app_users
+          (id, username, password, name, role, status, created_at, updated_at)
+        VALUES
+          ($1, $2, $3, $4, $5, $6, $7, $8)
+        ON CONFLICT (username) DO NOTHING;
+      `,
+      [user.id, user.username, user.password, user.name, user.role, user.status, user.createdAt, user.updatedAt]
+    );
+  }
+}
+
+export async function listManagedUsers(): Promise<ManagedUser[]> {
+  await ensureAdminSchema();
+  const result = await getPool().query(`
+    SELECT id, username, password, name, role, status, last_login_at, created_at, updated_at
+    FROM app_users
+    ORDER BY role ASC, username ASC;
+  `);
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    username: String(row.username),
+    password: String(row.password),
+    name: String(row.name),
+    role: row.role === "admin" ? "admin" : "user",
+    status: row.status === "inactive" ? "inactive" : "active",
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString(),
+    lastLoginAt: row.last_login_at ? new Date(row.last_login_at).toISOString() : undefined
+  }));
+}
+
+export async function upsertManagedUser(user: ManagedUser) {
+  await ensureAdminSchema();
+  const username = normalizeUsername(user.username);
+  if (!username || !user.password || !user.name) {
+    throw new Error("Username, password, and name are required.");
+  }
+  const now = new Date().toISOString();
+  await getPool().query(
+    `
+      INSERT INTO app_users
+        (id, username, password, name, role, status, last_login_at, created_at, updated_at)
+      VALUES
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ON CONFLICT (username) DO UPDATE SET
+        password = EXCLUDED.password,
+        name = EXCLUDED.name,
+        role = EXCLUDED.role,
+        status = EXCLUDED.status,
+        updated_at = EXCLUDED.updated_at;
+    `,
+    [
+      user.id || userIdFromUsername(username),
+      username,
+      user.password,
+      user.name,
+      user.role === "admin" ? "admin" : "user",
+      user.status === "inactive" ? "inactive" : "active",
+      user.lastLoginAt || null,
+      user.createdAt || now,
+      now
+    ]
+  );
+}
+
+export async function deleteManagedUser(id: string) {
+  await ensureAdminSchema();
+  await getPool().query(`DELETE FROM app_users WHERE id = $1`, [id]);
+}
+
+export async function markManagedUserLogin(username: string) {
+  await ensureAdminSchema();
+  await getPool().query(`UPDATE app_users SET last_login_at = NOW(), updated_at = NOW() WHERE username = $1`, [normalizeUsername(username)]);
+}
+
+export async function listActivityLogs(limit = 200): Promise<ActivityLog[]> {
+  await ensureAdminSchema();
+  const result = await getPool().query(
+    `
+      SELECT id, actor, role, action, target, status, detail, created_at
+      FROM activity_logs
+      ORDER BY created_at DESC
+      LIMIT $1;
+    `,
+    [Math.max(1, Math.min(500, limit))]
+  );
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    actor: String(row.actor || ""),
+    role: row.role === "admin" ? "admin" : row.role === "user" ? "user" : "guest",
+    action: String(row.action || ""),
+    target: String(row.target || ""),
+    status: row.status === "error" ? "error" : row.status === "warning" ? "warning" : "success",
+    detail: String(row.detail || ""),
+    createdAt: new Date(row.created_at).toISOString()
+  }));
+}
+
+export async function insertActivityLog(log: ActivityLog) {
+  await ensureAdminSchema();
+  await getPool().query(
+    `
+      INSERT INTO activity_logs
+        (id, actor, role, action, target, status, detail, created_at)
+      VALUES
+        ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (id) DO NOTHING;
+    `,
+    [
+      log.id,
+      log.actor,
+      log.role,
+      log.action,
+      log.target,
+      log.status,
+      log.detail,
+      log.createdAt || new Date().toISOString()
+    ]
+  );
+}
+
+export async function getAdminTableCounts() {
+  const pool = getPool();
+  await ensureDecisionSchema();
+  await ensureRegulationSchema();
+  await ensureReportSchema();
+  await ensureAdminSchema();
+  const [decisions, reports, regulations, users, logs] = await Promise.all([
+    pool.query(`SELECT COUNT(*)::int AS count FROM decision_documents`),
+    pool.query(`SELECT COUNT(*)::int AS count FROM tax_reports`),
+    pool.query(`SELECT COUNT(*)::int AS count FROM tax_regulations`),
+    pool.query(`SELECT COUNT(*)::int AS count FROM app_users`),
+    pool.query(`SELECT COUNT(*)::int AS count FROM activity_logs`)
+  ]);
+  return {
+    decisions: Number(decisions.rows[0]?.count || 0),
+    reports: Number(reports.rows[0]?.count || 0),
+    regulations: Number(regulations.rows[0]?.count || 0),
+    users: Number(users.rows[0]?.count || 0),
+    logs: Number(logs.rows[0]?.count || 0)
+  };
 }

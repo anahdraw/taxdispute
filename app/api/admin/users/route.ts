@@ -1,0 +1,92 @@
+import { NextResponse } from "next/server";
+import type { ManagedUser } from "@/lib/admin";
+import { normalizeUsername, seedUsers, userIdFromUsername } from "@/lib/admin";
+import { deleteManagedUser, hasDatabase, listManagedUsers, markManagedUserLogin, upsertManagedUser } from "@/lib/db";
+
+export const runtime = "nodejs";
+
+function normalizeUser(body: Partial<ManagedUser>): ManagedUser {
+  const now = new Date().toISOString();
+  const username = normalizeUsername(String(body.username || ""));
+  return {
+    id: body.id || userIdFromUsername(username),
+    username,
+    password: String(body.password || ""),
+    name: String(body.name || username || "User"),
+    role: body.role === "admin" ? "admin" : "user",
+    status: body.status === "inactive" ? "inactive" : "active",
+    createdAt: body.createdAt || now,
+    updatedAt: now,
+    lastLoginAt: body.lastLoginAt
+  };
+}
+
+function fallbackUsers(extra?: ManagedUser) {
+  const records = extra ? [extra, ...seedUsers.filter((user) => user.username !== extra.username)] : seedUsers;
+  return records.sort((a, b) => `${a.role}-${a.username}`.localeCompare(`${b.role}-${b.username}`));
+}
+
+export async function GET() {
+  if (!hasDatabase()) {
+    return NextResponse.json({ records: seedUsers, warning: "Database is not configured. Using seed demo users." });
+  }
+  const records = await listManagedUsers();
+  return NextResponse.json({ records });
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as Partial<ManagedUser> & { login?: boolean };
+    const user = normalizeUser(body);
+    if (!user.username || !user.password || !user.name) {
+      return NextResponse.json({ error: "Username, password, and display name are required." }, { status: 400 });
+    }
+
+    if (hasDatabase()) {
+      if (body.login) {
+        await markManagedUserLogin(user.username);
+      } else {
+        await upsertManagedUser(user);
+      }
+      const records = await listManagedUsers();
+      return NextResponse.json({ ok: true, records });
+    }
+
+    return NextResponse.json({
+      ok: true,
+      records: fallbackUsers(user),
+      warning: "Database is not configured. User is saved in browser fallback only."
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Could not save user." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = (await request.json()) as { id?: string };
+    const id = String(body.id || "");
+    if (!id) return NextResponse.json({ error: "User id is required." }, { status: 400 });
+    if (id === "user-admin-rsm") {
+      return NextResponse.json({ error: "The default admin user cannot be deleted." }, { status: 400 });
+    }
+    if (hasDatabase()) {
+      await deleteManagedUser(id);
+      const records = await listManagedUsers();
+      return NextResponse.json({ ok: true, records });
+    }
+    return NextResponse.json({
+      ok: true,
+      records: seedUsers.filter((user) => user.id !== id),
+      warning: "Database is not configured. Delete is browser-fallback only."
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Could not delete user." },
+      { status: 500 }
+    );
+  }
+}
