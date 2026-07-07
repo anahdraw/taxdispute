@@ -9,6 +9,7 @@ type DecisionDetailActionsProps = {
   document: StoredDecisionFile;
   backLabel: string;
   printLabel: string;
+  canManage?: boolean;
 };
 
 function friendlyActionError(value: unknown) {
@@ -34,7 +35,7 @@ async function readActionResponse(response: Response): Promise<{ error?: string 
   }
 }
 
-export function DecisionDetailActions({ document, backLabel, printLabel }: DecisionDetailActionsProps) {
+export function DecisionDetailActions({ document, backLabel, printLabel, canManage = false }: DecisionDetailActionsProps) {
   const router = useRouter();
   const [busyAction, setBusyAction] = useState<"" | "extract" | "save" | "delete">("");
   const [status, setStatus] = useState("");
@@ -130,21 +131,25 @@ export function DecisionDetailActions({ document, backLabel, printLabel }: Decis
       <button className="table-button" onClick={() => window.print()}>
         {printLabel}
       </button>
-      <button className="table-button" onClick={reExtract} disabled={actionDisabled || !canDownloadPdf}>
-        {busyAction === "extract" ? "Re-extracting..." : "Re-extract"}
-      </button>
-      <button className="table-button" onClick={() => setIsEditing((current) => !current)} disabled={actionDisabled}>
-        {isEditing ? "Close edit" : "Edit extraction"}
-      </button>
-      <button className="table-button danger" onClick={deleteDocument} disabled={actionDisabled}>
-        {busyAction === "delete" ? "Deleting..." : "Delete"}
-      </button>
+      {canManage && (
+        <>
+          <button className="table-button" onClick={reExtract} disabled={actionDisabled || !canDownloadPdf}>
+            {busyAction === "extract" ? "Re-extracting..." : "Re-extract"}
+          </button>
+          <button className="table-button" onClick={() => setIsEditing((current) => !current)} disabled={actionDisabled}>
+            {isEditing ? "Close edit" : "Edit extraction"}
+          </button>
+          <button className="table-button danger" onClick={deleteDocument} disabled={actionDisabled}>
+            {busyAction === "delete" ? "Deleting..." : "Delete"}
+          </button>
+        </>
+      )}
 
       <div className="detail-action-note">{editSummary}</div>
       {status && <div className="status-banner success compact-banner">{status}</div>}
       {error && <div className="status-banner error compact-banner">{error}</div>}
 
-      {isEditing && (
+      {canManage && isEditing && (
         <div className="detail-edit-panel">
           <label>
             Extraction JSON

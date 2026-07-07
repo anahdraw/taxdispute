@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { DecisionDetailActions } from "./actions";
 import { decodeDecisionSlug } from "@/lib/decision-links";
 import { getDecisionDocumentById, hasDatabase } from "@/lib/db";
@@ -6,6 +7,7 @@ import type { ExtractionResult } from "@/lib/extraction";
 import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
 import { referenceDetailPath } from "@/lib/reference-links";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
+import { sessionFromCookieStore } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -370,6 +372,8 @@ function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
 }
 
 export default async function DecisionDetailPage({ params }: PageProps) {
+  const session = sessionFromCookieStore(await cookies());
+  if (!session) redirect("/");
   const { slug } = await params;
   if (!hasDatabase()) notFound();
 
@@ -393,7 +397,7 @@ export default async function DecisionDetailPage({ params }: PageProps) {
           <b>{document.extraction?.putusanNumber || document.filename}</b>
           <i>{document.status}</i>
         </div>
-        <DecisionDetailActions document={document} backLabel="Back to database" printLabel="Print / save PDF" />
+        <DecisionDetailActions document={document} backLabel="Back to database" printLabel="Print / save PDF" canManage={session.role === "admin"} />
         {(document.downloadUrl || document.url).startsWith("https://") && (
           <a className="table-button detail-open-pdf" href={referenceDetailPath("decision", document.id)}>
             Open PDF viewer

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { deleteTaxRegulation, hasDatabase, listTaxRegulations, upsertTaxRegulations } from "@/lib/db";
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { mergeRegulationRecords, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -14,7 +15,9 @@ async function getStoredRegulations() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   const stored = await getStoredRegulations();
   return NextResponse.json({ records: mergeRegulationRecords(stored) });
 }
@@ -51,6 +54,8 @@ function normalizeRegulationRecord(body: Partial<Regulation>, index = 0): Regula
 }
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as Partial<Regulation> & { records?: Partial<Regulation>[] };
     const incoming = Array.isArray(body.records) ? body.records : [body];
@@ -76,6 +81,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as { id?: string };
     const id = String(body.id || "").trim();

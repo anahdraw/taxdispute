@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { hasDatabase, listTaxRegulations, upsertTaxRegulations } from "@/lib/db";
 import type { Regulation } from "@/lib/mock-data";
 import { buildOrtaxRegulationSeeds, mergeRegulationRecords, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -48,6 +49,8 @@ async function probeOrtaxSource(record: Regulation): Promise<Regulation> {
 }
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as { topic?: string };
     const topic = normalizeRegulationTopic(body.topic);

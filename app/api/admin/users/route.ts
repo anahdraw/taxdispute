@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { ManagedUser } from "@/lib/admin";
 import { normalizeUsername, seedUsers, userIdFromUsername } from "@/lib/admin";
 import { deleteManagedUser, hasDatabase, listManagedUsers, markManagedUserLogin, upsertManagedUser } from "@/lib/db";
+import { publicUser, requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -26,20 +27,37 @@ function fallbackUsers(extra?: ManagedUser) {
   return records.sort((a, b) => `${a.role}-${a.username}`.localeCompare(`${b.role}-${b.username}`));
 }
 
-export async function GET() {
+function publicUsers(records: ManagedUser[]) {
+  return records.map(publicUser);
+}
+
+async function resolveExistingUser(user: ManagedUser) {
+  const records = hasDatabase() ? await listManagedUsers() : seedUsers;
+  return records.find((item) => item.id === user.id || normalizeUsername(item.username) === normalizeUsername(user.username));
+}
+
+export async function GET(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   if (!hasDatabase()) {
-    return NextResponse.json({ records: seedUsers, warning: "Database is not configured. Using seed demo users." });
+    return NextResponse.json({ records: publicUsers(seedUsers), warning: "Database is not configured. Using seed demo users." });
   }
   const records = await listManagedUsers();
-  return NextResponse.json({ records });
+  return NextResponse.json({ records: publicUsers(records) });
 }
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as Partial<ManagedUser> & { login?: boolean };
     const user = normalizeUser(body);
+    const existing = await resolveExistingUser(user).catch(() => undefined);
+    if (!user.password && existing?.password) {
+      user.password = existing.password;
+    }
     if (!user.username || !user.password || !user.name) {
-      return NextResponse.json({ error: "Username, password, and display name are required." }, { status: 400 });
+      return NextResponse.json({ error: "Username, password, and display name are required for new users." }, { status: 400 });
     }
 
     if (hasDatabase()) {
@@ -49,12 +67,12 @@ export async function POST(request: Request) {
         await upsertManagedUser(user);
       }
       const records = await listManagedUsers();
-      return NextResponse.json({ ok: true, records });
+      return NextResponse.json({ ok: true, records: publicUsers(records) });
     }
 
     return NextResponse.json({
       ok: true,
-      records: fallbackUsers(user),
+      records: publicUsers(fallbackUsers(user)),
       warning: "Database is not configured. User is saved in browser fallback only."
     });
   } catch (error) {
@@ -66,6 +84,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as { id?: string };
     const id = String(body.id || "");
@@ -76,11 +96,11 @@ export async function DELETE(request: Request) {
     if (hasDatabase()) {
       await deleteManagedUser(id);
       const records = await listManagedUsers();
-      return NextResponse.json({ ok: true, records });
+      return NextResponse.json({ ok: true, records: publicUsers(records) });
     }
     return NextResponse.json({
       ok: true,
-      records: seedUsers.filter((user) => user.id !== id),
+      records: publicUsers(seedUsers.filter((user) => user.id !== id)),
       warning: "Database is not configured. Delete is browser-fallback only."
     });
   } catch (error) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { SystemCheck } from "@/lib/admin";
 import { getAdminTableCounts, hasDatabase } from "@/lib/db";
 import { configuredModel, hasOpenAIKey } from "@/lib/openai";
+import { hasExplicitAuthSecret, requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -9,7 +10,9 @@ function check(name: string, status: SystemCheck["status"], detail: string, metr
   return { name, status, detail, metric };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   const checks: SystemCheck[] = [
     check("Next.js API", "ok", "Server route is responding normally.", "online"),
     check(
@@ -17,6 +20,14 @@ export async function GET() {
       hasOpenAIKey() ? "ok" : "warning",
       hasOpenAIKey() ? "OPENAI_API_KEY is configured for extraction, analysis, and chat." : "OPENAI_API_KEY is missing.",
       configuredModel()
+    ),
+    check(
+      "Auth session secret",
+      hasExplicitAuthSecret() ? "ok" : "warning",
+      hasExplicitAuthSecret()
+        ? "TDP_AUTH_SECRET/AUTH_SECRET is configured for signed login cookies."
+        : "Set TDP_AUTH_SECRET in Vercel for production-grade cookie signing.",
+      hasExplicitAuthSecret() ? "configured" : "fallback"
     ),
     check(
       "Vercel Blob",

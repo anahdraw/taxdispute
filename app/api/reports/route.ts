@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 import { deleteTaxReport, hasDatabase, listTaxReports, upsertTaxReport } from "@/lib/db";
 import { buildStoredReport, type StoredReport } from "@/lib/stored-reports";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   if (!hasDatabase()) return NextResponse.json({ records: [] });
   const records = await listTaxReports().catch(() => []);
   return NextResponse.json({ records });
 }
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   try {
     const body = await request.json();
     const report = ("report" in body ? body.report : body) as Partial<StoredReport>;
@@ -40,6 +45,8 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as Partial<StoredReport>;
     if (!body.id) {
@@ -58,4 +65,3 @@ export async function DELETE(request: Request) {
     );
   }
 }
-

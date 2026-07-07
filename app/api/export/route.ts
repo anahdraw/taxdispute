@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { buildReportDocx, buildReportPdf, type ReportPayload } from "@/lib/report";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as ReportPayload & { format?: "docx" | "pdf" };
     const format = body.format === "pdf" ? "pdf" : "docx";

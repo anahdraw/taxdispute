@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { extractionToAnalyzeInput, extractPdfWithLlm } from "@/lib/extraction";
 import { hasOpenAIKey } from "@/lib/openai";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   try {
     if (!hasOpenAIKey()) {
       return NextResponse.json({ error: "OPENAI_API_KEY is not configured in the server environment." }, { status: 500 });

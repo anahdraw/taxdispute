@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasDatabase, insertActivityLog, listActivityLogs } from "@/lib/db";
 import type { ActivityLog } from "@/lib/admin";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,8 @@ function makeLog(body: Partial<ActivityLog>): ActivityLog {
 }
 
 export async function GET(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   const url = new URL(request.url);
   const limit = Number(url.searchParams.get("limit") || 200);
   if (!hasDatabase()) return NextResponse.json({ records: [], warning: "Database is not configured." });
@@ -26,8 +29,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   try {
     const log = makeLog((await request.json()) as Partial<ActivityLog>);
+    log.actor = auth.session.name;
+    log.role = auth.session.role;
     if (hasDatabase()) {
       await insertActivityLog(log);
       const records = await listActivityLogs(200);

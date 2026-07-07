@@ -3,6 +3,7 @@ import { hasDatabase, listTaxRegulations, upsertTaxRegulations } from "@/lib/db"
 import { enrichRegulation } from "@/lib/regulation-enrichment";
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { mergeRegulationRecords, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,6 +27,8 @@ function selectTargets(records: Regulation[], body: { id?: string; ids?: string[
 }
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as { id?: string; ids?: string[]; topic?: string; limit?: number };
     const stored = await storedRegulations();

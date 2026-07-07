@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { callOpenAIText, configuredModel, hasOpenAIKey, missingKeyStatus } from "@/lib/openai";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,8 @@ function localReferenceAnswer(question: string, context: string, language: "id" 
 }
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       question?: string;

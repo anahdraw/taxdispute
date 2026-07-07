@@ -1,10 +1,12 @@
-import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { getDecisionDocumentById, hasDatabase, listTaxRegulations } from "@/lib/db";
 import { decodeReferenceSlug, type ReferenceKind } from "@/lib/reference-links";
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { mergeRegulationRecords, regulationTopicLabel } from "@/lib/regulation-knowledge";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
+import { sessionFromCookieStore } from "@/lib/auth";
 import { ReferenceViewer } from "./reference-viewer";
 
 export const runtime = "nodejs";
@@ -172,6 +174,8 @@ async function getReference(kind: ReferenceKind, id: string): Promise<ReferenceR
 }
 
 export default async function ReferencePage({ params, searchParams }: PageProps) {
+  const session = sessionFromCookieStore(await cookies());
+  if (!session) redirect("/");
   const { kind: rawKind, slug } = await params;
   if (rawKind !== "decision" && rawKind !== "regulation") notFound();
 

@@ -245,7 +245,7 @@ const copy = {
     adminLogin: "Admin",
     userLogin: "User",
     loginError: "Username atau password belum cocok.",
-    demoAuthNote: "Login ini hanya untuk prototype demo, bukan autentikasi production.",
+    demoAuthNote: "Login memakai session server-side untuk prototype. Untuk production, gunakan SSO dan password hashing.",
     signedInAs: "Masuk sebagai",
     logout: "Keluar",
     roleAdmin: "Admin",
@@ -507,7 +507,7 @@ const copy = {
     adminLogin: "Admin",
     userLogin: "User",
     loginError: "Username or password does not match.",
-    demoAuthNote: "This login is prototype-only and not production authentication.",
+    demoAuthNote: "This prototype uses server-side sessions. For production, use SSO and hashed passwords.",
     signedInAs: "Signed in as",
     logout: "Log out",
     roleAdmin: "Admin",
@@ -790,9 +790,14 @@ function saveDemoSession(session: DemoSession | null) {
 
 function mergeManagedUsers(users: ManagedUser[]) {
   const byUsername = new Map<string, ManagedUser>();
-  [...users, ...seedUsers].forEach((user) => {
+  users.forEach((user) => {
     const username = normalizeUsername(user.username);
     if (!username) return;
+    byUsername.set(username, { ...user, username });
+  });
+  seedUsers.forEach((user) => {
+    const username = normalizeUsername(user.username);
+    if (!username || byUsername.has(username)) return;
     byUsername.set(username, { ...user, username });
   });
   return Array.from(byUsername.values()).sort((a, b) => `${a.role}-${a.username}`.localeCompare(`${b.role}-${b.username}`));
@@ -1152,7 +1157,7 @@ function printCaseDetail() {
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
-  const [session, setSession] = useState<DemoSession | null>(() => loadDemoSession());
+  const [session, setSession] = useState<DemoSession | null>(null);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => loadManagedUsers());
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadActivityLogs());
   const [adminTab, setAdminTab] = useState<AdminTabKey>("logs");
@@ -1271,6 +1276,34 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false;
+    async function loadServerSession() {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store" });
+        const data = (await response.json().catch(() => ({}))) as { session?: DemoSession | null };
+        if (cancelled) return;
+        if (data.session) {
+          setSession(data.session);
+          saveDemoSession(data.session);
+        } else {
+          setSession(null);
+          saveDemoSession(null);
+        }
+      } catch {
+        if (!cancelled) {
+          setSession(null);
+          saveDemoSession(null);
+        }
+      }
+    }
+    loadServerSession();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    let cancelled = false;
     async function loadDatabaseDocuments() {
       try {
         const response = await fetch("/api/decisions");
@@ -1288,9 +1321,10 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [session?.username, session?.role]);
 
   useEffect(() => {
+    if (!session) return;
     let cancelled = false;
     async function loadReportDatabase() {
       try {
@@ -1311,7 +1345,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [selectedReportId]);
+  }, [selectedReportId, session?.username, session?.role]);
 
   useEffect(() => {
     if (session && !canAccessPage(session.role, page)) {
@@ -1333,6 +1367,7 @@ export default function Home() {
   }, [regulationTotalPages]);
 
   useEffect(() => {
+    if (!session) return;
     let cancelled = false;
     async function loadRegulations() {
       try {
@@ -1350,9 +1385,10 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [session?.username, session?.role]);
 
   useEffect(() => {
+    if (!session || session.role !== "admin") return;
     let cancelled = false;
     async function loadUsers() {
       try {
@@ -1372,7 +1408,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [session?.username, session?.role]);
 
   useEffect(() => {
     if (!session || session.role !== "admin") return;
@@ -1498,8 +1534,12 @@ export default function Home() {
     setAdminError("");
     try {
       const username = normalizeUsername(userForm.username);
-      if (!username || !userForm.password || !userForm.name) {
-        throw new Error(language === "en" ? "Username, password, and display name are required." : "Username, password, dan nama tampilan wajib diisi.");
+      if (!username || (!editingUserId && !userForm.password) || !userForm.name) {
+        throw new Error(
+          language === "en"
+            ? "Username, display name, and password for new users are required."
+            : "Username, nama tampilan, dan password untuk user baru wajib diisi."
+        );
       }
       const now = new Date().toISOString();
       const user: ManagedUser = {
@@ -1605,35 +1645,33 @@ export default function Home() {
     setLoginError("");
   }
 
-  function signIn() {
+  async function signIn() {
     const username = normalizeUsername(loginUsername);
-    const user = managedUsers.find((item) => normalizeUsername(item.username) === username && item.role === loginRole);
-    if (!user || user.status !== "active" || loginPassword !== user.password) {
-      setLoginError(labels.loginError);
-      void recordActivity("Login failed", username || "unknown", "warning", "Invalid username, password, or role.", null);
-      return;
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password: loginPassword, role: loginRole })
+      });
+      const data = (await response.json().catch(() => ({}))) as { session?: DemoSession; error?: string };
+      if (!response.ok || !data.session) {
+        throw new Error(data.error || labels.loginError);
+      }
+      setSession(data.session);
+      saveDemoSession(data.session);
+      setLoginPassword("");
+      setLoginError("");
+      setPage("smartchat");
+      if (data.session.role === "admin") {
+        void refreshManagedUsers();
+      }
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : labels.loginError);
     }
-    const nextSession = { role: user.role, name: user.name, username: user.username };
-    setSession(nextSession);
-    saveDemoSession(nextSession);
-    const nextUsers = managedUsers.map((item) =>
-      normalizeUsername(item.username) === username ? { ...item, lastLoginAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : item
-    );
-    setManagedUsers(nextUsers);
-    saveManagedUsers(nextUsers);
-    setLoginPassword("");
-    setLoginError("");
-    setPage("smartchat");
-    fetch("/api/admin/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...user, login: true, lastLoginAt: new Date().toISOString() })
-    }).catch(() => undefined);
-    void recordActivity("Login", "Authentication", "success", `${user.name} signed in as ${user.role}.`, nextSession);
   }
 
   function logout() {
-    void recordActivity("Logout", "Authentication", "success", `${session?.name || "User"} signed out.`);
+    fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
     setSession(null);
     saveDemoSession(null);
     setPage("dashboard");

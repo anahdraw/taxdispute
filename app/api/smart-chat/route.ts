@@ -3,10 +3,13 @@ import { hasDatabase, listDecisionDocuments, listTaxRegulations } from "@/lib/db
 import { regulations as seedRegulations } from "@/lib/mock-data";
 import { mergeRegulationRecords } from "@/lib/regulation-knowledge";
 import { answerSmartChat, type SmartChatSourceMode } from "@/lib/smart-chat";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as {
       question?: string;

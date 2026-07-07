@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { hasDatabase, listTaxRegulations } from "@/lib/db";
 import { answerRegulationQuestion } from "@/lib/openai";
 import { mergeRegulationRecords, chooseRegulationContext } from "@/lib/regulation-knowledge";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   try {
     const body = (await request.json()) as { question?: string; language?: "id" | "en"; topic?: string };
     const question = (body.question || "").trim();

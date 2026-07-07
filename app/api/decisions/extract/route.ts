@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import { hasDatabase, upsertDecisionExtraction } from "@/lib/db";
 import { emptyPpnComponents, extractPdfWithLlm, type ExtractionResult, type PpnComponents } from "@/lib/extraction";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -179,6 +180,8 @@ function friendlyExtractionError(error: unknown, sections?: number) {
 }
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request, ["admin"]);
+  if ("response" in auth) return auth.response;
   let chunkCount = 0;
   try {
     const body = (await request.json()) as {

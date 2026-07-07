@@ -4,10 +4,13 @@ import { hasDatabase, listDecisionDocuments, listTaxRegulations } from "@/lib/db
 import type { ExtractionResult } from "@/lib/extraction";
 import { mergeRegulationRecords } from "@/lib/regulation-knowledge";
 import { buildLlmAnalysis } from "@/lib/openai";
+import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth.response;
   try {
     const body = await request.json();
     const input = ("input" in body ? body.input : body) as AnalyzeInput;

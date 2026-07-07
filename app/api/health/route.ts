@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { configuredModel, hasOpenAIKey } from "@/lib/openai";
 import { hasDatabase } from "@/lib/db";
+import { hasExplicitAuthSecret } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,7 @@ function payload() {
     openaiConfigured: hasOpenAIKey(),
     blobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
     databaseConfigured: hasDatabase(),
+    authSecretConfigured: hasExplicitAuthSecret(),
     model: configuredModel(),
     note: "Next.js deployment is active.",
     checkedAt: new Date().toISOString()
@@ -25,6 +27,7 @@ function statusPill(ok: boolean) {
 function htmlHealth(data: ReturnType<typeof payload>) {
   const cards = [
     ["OpenAI", data.openaiConfigured, "LLM extraction, analysis, and chatbot"],
+    ["Auth", data.authSecretConfigured, "Signed server-side login cookie"],
     ["Vercel Blob", data.blobConfigured, "Decision PDF storage and document links"],
     ["Database", data.databaseConfigured, "Saved decisions, reports, regulations, users, and logs"],
     ["Runtime", true, `${data.runtime} · ${data.model}`]
