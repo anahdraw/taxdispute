@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 import { del } from "@vercel/blob";
-import { deleteDecisionDocument, hasDatabase, listDecisionDocuments, upsertDecisionDocument } from "@/lib/db";
+import {
+  countDecisionDocuments,
+  deleteDecisionDocument,
+  getDecisionDocumentById,
+  hasDatabase,
+  listDecisionDocumentSummaries,
+  listDecisionDocuments,
+  upsertDecisionDocument
+} from "@/lib/db";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { requireAuth } from "@/lib/auth";
+import { buildPaginationMeta, parsePaginationParams } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -13,8 +22,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "DATABASE_URL or POSTGRES_URL is not configured.", records: [] }, { status: 503 });
   }
   try {
-    const records = await listDecisionDocuments();
-    return NextResponse.json({ records });
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+    if (id) {
+      const record = await getDecisionDocumentById(id);
+      if (!record) return NextResponse.json({ error: "Decision document not found." }, { status: 404 });
+      return NextResponse.json({ record });
+    }
+
+    if (url.searchParams.get("detail") === "full") {
+      const records = await listDecisionDocuments();
+      return NextResponse.json({
+        records,
+        pagination: buildPaginationMeta({ page: 1, perPage: records.length || 1, offset: 0 }, records.length)
+      });
+    }
+
+    const params = parsePaginationParams(request.url, { perPage: 25, maxPerPage: 1000 });
+    const [records, total] = await Promise.all([listDecisionDocumentSummaries(params), countDecisionDocuments()]);
+    return NextResponse.json({ records, pagination: buildPaginationMeta(params, total) });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not list decision documents.", records: [] },

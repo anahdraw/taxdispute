@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
-import { deleteTaxReport, hasDatabase, listTaxReports, upsertTaxReport } from "@/lib/db";
+import {
+  countTaxReports,
+  deleteTaxReport,
+  getTaxReportById,
+  hasDatabase,
+  listTaxReportSummaries,
+  listTaxReports,
+  upsertTaxReport
+} from "@/lib/db";
 import { buildStoredReport, type StoredReport } from "@/lib/stored-reports";
 import { requireAuth } from "@/lib/auth";
+import { buildPaginationMeta, parsePaginationParams } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -9,8 +18,23 @@ export async function GET(request: Request) {
   const auth = requireAuth(request);
   if ("response" in auth) return auth.response;
   if (!hasDatabase()) return NextResponse.json({ records: [] });
-  const records = await listTaxReports().catch(() => []);
-  return NextResponse.json({ records });
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
+  if (id) {
+    const record = await getTaxReportById(id).catch(() => null);
+    if (!record) return NextResponse.json({ error: "Report not found." }, { status: 404 });
+    return NextResponse.json({ record });
+  }
+  if (url.searchParams.get("detail") === "full") {
+    const records = await listTaxReports().catch(() => []);
+    return NextResponse.json({
+      records,
+      pagination: buildPaginationMeta({ page: 1, perPage: records.length || 1, offset: 0 }, records.length)
+    });
+  }
+  const params = parsePaginationParams(request.url, { perPage: 25, maxPerPage: 200 });
+  const [records, total] = await Promise.all([listTaxReportSummaries(params).catch(() => []), countTaxReports().catch(() => 0)]);
+  return NextResponse.json({ records, pagination: buildPaginationMeta(params, total) });
 }
 
 export async function POST(request: Request) {
@@ -34,8 +58,9 @@ export async function POST(request: Request) {
     }
 
     await upsertTaxReport(normalized);
-    const records = await listTaxReports();
-    return NextResponse.json({ report: normalized, records });
+    const params = { page: 1, perPage: 25, offset: 0 };
+    const [records, total] = await Promise.all([listTaxReportSummaries(params), countTaxReports()]);
+    return NextResponse.json({ report: normalized, records, pagination: buildPaginationMeta(params, total) });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not save report." },
@@ -54,8 +79,9 @@ export async function DELETE(request: Request) {
     }
     if (hasDatabase()) {
       await deleteTaxReport(body.id);
-      const records = await listTaxReports().catch(() => []);
-      return NextResponse.json({ records });
+      const params = { page: 1, perPage: 25, offset: 0 };
+      const [records, total] = await Promise.all([listTaxReportSummaries(params).catch(() => []), countTaxReports().catch(() => 0)]);
+      return NextResponse.json({ records, pagination: buildPaginationMeta(params, total) });
     }
     return NextResponse.json({ records: [] });
   } catch (error) {

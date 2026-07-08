@@ -7,6 +7,7 @@ import type { ExtractionResult } from "./extraction";
 import type { Regulation } from "./mock-data";
 import { hashPassword, isPasswordHash, PASSWORD_HASH_PREFIX } from "./password";
 import { normalizeRegulationTopic } from "./regulation-knowledge";
+import type { PaginationParams } from "./pagination";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -83,6 +84,98 @@ export async function listDecisionDocuments(): Promise<StoredDecisionFile[]> {
     ORDER BY d.uploaded_at DESC
     LIMIT 1000;
   `);
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    filename: String(row.filename),
+    pathname: String(row.pathname),
+    url: String(row.url),
+    downloadUrl: String(row.download_url),
+    size: Number(row.size_bytes || 0),
+    uploadedAt: new Date(row.uploaded_at).toISOString(),
+    status: row.status === "failed" ? "failed" : row.status === "extracted" ? "extracted" : "uploaded",
+    extraction: row.extraction ? (row.extraction as ExtractionResult) : null
+  }));
+}
+
+export async function countDecisionDocuments(): Promise<number> {
+  await ensureDecisionSchema();
+  const result = await getPool().query(`SELECT COUNT(*)::int AS total FROM decision_documents;`);
+  return Number(result.rows[0]?.total || 0);
+}
+
+export async function listDecisionDocumentSummaries(params: PaginationParams): Promise<StoredDecisionFile[]> {
+  await ensureDecisionSchema();
+  const result = await getPool().query(
+    `
+      SELECT
+        d.id,
+        d.filename,
+        d.pathname,
+        d.url,
+        d.download_url,
+        d.size_bytes,
+        d.status,
+        d.uploaded_at,
+        CASE
+          WHEN e.extraction IS NULL THEN NULL
+          ELSE jsonb_strip_nulls(jsonb_build_object(
+            'filename', e.extraction->>'filename',
+            'documentType', e.extraction->>'documentType',
+            'putusanNumber', e.extraction->>'putusanNumber',
+            'putusanYear', e.extraction->>'putusanYear',
+            'courtPanel', e.extraction->>'courtPanel',
+            'decisionDate', e.extraction->>'decisionDate',
+            'taxpayerName', e.extraction->>'taxpayerName',
+            'taxpayerNpwp', e.extraction->>'taxpayerNpwp',
+            'taxType', e.extraction->>'taxType',
+            'taxPeriod', e.extraction->>'taxPeriod',
+            'skpNumber', e.extraction->>'skpNumber',
+            'djpDecisionNumber', e.extraction->>'djpDecisionNumber',
+            'issueType', e.extraction->>'issueType',
+            'issueSubtype', e.extraction->>'issueSubtype',
+            'correctionAmount', e.extraction->>'correctionAmount',
+            'correctionObject', e.extraction->>'correctionObject',
+            'outcome', e.extraction->>'outcome',
+            'summary', left(e.extraction->>'summary', 180),
+            'extractionCompleteness', c.completeness,
+            'extractedAt', e.extraction->>'extractedAt',
+            'llmStatus', e.extraction->'llmStatus'
+          ))
+        END AS extraction
+      FROM decision_documents d
+      LEFT JOIN decision_extractions e ON e.document_id = d.id
+      LEFT JOIN LATERAL (
+        SELECT ROUND((
+          (CASE WHEN NULLIF(e.extraction->>'putusanNumber', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'putusanYear', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'courtPanel', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'clerkName', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'decisionDate', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'taxpayerName', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'taxpayerNpwp', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'taxpayerAddress', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'legalCounselName', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'djpUnit', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'taxType', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'taxPeriod', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'skpNumber', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'djpDecisionNumber', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'issueType', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'correctionAmount', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'taxAuthorityPosition', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'taxpayerPosition', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'courtReasoning', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN NULLIF(e.extraction->>'outcome', '') IS NULL THEN 0 ELSE 1 END) +
+          (CASE WHEN jsonb_array_length(CASE WHEN jsonb_typeof(e.extraction->'judgeNames') = 'array' THEN e.extraction->'judgeNames' ELSE '[]'::jsonb END) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN jsonb_array_length(CASE WHEN jsonb_typeof(e.extraction->'evidence') = 'array' THEN e.extraction->'evidence' ELSE '[]'::jsonb END) > 0 THEN 1 ELSE 0 END) +
+          (CASE WHEN jsonb_array_length(CASE WHEN jsonb_typeof(e.extraction->'legalReferences') = 'array' THEN e.extraction->'legalReferences' ELSE '[]'::jsonb END) > 0 THEN 1 ELSE 0 END)
+        ) * 100.0 / 23)::int AS completeness
+      ) c ON e.extraction IS NOT NULL
+      ORDER BY d.uploaded_at DESC
+      LIMIT $1 OFFSET $2;
+    `,
+    [params.perPage, params.offset]
+  );
   return result.rows.map((row) => ({
     id: String(row.id),
     filename: String(row.filename),
@@ -231,6 +324,64 @@ export async function listTaxRegulations(): Promise<Regulation[]> {
   }));
 }
 
+export async function countTaxRegulations(): Promise<number> {
+  await ensureRegulationSchema();
+  const result = await getPool().query(`SELECT COUNT(*)::int AS total FROM tax_regulations;`);
+  return Number(result.rows[0]?.total || 0);
+}
+
+export async function listTaxRegulationSummaries(params: PaginationParams): Promise<Regulation[]> {
+  await ensureRegulationSchema();
+  const result = await getPool().query(
+    `
+      SELECT id, topic, title, citation, focus, relevance, source, source_url, updated_at
+      FROM tax_regulations
+      ORDER BY topic ASC, updated_at DESC, relevance DESC
+      LIMIT $1 OFFSET $2;
+    `,
+    [params.perPage, params.offset]
+  );
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    topic: normalizeRegulationTopic(row.topic),
+    title: String(row.title),
+    citation: String(row.citation),
+    focus: String(row.focus),
+    relevance: Number(row.relevance || 70),
+    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : "manual",
+    sourceUrl: String(row.source_url || ""),
+    content: "",
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
+  }));
+}
+
+export async function getTaxRegulationById(id: string): Promise<Regulation | null> {
+  await ensureRegulationSchema();
+  const result = await getPool().query(
+    `
+      SELECT id, topic, title, citation, focus, relevance, source, source_url, content, updated_at
+      FROM tax_regulations
+      WHERE id = $1
+      LIMIT 1;
+    `,
+    [id]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    topic: normalizeRegulationTopic(row.topic),
+    title: String(row.title),
+    citation: String(row.citation),
+    focus: String(row.focus),
+    relevance: Number(row.relevance || 70),
+    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : "manual",
+    sourceUrl: String(row.source_url || ""),
+    content: String(row.content || ""),
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
+  };
+}
+
 export async function upsertTaxRegulations(records: Regulation[]) {
   if (records.length === 0) return;
   await ensureRegulationSchema();
@@ -326,6 +477,70 @@ export async function listTaxReports(): Promise<StoredReport[]> {
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString()
   }));
+}
+
+export async function countTaxReports(): Promise<number> {
+  await ensureReportSchema();
+  const result = await getPool().query(`SELECT COUNT(*)::int AS total FROM tax_reports;`);
+  return Number(result.rows[0]?.total || 0);
+}
+
+export async function listTaxReportSummaries(params: PaginationParams): Promise<StoredReport[]> {
+  await ensureReportSchema();
+  const result = await getPool().query(
+    `
+      SELECT id, report_key, title, taxpayer_name, case_number, tax_type, issue_type, language, created_at, updated_at
+      FROM tax_reports
+      ORDER BY updated_at DESC
+      LIMIT $1 OFFSET $2;
+    `,
+    [params.perPage, params.offset]
+  );
+  return result.rows.map((row) => ({
+    id: String(row.id),
+    reportKey: String(row.report_key),
+    title: String(row.title),
+    taxpayerName: String(row.taxpayer_name || ""),
+    caseNumber: String(row.case_number || ""),
+    taxType: String(row.tax_type || ""),
+    issueType: String(row.issue_type || ""),
+    language: row.language === "id" ? "id" : "en",
+    input: {} as StoredReport["input"],
+    extraction: null,
+    analysis: {} as StoredReport["analysis"],
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString()
+  }));
+}
+
+export async function getTaxReportById(id: string): Promise<StoredReport | null> {
+  await ensureReportSchema();
+  const result = await getPool().query(
+    `
+      SELECT id, report_key, title, taxpayer_name, case_number, tax_type, issue_type, language, input, extraction, analysis, created_at, updated_at
+      FROM tax_reports
+      WHERE id = $1
+      LIMIT 1;
+    `,
+    [id]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    reportKey: String(row.report_key),
+    title: String(row.title),
+    taxpayerName: String(row.taxpayer_name || ""),
+    caseNumber: String(row.case_number || ""),
+    taxType: String(row.tax_type || ""),
+    issueType: String(row.issue_type || ""),
+    language: row.language === "id" ? "id" : "en",
+    input: row.input,
+    extraction: row.extraction || null,
+    analysis: row.analysis,
+    createdAt: new Date(row.created_at).toISOString(),
+    updatedAt: new Date(row.updated_at).toISOString()
+  };
 }
 
 export async function upsertTaxReport(report: StoredReport) {

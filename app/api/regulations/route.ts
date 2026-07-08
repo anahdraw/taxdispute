@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { deleteTaxRegulation, hasDatabase, listTaxRegulations, upsertTaxRegulations } from "@/lib/db";
+import {
+  deleteTaxRegulation,
+  getTaxRegulationById,
+  hasDatabase,
+  listTaxRegulationSummaries,
+  listTaxRegulations,
+  upsertTaxRegulations
+} from "@/lib/db";
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { mergeRegulationRecords, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
 import { requireAuth } from "@/lib/auth";
+import { buildPaginationMeta, parsePaginationParams } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
@@ -18,8 +26,30 @@ async function getStoredRegulations() {
 export async function GET(request: Request) {
   const auth = requireAuth(request);
   if ("response" in auth) return auth.response;
-  const stored = await getStoredRegulations();
-  return NextResponse.json({ records: mergeRegulationRecords(stored) });
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
+  if (id) {
+    const record =
+      (hasDatabase() ? await getTaxRegulationById(id).catch(() => null) : null) || regulations.find((item) => item.id === id) || null;
+    if (!record) return NextResponse.json({ error: "Regulation not found." }, { status: 404 });
+    return NextResponse.json({ record });
+  }
+
+  if (url.searchParams.get("detail") === "full") {
+    const stored = await getStoredRegulations();
+    const records = mergeRegulationRecords(stored);
+    return NextResponse.json({
+      records,
+      pagination: buildPaginationMeta({ page: 1, perPage: records.length || 1, offset: 0 }, records.length)
+    });
+  }
+
+  const params = parsePaginationParams(request.url, { perPage: 25, maxPerPage: 500 });
+  const allParams = { page: 1, perPage: 500, offset: 0 };
+  const stored = hasDatabase() ? await listTaxRegulationSummaries(allParams).catch(() => []) : [];
+  const merged = mergeRegulationRecords(stored);
+  const records = merged.slice(params.offset, params.offset + params.perPage);
+  return NextResponse.json({ records, pagination: buildPaginationMeta(params, merged.length) });
 }
 
 function slugPart(value: string) {
@@ -66,11 +96,13 @@ export async function POST(request: Request) {
     }
 
     const stored = await getStoredRegulations();
+    const recordsForResponse = mergeRegulationRecords([...stored, ...records, ...regulations]);
     return NextResponse.json({
       ok: true,
       record: records[0],
       imported: records.length,
-      records: mergeRegulationRecords([...stored, ...records, ...regulations])
+      records: recordsForResponse,
+      pagination: buildPaginationMeta({ page: 1, perPage: recordsForResponse.length || 1, offset: 0 }, recordsForResponse.length)
     });
   } catch (error) {
     return NextResponse.json(
@@ -95,7 +127,12 @@ export async function DELETE(request: Request) {
     }
 
     const stored = await getStoredRegulations();
-    return NextResponse.json({ ok: true, records: mergeRegulationRecords(stored) });
+    const records = mergeRegulationRecords(stored);
+    return NextResponse.json({
+      ok: true,
+      records,
+      pagination: buildPaginationMeta({ page: 1, perPage: records.length || 1, offset: 0 }, records.length)
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not delete regulation." },

@@ -130,6 +130,7 @@ const copy = {
     redownloadReport: "Unduh ulang",
     reportUpdatedAt: "Update terakhir",
     useSavedReport: "Pakai report ini",
+    loadingReportDetail: "Memuat detail report...",
     databaseTitle: "Database Putusan",
     databaseIntro: "Upload PDF putusan besar langsung ke Vercel Blob. Setelah upload, aplikasi akan mengekstrak informasi utama dengan LLM dan menyimpan metadata beserta hasil ekstraksi ke database.",
     databaseUploadHint: "PDF akan disimpan ke Blob. Setelah itu klik Upload + Ekstrak, atau gunakan tombol Ekstrak pada dokumen yang sudah tersimpan.",
@@ -140,6 +141,7 @@ const copy = {
     blobUploadProgress: "Progress upload",
     storedDocuments: "Dokumen Tersimpan",
     noStoredDocuments: "Belum ada dokumen yang diupload dari browser ini.",
+    loadingDecisionDetail: "Memuat detail putusan...",
     openPdf: "Buka PDF",
     blobMissing: "BLOB_READ_WRITE_TOKEN belum tersedia di Vercel/project lokal.",
     fileSize: "Ukuran file",
@@ -392,6 +394,7 @@ const copy = {
     redownloadReport: "Download again",
     reportUpdatedAt: "Last updated",
     useSavedReport: "Use this report",
+    loadingReportDetail: "Loading report detail...",
     databaseTitle: "Decision Database",
     databaseIntro: "Upload large decision PDFs directly to Vercel Blob. After upload, the app extracts key information with the LLM and saves both metadata and extraction JSON to the database.",
     databaseUploadHint: "PDFs are stored in Blob. Then click Upload + Extract, or use the Extract button for already stored documents.",
@@ -402,6 +405,7 @@ const copy = {
     blobUploadProgress: "Upload progress",
     storedDocuments: "Stored Documents",
     noStoredDocuments: "No documents have been uploaded from this browser yet.",
+    loadingDecisionDetail: "Loading decision detail...",
     openPdf: "Open PDF",
     blobMissing: "BLOB_READ_WRITE_TOKEN is not available in Vercel/local project env.",
     fileSize: "File size",
@@ -1121,6 +1125,8 @@ function rowRegulation(row: RegulationImportRow, index: number): Regulation | nu
 
 function extractionCompleteness(extraction: ExtractionResult | null | undefined) {
   if (!extraction) return 0;
+  const summaryScore = Number((extraction as ExtractionResult & { extractionCompleteness?: number }).extractionCompleteness);
+  if (Number.isFinite(summaryScore) && summaryScore >= 0) return Math.round(summaryScore);
   const scalarFields: Array<keyof ExtractionResult> = [
     "putusanNumber",
     "putusanYear",
@@ -1187,6 +1193,7 @@ export default function Home() {
   const [analysisError, setAnalysisError] = useState("");
   const [reportStatus, setReportStatus] = useState("");
   const [storedReports, setStoredReports] = useState<StoredReport[]>(() => loadStoredReports());
+  const [hydratingReportId, setHydratingReportId] = useState("");
   const [selectedReportId, setSelectedReportId] = useState("");
   const [activeReportId, setActiveReportId] = useState("");
   const [guidedTab, setGuidedTab] = useState<GuidedTabKey>("analysis");
@@ -1306,7 +1313,7 @@ export default function Home() {
     let cancelled = false;
     async function loadDatabaseDocuments() {
       try {
-        const response = await fetch("/api/decisions");
+        const response = await fetch("/api/decisions?perPage=1000");
         if (!response.ok) return;
         const data = (await response.json()) as { records?: StoredDecisionFile[] };
         if (!cancelled && Array.isArray(data.records)) {
@@ -1328,14 +1335,17 @@ export default function Home() {
     let cancelled = false;
     async function loadReportDatabase() {
       try {
-        const response = await fetch("/api/reports");
+        const response = await fetch("/api/reports?perPage=200");
         if (!response.ok) return;
         const data = (await response.json()) as { records?: StoredReport[] };
         if (!cancelled && Array.isArray(data.records)) {
           const next = data.records.length ? data.records : loadStoredReports();
           setStoredReports(next);
           saveStoredReports(next);
-          if (!selectedReportId && next[0]) setSelectedReportId(next[0].id);
+          if (!selectedReportId && next[0]) {
+            setSelectedReportId(next[0].id);
+            void hydrateStoredReport(next[0].id);
+          }
         }
       } catch {
         // Local browser cache remains the fallback until database connectivity is available.
@@ -1345,7 +1355,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [selectedReportId, session?.username, session?.role]);
+  }, [session?.username, session?.role]);
 
   useEffect(() => {
     if (session && !canAccessPage(session.role, page)) {
@@ -1371,7 +1381,7 @@ export default function Home() {
     let cancelled = false;
     async function loadRegulations() {
       try {
-        const response = await fetch("/api/regulations");
+        const response = await fetch("/api/regulations?perPage=500");
         if (!response.ok) return;
         const data = (await response.json()) as { records?: Regulation[] };
         if (!cancelled && Array.isArray(data.records) && data.records.length) {
@@ -2164,21 +2174,63 @@ export default function Home() {
       });
       const data = (await response.json().catch(() => ({}))) as { records?: StoredReport[] };
       if (response.ok && Array.isArray(data.records) && data.records.length) {
-        setStoredReports(data.records);
-        saveStoredReports(data.records);
+        const merged = [report, ...data.records.filter((item) => item.id !== report.id)];
+        setStoredReports(merged);
+        saveStoredReports(merged);
       }
     } catch {
       // Browser-local saved reports remain available if the database call fails.
     }
   }
 
-  function loadReportIntoGuided(report: StoredReport) {
-    setForm(report.input);
-    setExtraction(report.extraction || null);
-    setServerAnalysis(report.analysis);
-    setActiveReportId(report.id);
-    setSelectedReportId(report.id);
-    setLanguage(report.language);
+  function reportIsHydrated(report: StoredReport | null | undefined) {
+    return Boolean(report?.analysis && typeof report.analysis.score !== "undefined" && report.input && Object.keys(report.input).length);
+  }
+
+  async function hydrateStoredReport(reportId: string) {
+    const existing = storedReports.find((item) => item.id === reportId);
+    if (reportIsHydrated(existing)) return existing || null;
+    try {
+      setHydratingReportId(reportId);
+      const response = await fetch(`/api/reports?id=${encodeURIComponent(reportId)}`);
+      const data = (await response.json().catch(() => ({}))) as { record?: StoredReport; error?: string };
+      if (!response.ok || !data.record) {
+        throw new Error(data.error || "Could not load report detail.");
+      }
+      const fullReport = data.record;
+      setStoredReports((current) => {
+        const merged = current.map((item) => (item.id === fullReport.id ? fullReport : item));
+        const next = merged.some((item) => item.id === fullReport.id) ? merged : [fullReport, ...merged];
+        saveStoredReports(next);
+        return next;
+      });
+      return fullReport;
+    } catch (error) {
+      setReportStatus("");
+      setExportError(error instanceof Error ? error.message : "Could not load report detail.");
+      return existing || null;
+    } finally {
+      setHydratingReportId("");
+    }
+  }
+
+  async function selectStoredReport(reportId: string) {
+    setSelectedReportId(reportId);
+    await hydrateStoredReport(reportId);
+  }
+
+  async function loadReportIntoGuided(report: StoredReport) {
+    const fullReport = (await hydrateStoredReport(report.id)) || report;
+    if (!reportIsHydrated(fullReport)) {
+      setExportError("Report detail is not available yet.");
+      return;
+    }
+    setForm(fullReport.input);
+    setExtraction(fullReport.extraction || null);
+    setServerAnalysis(fullReport.analysis);
+    setActiveReportId(fullReport.id);
+    setSelectedReportId(fullReport.id);
+    setLanguage(fullReport.language);
     setReportStatus(labels.reportLoaded);
     setGuidedTab("analysis");
     setPage("guided");
@@ -2187,11 +2239,15 @@ export default function Home() {
   async function downloadReport(format: "docx" | "pdf", report?: StoredReport) {
     setExportLoading(format);
     setExportError("");
-    const payloadInput = report?.input || { ...form, language };
-    const payloadExtraction = report ? report.extraction || null : extraction;
-    const payloadAnalysis = report?.analysis || analysis;
-    const payloadLanguage = report?.language || language;
     try {
+      const fullReport = report ? (await hydrateStoredReport(report.id)) || report : null;
+      if (report && !reportIsHydrated(fullReport)) {
+        throw new Error("Report detail is not available yet.");
+      }
+      const payloadInput = fullReport?.input || { ...form, language };
+      const payloadExtraction = fullReport ? fullReport.extraction || null : extraction;
+      const payloadAnalysis = fullReport?.analysis || analysis;
+      const payloadLanguage = fullReport?.language || language;
       const response = await fetch("/api/export", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2280,16 +2336,24 @@ export default function Home() {
     }
   }
 
-  function startEditRegulation(item: Regulation) {
+  async function startEditRegulation(item: Regulation) {
+    let target = item;
+    try {
+      const response = await fetch(`/api/regulations?id=${encodeURIComponent(item.id)}`);
+      const data = (await response.json().catch(() => ({}))) as { record?: Regulation };
+      if (response.ok && data.record) target = data.record;
+    } catch {
+      // The summary record is enough for most fields; content can stay blank if detail loading fails.
+    }
     setRegulationTab("manual");
-    setEditingRegulationId(item.id);
-    setRegulationTopic(normalizeRegulationTopic(item.topic));
+    setEditingRegulationId(target.id);
+    setRegulationTopic(normalizeRegulationTopic(target.topic));
     setManualRule({
-      title: item.title,
-      citation: item.citation,
-      focus: item.focus,
-      sourceUrl: item.sourceUrl || "",
-      content: item.content || ""
+      title: target.title,
+      citation: target.citation,
+      focus: target.focus,
+      sourceUrl: target.sourceUrl || "",
+      content: target.content || ""
     });
     setRegulationStatus("");
     setRegulationError("");
@@ -2742,9 +2806,10 @@ export default function Home() {
                 labels={labels}
                 reports={storedReports}
                 selectedReport={selectedReport}
+                loadingReportId={hydratingReportId}
                 exportLoading={exportLoading}
                 exportError={exportError}
-                onSelect={setSelectedReportId}
+                onSelect={selectStoredReport}
                 onLoad={loadReportIntoGuided}
                 onDownload={downloadReport}
               />
@@ -3036,9 +3101,10 @@ export default function Home() {
             labels={labels}
             reports={storedReports}
             selectedReport={selectedReport}
+            loadingReportId={hydratingReportId}
             exportLoading={exportLoading}
             exportError={exportError}
-            onSelect={setSelectedReportId}
+            onSelect={selectStoredReport}
             onLoad={loadReportIntoGuided}
             onDownload={downloadReport}
           />
@@ -3587,6 +3653,9 @@ function DecisionDatabasePanel({
   const [sort, setSort] = useState<{ key: SortKey; direction: "asc" | "desc" }>({ key: "uploadedAt", direction: "desc" });
   const [copiedDocumentId, setCopiedDocumentId] = useState("");
   const [selectedDocumentId, setSelectedDocumentId] = useState("");
+  const [selectedDocumentOverride, setSelectedDocumentOverride] = useState<StoredDecisionFile | null>(null);
+  const [loadingSelectedDocumentId, setLoadingSelectedDocumentId] = useState("");
+  const [detailLoadError, setDetailLoadError] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const sortedDocuments = useMemo(() => {
@@ -3612,7 +3681,12 @@ function DecisionDatabasePanel({
     () => sortedDocuments.slice((currentPage - 1) * perPage, currentPage * perPage),
     [sortedDocuments, currentPage, perPage]
   );
-  const selectedDocument = selectedDocumentId ? storedDocuments.find((item) => item.id === selectedDocumentId) || null : null;
+  const selectedDocument =
+    selectedDocumentId && selectedDocumentOverride?.id === selectedDocumentId
+      ? selectedDocumentOverride
+      : selectedDocumentId
+        ? storedDocuments.find((item) => item.id === selectedDocumentId) || null
+        : null;
 
   useEffect(() => {
     setPageNumber((current) => Math.min(Math.max(1, current), totalPages));
@@ -3661,6 +3735,25 @@ function DecisionDatabasePanel({
     window.setTimeout(() => setCopiedDocumentId((current) => (current === item.id ? "" : current)), 1800);
   }
 
+  async function viewStoredCase(item: StoredDecisionFile) {
+    setSelectedDocumentId(item.id);
+    setSelectedDocumentOverride(null);
+    setDetailLoadError("");
+    try {
+      setLoadingSelectedDocumentId(item.id);
+      const response = await fetch(`/api/decisions?id=${encodeURIComponent(item.id)}`);
+      const data = (await response.json().catch(() => ({}))) as { record?: StoredDecisionFile; error?: string };
+      if (!response.ok || !data.record) {
+        throw new Error(data.error || "Could not load decision detail.");
+      }
+      setSelectedDocumentOverride(data.record);
+    } catch (error) {
+      setDetailLoadError(error instanceof Error ? error.message : "Could not load decision detail.");
+    } finally {
+      setLoadingSelectedDocumentId("");
+    }
+  }
+
   return (
     <section className="database-layout">
       <Panel title={selectedDocument ? labels.caseDetail : labels.storedDocuments}>
@@ -3697,7 +3790,14 @@ function DecisionDatabasePanel({
         ) : selectedDocument ? (
           <>
             <div className="case-detail-actions">
-              <button className="table-button" onClick={() => setSelectedDocumentId("")}>
+              <button
+                className="table-button"
+                onClick={() => {
+                  setSelectedDocumentId("");
+                  setSelectedDocumentOverride(null);
+                  setDetailLoadError("");
+                }}
+              >
                 {labels.backToDocuments}
               </button>
               <button className="table-button" onClick={printCaseDetail}>
@@ -3723,6 +3823,8 @@ function DecisionDatabasePanel({
                 </a>
               )}
             </div>
+            {loadingSelectedDocumentId === selectedDocument.id && <div className="status-banner success compact-status">{labels.loadingDecisionDetail || "Loading decision detail..."}</div>}
+            {detailLoadError && <div className="status-banner error compact-status">{detailLoadError}</div>}
             <CaseDetailSheet labels={labels} document={selectedDocument} />
           </>
         ) : (
@@ -3797,8 +3899,8 @@ function DecisionDatabasePanel({
                           <button className="table-button" onClick={() => onExtract(item)} disabled={busy || !hasPdfUrl}>
                             {extractingDocumentId === item.id ? labels.extractingStored : status === "extracted" ? labels.reExtractStored : labels.extractStored}
                           </button>
-                          <button className="table-button" onClick={() => setSelectedDocumentId(item.id)} disabled={!item.extraction}>
-                            {labels.viewCase}
+                          <button className="table-button" onClick={() => viewStoredCase(item)} disabled={!item.extraction || loadingSelectedDocumentId === item.id}>
+                            {loadingSelectedDocumentId === item.id ? labels.loadingDecisionDetail : labels.viewCase}
                           </button>
                           {item.extraction && (
                             <a className="table-button" href={decisionDetailPath(item.id)}>
@@ -3871,6 +3973,7 @@ function ReportDatabasePanel({
   labels,
   reports,
   selectedReport,
+  loadingReportId,
   exportLoading,
   exportError,
   onSelect,
@@ -3880,6 +3983,7 @@ function ReportDatabasePanel({
   labels: (typeof copy)["en"];
   reports: StoredReport[];
   selectedReport: StoredReport | null;
+  loadingReportId: string;
   exportLoading: "docx" | "pdf" | "";
   exportError: string;
   onSelect: (id: string) => void;
@@ -3939,12 +4043,16 @@ function ReportDatabasePanel({
                     </div>
                   </div>
                   {exportError && <div className="status-banner error">{exportError}</div>}
-                  <AnalysisResult
-                    labels={labels}
-                    analysis={selectedReport.analysis}
-                    expanded
-                    canExport={false}
-                  />
+                  {loadingReportId === selectedReport.id || typeof selectedReport.analysis?.score === "undefined" ? (
+                    <div className="empty-state">{labels.loadingReportDetail || "Loading report detail..."}</div>
+                  ) : (
+                    <AnalysisResult
+                      labels={labels}
+                      analysis={selectedReport.analysis}
+                      expanded
+                      canExport={false}
+                    />
+                  )}
                 </>
               ) : (
                 <div className="empty-state">{labels.noSavedReports}</div>
