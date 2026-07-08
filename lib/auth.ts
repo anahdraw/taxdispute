@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
-import type { ManagedUser, UserRole } from "./admin";
+import { defaultTierForRole, normalizeSubscriptionTier, tierHasFeature } from "./admin";
+import type { ManagedUser, SubscriptionTier, TierFeatureKey, UserRole } from "./admin";
 
 export const AUTH_COOKIE_NAME = "tdp_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
@@ -10,6 +11,7 @@ export type AppSession = {
   username: string;
   name: string;
   role: UserRole;
+  tier: SubscriptionTier;
   iat: number;
   exp: number;
 };
@@ -72,13 +74,15 @@ export function publicUser(user: ManagedUser): ManagedUser {
   return { ...user, password: "" };
 }
 
-export function createSessionToken(user: Pick<ManagedUser, "id" | "username" | "name" | "role">) {
+export function createSessionToken(user: Pick<ManagedUser, "id" | "username" | "name" | "role" | "tier">) {
   const now = Math.floor(Date.now() / 1000);
+  const tier = normalizeSubscriptionTier(user.tier, user.role);
   const payload = encodeJson({
     sub: user.id,
     username: user.username,
     name: user.name,
     role: user.role,
+    tier,
     iat: now,
     exp: now + SESSION_TTL_SECONDS
   } satisfies AppSession);
@@ -93,7 +97,10 @@ export function verifySessionToken(token: string | undefined | null): AppSession
   if (!session || !session.username || !session.name || !session.role || !session.exp) return null;
   if (session.role !== "admin" && session.role !== "user") return null;
   if (session.exp < Math.floor(Date.now() / 1000)) return null;
-  return session;
+  return {
+    ...session,
+    tier: normalizeSubscriptionTier(session.tier || defaultTierForRole(session.role), session.role)
+  };
 }
 
 export function sessionFromCookieHeader(cookieHeader: string | null) {
@@ -145,4 +152,15 @@ export function requireAuth(request: Request, roles?: UserRole[]) {
     };
   }
   return { session };
+}
+
+export function requireFeature(request: Request, feature: TierFeatureKey) {
+  const auth = requireAuth(request);
+  if ("response" in auth) return auth;
+  if (auth.session.role !== "admin" && !tierHasFeature(auth.session.tier, feature)) {
+    return {
+      response: NextResponse.json({ error: "This subscription tier does not include this feature." }, { status: 403 })
+    };
+  }
+  return auth;
 }

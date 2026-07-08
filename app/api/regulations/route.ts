@@ -9,7 +9,7 @@ import {
 } from "@/lib/db";
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { mergeRegulationRecords, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireFeature } from "@/lib/auth";
 import { buildPaginationMeta, parsePaginationParams } from "@/lib/pagination";
 
 export const runtime = "nodejs";
@@ -24,7 +24,7 @@ async function getStoredRegulations() {
 }
 
 export async function GET(request: Request) {
-  const auth = requireAuth(request);
+  const auth = requireFeature(request, "regulationRead");
   if ("response" in auth) return auth.response;
   const url = new URL(request.url);
   const id = url.searchParams.get("id");

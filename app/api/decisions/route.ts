@@ -10,13 +10,13 @@ import {
   upsertDecisionDocument
 } from "@/lib/db";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireFeature } from "@/lib/auth";
 import { buildPaginationMeta, parsePaginationParams } from "@/lib/pagination";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const auth = requireAuth(request);
+  const auth = requireFeature(request, "databaseRead");
   if ("response" in auth) return auth.response;
   if (!hasDatabase()) {
     return NextResponse.json({ error: "DATABASE_URL or POSTGRES_URL is not configured.", records: [] }, { status: 503 });

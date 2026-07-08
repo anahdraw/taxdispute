@@ -14,17 +14,18 @@ import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { buildReportKey, buildStoredReport, type StoredReport } from "@/lib/stored-reports";
 import { decisionDetailPath } from "@/lib/decision-links";
 import { referenceDetailPath } from "@/lib/reference-links";
-import type { ActivityLog, ManagedUser, SystemCheck, UserRole } from "@/lib/admin";
-import { normalizeUsername, seedUsers, userIdFromUsername } from "@/lib/admin";
+import type { ActivityLog, ManagedUser, SubscriptionTier, SystemCheck, TierFeatureKey, UserRole } from "@/lib/admin";
+import { defaultTierForRole, normalizeSubscriptionTier, normalizeUsername, seedUsers, subscriptionTierConfigs, tierHasFeature, userIdFromUsername } from "@/lib/admin";
 
 type Language = "id" | "en";
 type PageKey = "dashboard" | "guided" | "database" | "smartchat" | "regulations" | "reports" | "admin";
 type RegulationTabKey = "bot" | "update" | "list" | "manual";
 type GuidedTabKey = "analysis" | "reports";
 type DisputeTabKey = "chat" | "similar";
-type AdminTabKey = "logs" | "users" | "api";
+type AdminTabKey = "logs" | "users" | "privacy" | "api";
 type DemoSession = {
   role: UserRole;
+  tier: SubscriptionTier;
   name: string;
   username?: string;
 };
@@ -41,9 +42,15 @@ const DEFAULT_USER_BY_ROLE = {
   user: seedUsers.find((user) => user.role === "user") || seedUsers[1]
 };
 
-function canAccessPage(role: UserRole, key: PageKey) {
+function canAccessPage(role: UserRole, tier: SubscriptionTier, key: PageKey) {
   if (role === "admin") return true;
-  return ["dashboard", "guided", "smartchat", "reports"].includes(key);
+  if (key === "dashboard") return tierHasFeature(tier, "dashboard");
+  if (key === "guided") return tierHasFeature(tier, "guided");
+  if (key === "database") return tierHasFeature(tier, "databaseRead");
+  if (key === "smartchat") return tierHasFeature(tier, "disputeBot");
+  if (key === "regulations") return tierHasFeature(tier, "regulationRead");
+  if (key === "reports") return tierHasFeature(tier, "reports");
+  return false;
 }
 
 const evidenceOptions = {
@@ -283,7 +290,26 @@ const copy = {
     adminIntro: "Kelola pengguna demo, lihat log aktivitas, dan cek kesiapan API sebelum digunakan advisor.",
     adminLogs: "Log aktivitas",
     adminUsers: "User management",
+    adminPrivacy: "Privacy & akses",
     adminCheckApi: "Check API",
+    privacyTitle: "Privacy & access control",
+    privacyIntro: "Fondasi kontrol akses SaaS: role mengatur kewenangan sistem, tier mengatur hak paket layanan.",
+    subscriptionTier: "Paket SaaS",
+    tierSilver: "Silver",
+    tierGold: "Gold",
+    tierPlatinum: "Platinum",
+    tierDocuments: "Dokumen / bulan",
+    tierChats: "Chatbot / bulan",
+    unlimited: "Unlimited",
+    accessMatrix: "Matriks akses",
+    securityControls: "Kontrol privacy yang sudah diterapkan",
+    saasReadiness: "Langkah tambahan untuk SaaS production",
+    featureLabel: "Fitur",
+    allowed: "Ya",
+    blocked: "Tidak",
+    privacySilverDesc: "Untuk user awal yang fokus pada analisis sederhana dan draft report.",
+    privacyGoldDesc: "Untuk tim advisor yang perlu membaca database putusan dan peraturan.",
+    privacyPlatinumDesc: "Untuk organisasi yang perlu kontrol penuh, admin, dan integrasi enterprise.",
     activityLogs: "Log aktivitas aplikasi",
     noActivityLogs: "Belum ada log aktivitas.",
     refresh: "Refresh",
@@ -547,7 +573,26 @@ const copy = {
     adminIntro: "Manage demo users, review activity logs, and check API readiness before advisors use the app.",
     adminLogs: "Activity logs",
     adminUsers: "User management",
+    adminPrivacy: "Privacy & access",
     adminCheckApi: "API check",
+    privacyTitle: "Privacy & access control",
+    privacyIntro: "SaaS access foundation: roles control system authority, while tiers control subscription entitlements.",
+    subscriptionTier: "SaaS tier",
+    tierSilver: "Silver",
+    tierGold: "Gold",
+    tierPlatinum: "Platinum",
+    tierDocuments: "Documents / month",
+    tierChats: "Chatbot / month",
+    unlimited: "Unlimited",
+    accessMatrix: "Access matrix",
+    securityControls: "Privacy controls already implemented",
+    saasReadiness: "Additional steps for production SaaS",
+    featureLabel: "Feature",
+    allowed: "Yes",
+    blocked: "No",
+    privacySilverDesc: "For starter users focused on simple analysis and report drafting.",
+    privacyGoldDesc: "For advisor teams that need to read the decision and regulation databases.",
+    privacyPlatinumDesc: "For organizations that need full controls, admin access, and enterprise integration.",
     activityLogs: "Application activity logs",
     noActivityLogs: "No activity logs yet.",
     refresh: "Refresh",
@@ -777,7 +822,11 @@ function loadDemoSession(): DemoSession | null {
     const raw = window.localStorage.getItem(DEMO_SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as DemoSession;
-    return parsed.role === "admin" || parsed.role === "user" ? parsed : null;
+    if (parsed.role !== "admin" && parsed.role !== "user") return null;
+    return {
+      ...parsed,
+      tier: normalizeSubscriptionTier(parsed.tier, parsed.role)
+    };
   } catch {
     return null;
   }
@@ -797,14 +846,14 @@ function mergeManagedUsers(users: ManagedUser[]) {
   users.forEach((user) => {
     const username = normalizeUsername(user.username);
     if (!username) return;
-    byUsername.set(username, { ...user, username });
+    byUsername.set(username, normalizeUserForClient({ ...user, username }));
   });
   seedUsers.forEach((user) => {
     const username = normalizeUsername(user.username);
     if (!username || byUsername.has(username)) return;
     byUsername.set(username, { ...user, username });
   });
-  return Array.from(byUsername.values()).sort((a, b) => `${a.role}-${a.username}`.localeCompare(`${b.role}-${b.username}`));
+  return Array.from(byUsername.values()).sort((a, b) => `${a.role}-${a.tier}-${a.username}`.localeCompare(`${b.role}-${b.tier}-${b.username}`));
 }
 
 function loadManagedUsers(): ManagedUser[] {
@@ -847,9 +896,32 @@ function createBlankUser(role: UserRole = "user"): ManagedUser {
     password: "",
     name: "",
     role,
+    tier: defaultTierForRole(role),
     status: "active",
     createdAt: now,
     updatedAt: now
+  };
+}
+
+function tierLabel(tier: SubscriptionTier) {
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
+function normalizeUserForClient(user: ManagedUser): ManagedUser {
+  const role = user.role === "admin" ? "admin" : "user";
+  return {
+    ...user,
+    role,
+    tier: normalizeSubscriptionTier(user.tier, role)
+  };
+}
+
+function normalizeSessionForClient(session: DemoSession): DemoSession {
+  const role = session.role === "admin" ? "admin" : "user";
+  return {
+    ...session,
+    role,
+    tier: normalizeSubscriptionTier(session.tier, role)
   };
 }
 
@@ -1279,7 +1351,7 @@ export default function Home() {
     ["reports", labels.reports],
     ["admin", labels.admin]
   ];
-  const visiblePages = pages.filter(([key]) => (session ? canAccessPage(session.role, key) : false));
+  const visiblePages = pages.filter(([key]) => (session ? canAccessPage(session.role, session.tier, key) : false));
 
   useEffect(() => {
     let cancelled = false;
@@ -1289,8 +1361,9 @@ export default function Home() {
         const data = (await response.json().catch(() => ({}))) as { session?: DemoSession | null };
         if (cancelled) return;
         if (data.session) {
-          setSession(data.session);
-          saveDemoSession(data.session);
+          const nextSession = normalizeSessionForClient(data.session);
+          setSession(nextSession);
+          saveDemoSession(nextSession);
         } else {
           setSession(null);
           saveDemoSession(null);
@@ -1309,7 +1382,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || !canAccessPage(session.role, session.tier, "database")) return;
     let cancelled = false;
     async function loadDatabaseDocuments() {
       try {
@@ -1328,10 +1401,10 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [session?.username, session?.role]);
+  }, [session?.username, session?.role, session?.tier]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!session || !canAccessPage(session.role, session.tier, "regulations")) return;
     let cancelled = false;
     async function loadReportDatabase() {
       try {
@@ -1355,10 +1428,10 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [session?.username, session?.role]);
+  }, [session?.username, session?.role, session?.tier]);
 
   useEffect(() => {
-    if (session && !canAccessPage(session.role, page)) {
+    if (session && !canAccessPage(session.role, session.tier, page)) {
       setPage("smartchat");
     }
   }, [page, session]);
@@ -1366,7 +1439,7 @@ export default function Home() {
   useEffect(() => {
     if (typeof window === "undefined" || !session) return;
     const targetPage = new URLSearchParams(window.location.search).get("page") as PageKey | null;
-    if (targetPage && pages.some(([key]) => key === targetPage) && canAccessPage(session.role, targetPage)) {
+    if (targetPage && pages.some(([key]) => key === targetPage) && canAccessPage(session.role, session.tier, targetPage)) {
       setPage(targetPage);
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -1526,7 +1599,7 @@ export default function Home() {
 
   function startEditUser(user: ManagedUser) {
     setEditingUserId(user.id);
-    setUserForm(user);
+    setUserForm(normalizeUserForClient(user));
     setAdminTab("users");
     setAdminStatus("");
     setAdminError("");
@@ -1556,6 +1629,7 @@ export default function Home() {
         ...userForm,
         id: userForm.id || userIdFromUsername(username),
         username,
+        tier: normalizeSubscriptionTier(userForm.tier, userForm.role),
         createdAt: userForm.createdAt || now,
         updatedAt: now
       };
@@ -1576,7 +1650,7 @@ export default function Home() {
       }
       setAdminStatus(labels.userSaved);
       resetUserForm();
-      void recordActivity(editingUserId ? "Update user" : "Create user", username, "success", `${user.name} (${user.role})`);
+      void recordActivity(editingUserId ? "Update user" : "Create user", username, "success", `${user.name} (${user.role}, ${tierLabel(user.tier)})`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not save user.";
       setAdminError(message);
@@ -1667,12 +1741,13 @@ export default function Home() {
       if (!response.ok || !data.session) {
         throw new Error(data.error || labels.loginError);
       }
-      setSession(data.session);
-      saveDemoSession(data.session);
+      const nextSession = normalizeSessionForClient(data.session);
+      setSession(nextSession);
+      saveDemoSession(nextSession);
       setLoginPassword("");
       setLoginError("");
       setPage("smartchat");
-      if (data.session.role === "admin") {
+      if (nextSession.role === "admin") {
         void refreshManagedUsers();
       }
     } catch (error) {
@@ -2596,7 +2671,7 @@ export default function Home() {
         <div className="session-card">
           <span>{labels.signedInAs}</span>
           <b>{session.name}</b>
-          <i>{session.role === "admin" ? labels.roleAdmin : labels.roleUser}</i>
+          <i>{session.role === "admin" ? labels.roleAdmin : labels.roleUser} · {tierLabel(session.tier)}</i>
           <button className="table-button compact" onClick={logout}>
             {labels.logout}
           </button>
@@ -4115,10 +4190,67 @@ function AdminPanel({
   const tabs: Array<[AdminTabKey, string]> = [
     ["logs", labels.adminLogs],
     ["users", labels.adminUsers],
+    ["privacy", labels.adminPrivacy],
     ["api", labels.adminCheckApi]
   ];
   const countsEntries = Object.entries(counts || {});
   const logRows = logs.slice(0, 120);
+  const isEnglish = labels.signIn === "Sign in";
+  const tierDescriptions: Record<SubscriptionTier, string> = {
+    silver: labels.privacySilverDesc,
+    gold: labels.privacyGoldDesc,
+    platinum: labels.privacyPlatinumDesc
+  };
+  const tierNames: Record<SubscriptionTier, string> = {
+    silver: labels.tierSilver,
+    gold: labels.tierGold,
+    platinum: labels.tierPlatinum
+  };
+  const accessRows: Array<{ key: TierFeatureKey; label: string }> = [
+    { key: "dashboard", label: labels.dashboard },
+    { key: "guided", label: labels.guided },
+    { key: "databaseRead", label: isEnglish ? "Read decision database" : "Baca database putusan" },
+    { key: "databaseWrite", label: isEnglish ? "Upload / extract decision database" : "Upload / ekstraksi database putusan" },
+    { key: "disputeBot", label: labels.smartchat },
+    { key: "regulationRead", label: isEnglish ? "Read regulation knowledge" : "Baca knowledge peraturan" },
+    { key: "regulationWrite", label: isEnglish ? "Update regulation knowledge" : "Update knowledge peraturan" },
+    { key: "reports", label: labels.reports },
+    { key: "admin", label: `${labels.adminTitle} ${isEnglish ? "(admin role)" : "(role admin)"}` }
+  ];
+  const securityControls = isEnglish
+    ? [
+        "HttpOnly, SameSite, Secure-aware session cookies.",
+        "Passwords are stored as scrypt hashes, not plaintext.",
+        "Admin APIs use server-side role guards.",
+        "Activity logs record login, upload, extraction, export, regulation, and admin actions.",
+        "List APIs use pagination and summary payloads; full detail loads only when needed.",
+        "PDF files are separated in Blob storage while metadata and extraction JSON stay in the database."
+      ]
+    : [
+        "Session cookie memakai HttpOnly, SameSite, dan Secure sesuai environment.",
+        "Password disimpan sebagai hash scrypt, bukan plaintext.",
+        "API admin memakai role guard server-side.",
+        "Activity log mencatat login, upload, ekstraksi, export, update aturan, dan admin action.",
+        "List API memakai pagination dan summary payload; detail lengkap hanya diambil saat dibuka.",
+        "File PDF dipisahkan di Blob storage, sedangkan metadata dan JSON ekstraksi berada di database."
+      ];
+  const productionSteps = isEnglish
+    ? [
+        "Add tenant isolation so each client only sees its own matters, users, blobs, reports, and logs.",
+        "Connect SSO/MFA and enterprise identity policies.",
+        "Add object-level RBAC for specific cases, reports, and regulation folders.",
+        "Define data retention, legal hold, delete, and export policies.",
+        "Add metering for documents, chatbot queries, exports, storage, and API usage.",
+        "Provide audit export and admin approval workflows for sensitive actions."
+      ]
+    : [
+        "Tambahkan isolasi tenant agar setiap klien hanya melihat perkara, user, blob, report, dan log miliknya.",
+        "Hubungkan SSO/MFA serta kebijakan identitas enterprise.",
+        "Tambahkan object-level RBAC untuk kasus, report, dan folder peraturan tertentu.",
+        "Tetapkan kebijakan retensi data, legal hold, penghapusan, dan export.",
+        "Tambahkan metering untuk dokumen, pertanyaan chatbot, export, storage, dan penggunaan API.",
+        "Sediakan audit export dan approval workflow untuk aksi sensitif."
+      ];
 
   return (
     <section className="admin-page">
@@ -4188,9 +4320,26 @@ function AdminPanel({
                   <Input label={labels.displayName} value={userForm.name} onChange={(value) => onUserFormChange({ ...userForm, name: value })} />
                   <label className="control">
                     <span>{labels.adminLogin}</span>
-                    <select value={userForm.role} onChange={(event) => onUserFormChange({ ...userForm, role: event.target.value as UserRole })}>
+                    <select
+                      value={userForm.role}
+                      onChange={(event) => {
+                        const role = event.target.value as UserRole;
+                        onUserFormChange({ ...userForm, role, tier: normalizeSubscriptionTier(userForm.tier, role) });
+                      }}
+                    >
                       <option value="admin">{labels.roleAdmin}</option>
                       <option value="user">{labels.roleUser}</option>
+                    </select>
+                  </label>
+                  <label className="control">
+                    <span>{labels.subscriptionTier}</span>
+                    <select
+                      value={userForm.tier}
+                      onChange={(event) => onUserFormChange({ ...userForm, tier: normalizeSubscriptionTier(event.target.value, userForm.role) })}
+                    >
+                      <option value="silver">{labels.tierSilver}</option>
+                      <option value="gold">{labels.tierGold}</option>
+                      <option value="platinum">{labels.tierPlatinum}</option>
                     </select>
                   </label>
                   <label className="control">
@@ -4219,6 +4368,7 @@ function AdminPanel({
                       <th>{labels.username}</th>
                       <th>{labels.displayName}</th>
                       <th>Role</th>
+                      <th>{labels.subscriptionTier}</th>
                       <th>{labels.userStatus}</th>
                       <th>{labels.lastChecked}</th>
                       <th>{labels.action}</th>
@@ -4233,6 +4383,9 @@ function AdminPanel({
                           <td>{user.name}</td>
                           <td>
                             <span className={`db-status ${user.role === "admin" ? "extracted" : ""}`}>{user.role}</span>
+                          </td>
+                          <td>
+                            <span className={`tier-pill ${user.tier}`}>{tierLabel(user.tier)}</span>
                           </td>
                           <td>
                             <span className={`confidence-pill ${user.status === "active" ? "high" : "low"}`}>
@@ -4254,6 +4407,97 @@ function AdminPanel({
                   </tbody>
                 </table>
               </div>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "privacy" && (
+          <section className="admin-section">
+            <div className="admin-section-head">
+              <div>
+                <h3>{labels.privacyTitle}</h3>
+                <p className="muted">{labels.privacyIntro}</p>
+              </div>
+              <span className="admin-edit-pill">{isEnglish ? "SaaS-ready control model" : "Model kontrol siap SaaS"}</span>
+            </div>
+
+            <div className="tier-card-grid">
+              {(["silver", "gold", "platinum"] as SubscriptionTier[]).map((tier) => {
+                const config = subscriptionTierConfigs[tier];
+                return (
+                  <article key={tier} className={`tier-card ${tier}`}>
+                    <span>{labels.subscriptionTier}</span>
+                    <h3>{tierNames[tier]}</h3>
+                    <p>{tierDescriptions[tier]}</p>
+                    <div className="tier-metrics">
+                      <div>
+                        <small>{labels.tierDocuments}</small>
+                        <b>{config.monthlyDocumentLimit === null ? labels.unlimited : config.monthlyDocumentLimit.toLocaleString()}</b>
+                      </div>
+                      <div>
+                        <small>{labels.tierChats}</small>
+                        <b>{config.monthlyChatLimit === null ? labels.unlimited : config.monthlyChatLimit.toLocaleString()}</b>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="privacy-grid">
+              <section className="privacy-card">
+                <h3>{labels.accessMatrix}</h3>
+                <div className="table-wrap access-matrix">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{labels.featureLabel}</th>
+                        <th>{labels.tierSilver}</th>
+                        <th>{labels.tierGold}</th>
+                        <th>{labels.tierPlatinum}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {accessRows.map((row) => (
+                        <tr key={row.key}>
+                          <td>{row.label}</td>
+                          {(["silver", "gold", "platinum"] as SubscriptionTier[]).map((tier) => {
+                            const allowed = tierHasFeature(tier, row.key);
+                            return (
+                              <td key={tier}>
+                                <span className={`access-pill ${allowed ? "allowed" : "blocked"}`}>
+                                  {allowed ? labels.allowed : labels.blocked}
+                                </span>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section className="privacy-card">
+                <h3>{labels.securityControls}</h3>
+                <ul className="privacy-check-list">
+                  {securityControls.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className="privacy-card wide">
+                <h3>{labels.saasReadiness}</h3>
+                <div className="production-step-grid">
+                  {productionSteps.map((item, index) => (
+                    <article key={item}>
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      <p>{item}</p>
+                    </article>
+                  ))}
+                </div>
+              </section>
             </div>
           </section>
         )}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { ManagedUser } from "@/lib/admin";
-import { normalizeUsername, seedUsers, userIdFromUsername } from "@/lib/admin";
+import { normalizeSubscriptionTier, normalizeUsername, seedUsers, userIdFromUsername } from "@/lib/admin";
 import { deleteManagedUser, hasDatabase, listManagedUsers, markManagedUserLogin, upsertManagedUser } from "@/lib/db";
 import { publicUser, requireAuth } from "@/lib/auth";
 
@@ -15,6 +15,7 @@ function normalizeUser(body: Partial<ManagedUser>): ManagedUser {
     password: String(body.password || ""),
     name: String(body.name || username || "User"),
     role: body.role === "admin" ? "admin" : "user",
+    tier: normalizeSubscriptionTier(body.tier, body.role === "admin" ? "admin" : "user"),
     status: body.status === "inactive" ? "inactive" : "active",
     createdAt: body.createdAt || now,
     updatedAt: now,

@@ -52,6 +52,7 @@ export async function POST(request: Request) {
       ok: true,
       session: {
         role: sessionUser.role,
+        tier: sessionUser.tier,
         name: sessionUser.name,
         username: sessionUser.username
       },

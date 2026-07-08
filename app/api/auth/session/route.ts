@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     session: session
       ? {
           role: session.role,
+          tier: session.tier,
           name: session.name,
           username: session.username
         }

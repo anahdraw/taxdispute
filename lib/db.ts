@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 import type { ActivityLog, ManagedUser } from "./admin";
-import { normalizeUsername, seedUsers, userIdFromUsername } from "./admin";
+import { normalizeSubscriptionTier, normalizeUsername, seedUsers, userIdFromUsername } from "./admin";
 import type { StoredDecisionFile } from "./stored-decisions";
 import type { StoredReport } from "./stored-reports";
 import type { ExtractionResult } from "./extraction";
@@ -595,6 +595,7 @@ export async function ensureAdminSchema() {
       password TEXT NOT NULL,
       name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'user',
+      tier TEXT NOT NULL DEFAULT 'silver',
       status TEXT NOT NULL DEFAULT 'active',
       last_login_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -602,8 +603,21 @@ export async function ensureAdminSchema() {
     );
   `);
   await pool.query(`
+    ALTER TABLE app_users
+      ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'silver';
+  `);
+  await pool.query(`
+    UPDATE app_users
+      SET tier = 'platinum'
+      WHERE role = 'admin' AND (tier IS NULL OR tier = '' OR tier = 'silver');
+  `);
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS app_users_role_status_idx
       ON app_users (role, status);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS app_users_tier_idx
+      ON app_users (tier);
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS activity_logs (
@@ -625,12 +639,12 @@ export async function ensureAdminSchema() {
     await pool.query(
       `
         INSERT INTO app_users
-          (id, username, password, name, role, status, created_at, updated_at)
+          (id, username, password, name, role, tier, status, created_at, updated_at)
         VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8)
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT (username) DO NOTHING;
       `,
-      [user.id, user.username, hashPassword(user.password), user.name, user.role, user.status, user.createdAt, user.updatedAt]
+      [user.id, user.username, hashPassword(user.password), user.name, user.role, user.tier, user.status, user.createdAt, user.updatedAt]
     );
   }
   await migratePlaintextUserPasswords();
@@ -651,9 +665,9 @@ async function migratePlaintextUserPasswords() {
 export async function listManagedUsers(): Promise<ManagedUser[]> {
   await ensureAdminSchema();
   const result = await getPool().query(`
-    SELECT id, username, password, name, role, status, last_login_at, created_at, updated_at
+    SELECT id, username, password, name, role, tier, status, last_login_at, created_at, updated_at
     FROM app_users
-    ORDER BY role ASC, username ASC;
+    ORDER BY role ASC, tier DESC, username ASC;
   `);
   return result.rows.map((row) => ({
     id: String(row.id),
@@ -661,6 +675,7 @@ export async function listManagedUsers(): Promise<ManagedUser[]> {
     password: String(row.password),
     name: String(row.name),
     role: row.role === "admin" ? "admin" : "user",
+    tier: normalizeSubscriptionTier(row.tier, row.role === "admin" ? "admin" : "user"),
     status: row.status === "inactive" ? "inactive" : "active",
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
@@ -674,18 +689,21 @@ export async function upsertManagedUser(user: ManagedUser) {
   if (!username || !user.password || !user.name) {
     throw new Error("Username, password, and name are required.");
   }
+  const role = user.role === "admin" ? "admin" : "user";
+  const tier = normalizeSubscriptionTier(user.tier, role);
   const storedPassword = isPasswordHash(user.password) ? user.password : hashPassword(user.password);
   const now = new Date().toISOString();
   await getPool().query(
     `
       INSERT INTO app_users
-        (id, username, password, name, role, status, last_login_at, created_at, updated_at)
+        (id, username, password, name, role, tier, status, last_login_at, created_at, updated_at)
       VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       ON CONFLICT (username) DO UPDATE SET
         password = EXCLUDED.password,
         name = EXCLUDED.name,
         role = EXCLUDED.role,
+        tier = EXCLUDED.tier,
         status = EXCLUDED.status,
         updated_at = EXCLUDED.updated_at;
     `,
@@ -694,7 +712,8 @@ export async function upsertManagedUser(user: ManagedUser) {
       username,
       storedPassword,
       user.name,
-      user.role === "admin" ? "admin" : "user",
+      role,
+      tier,
       user.status === "inactive" ? "inactive" : "active",
       user.lastLoginAt || null,
       user.createdAt || now,
