@@ -41,7 +41,7 @@ export async function GET(request: Request) {
   const auth = requireAuth(request, ["admin"]);
   if ("response" in auth) return auth.response;
   if (!hasDatabase()) {
-    return NextResponse.json({ records: publicUsers(seedUsers), warning: "Database is not configured. Using seed demo users." });
+    return NextResponse.json({ records: publicUsers(seedUsers), warning: "Database is not configured. Using built-in initial users." });
   }
   const records = await listManagedUsers();
   return NextResponse.json({ records: publicUsers(records) });
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       records: publicUsers(fallbackUsers(user)),
-      warning: "Database is not configured. User is saved in browser fallback only."
+      warning: "Database is not configured. User is stored locally for this session only."
     });
   } catch (error) {
     return NextResponse.json(
@@ -102,7 +102,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({
       ok: true,
       records: publicUsers(seedUsers.filter((user) => user.id !== id)),
-      warning: "Database is not configured. Delete is browser-fallback only."
+      warning: "Database is not configured. Delete is local-session only."
     });
   } catch (error) {
     return NextResponse.json(

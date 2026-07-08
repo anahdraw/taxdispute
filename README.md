@@ -1,10 +1,10 @@
 # RSM Tax Dispute Agentic Advisor
 
-RSM Tax Dispute Agentic Advisor adalah prototype berbasis Next.js untuk membantu workflow sengketa pajak: upload putusan, ekstraksi data terstruktur, pencarian putusan pembanding, RAG chatbot untuk putusan dan peraturan, analisis risiko, scoring transparan, dan pembuatan draft Word/PDF untuk direview advisor.
+RSM Tax Dispute Agentic Advisor adalah aplikasi berbasis Next.js untuk membantu workflow sengketa pajak: upload putusan, ekstraksi data terstruktur, pencarian putusan pembanding, RAG chatbot untuk putusan dan peraturan, analisis risiko, scoring transparan, dan pembuatan draft Word/PDF untuk direview advisor.
 
-Live prototype: https://taxdispute.vercel.app/
+Live app: https://taxdispute.vercel.app/
 
-> Prototype ini membantu analisis awal. Hasil ekstraksi, scoring, chatbot, dan draft rekomendasi tetap harus direview oleh professional pajak atau kuasa hukum sebelum digunakan.
+> Aplikasi ini membantu analisis awal. Hasil ekstraksi, scoring, chatbot, dan draft rekomendasi tetap harus direview oleh professional pajak atau kuasa hukum sebelum digunakan.
 
 ## Status Integritas Aplikasi
 
@@ -40,7 +40,7 @@ Browser UI (Next.js)
     -> OpenAI Responses API for extraction, analysis, chatbot
     -> Vercel Blob for PDF object storage
     -> PostgreSQL/Neon for decisions, reports, regulations, users, logs
-    -> Local fallback/mock data for prototype demo
+    -> Local rule-based mode if integrations are not configured
 ```
 
 Komponen penting:
@@ -61,7 +61,7 @@ Komponen penting:
 
 ## Privacy & Access Control
 
-Prototype memakai dua konsep terpisah:
+Aplikasi memakai dua konsep terpisah:
 
 - **Role**: kewenangan sistem, yaitu `admin` atau `user`.
 - **Tier**: paket SaaS, yaitu `Silver`, `Gold`, atau `Platinum`.
@@ -85,16 +85,11 @@ Kontrol yang sudah ada:
 
 Untuk SaaS production, tambahkan tenant isolation, object-level RBAC, SSO/MFA, billing metering, data retention policy, dan audit export.
 
-## Demo Login
+## Initial Login Credentials
 
-Default seed user:
+Initial seed user disimpan di `lib/admin.ts`. Saat database aktif, user awal disalin ke tabel `app_users` dan password disimpan sebagai hash `scrypt`, bukan plaintext. Gunakan Admin Center -> User management untuk mengganti password pada database yang sudah berjalan.
 
-| Role | Username | Password | Tier |
-| --- | --- | --- | --- |
-| Admin | `admin` | `Admin@RSM2026` | Platinum |
-| User | `user` | `User@RSM2026` | Silver |
-
-Untuk production, ganti password default, set `TDP_AUTH_SECRET`, dan gunakan identity provider/SSO.
+Untuk production, ganti password awal, set `TDP_AUTH_SECRET`, dan gunakan identity provider/SSO.
 
 ## Local Setup
 
@@ -102,7 +97,7 @@ Kebutuhan:
 
 - Node.js 20+
 - npm
-- Optional: Python 3.9+ untuk prototype Streamlit lama
+- Optional: Python 3.9+ untuk aplikasi Streamlit lokal lama
 
 Install dependency:
 
@@ -172,7 +167,7 @@ Data production disimpan melalui:
 
 - **Vercel Blob**: PDF putusan/peraturan.
 - **PostgreSQL/Neon**: metadata putusan, hasil ekstraksi, report, regulation cards, users, logs.
-- **Browser/local fallback**: hanya untuk prototype jika database belum tersedia.
+- **Browser/local mode**: dipakai saat database belum tersedia di lingkungan lokal.
 
 Jangan commit:
 
@@ -205,9 +200,9 @@ Test case lama:
 TEST_CASES.md
 ```
 
-## Streamlit Prototype Lama
+## Streamlit App Lama
 
-Prototype Python/Streamlit masih disimpan untuk referensi dan workflow lokal:
+Aplikasi Python/Streamlit masih disimpan untuk referensi dan workflow lokal:
 
 ```bash
 python3 -m pip install -r requirements.txt

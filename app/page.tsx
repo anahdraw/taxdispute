@@ -23,7 +23,7 @@ type RegulationTabKey = "bot" | "update" | "list" | "manual";
 type GuidedTabKey = "analysis" | "reports";
 type DisputeTabKey = "chat" | "similar";
 type AdminTabKey = "logs" | "users" | "privacy" | "api";
-type DemoSession = {
+type AppSession = {
   role: UserRole;
   tier: SubscriptionTier;
   name: string;
@@ -32,7 +32,7 @@ type DemoSession = {
 const MAX_UPLOAD_BYTES = 3.6 * 1024 * 1024;
 const STORED_DECISIONS_KEY = "tax-dispute-stored-decisions";
 const STORED_REPORTS_KEY = "tax-dispute-stored-reports";
-const DEMO_SESSION_KEY = "tax-dispute-demo-session";
+const APP_SESSION_KEY = "tax-dispute-session";
 const ADMIN_USERS_KEY = "tax-dispute-admin-users";
 const ACTIVITY_LOGS_KEY = "tax-dispute-activity-logs";
 const APP_NAME = "RSM Tax Dispute Agentic Advisor";
@@ -86,7 +86,7 @@ const copy = {
     taxpayerPosition: "Posisi WP",
     evidence: "Bukti tersedia",
     upload: "Upload dokumen",
-    uploadHint: "Untuk Vercel demo, file hanya dibaca di browser dan belum disimpan. Backend storage akan memakai database/object storage pada fase production.",
+    uploadHint: "File diproses di browser dan dikirim ke server untuk ekstraksi. Penyimpanan memakai Blob/database jika integrasi tersedia.",
     results: "Hasil Analisis",
     recommendation: "Draft Rekomendasi",
     topCases: "Putusan Paling Terkait",
@@ -247,14 +247,13 @@ const copy = {
     noSmartAnswer: "Ajukan pertanyaan untuk melihat jawaban, sumber RAG, dan visualisasi jika relevan.",
     openReference: "Buka referensi",
     loginTitle: "Masuk ke RSM Tax Dispute Agentic Advisor",
-    loginSubtitle: "Pilih peran untuk mencoba alur prototype. Admin dapat mengelola database dan peraturan; user fokus ke analisis dan chatbot.",
+    loginSubtitle: "Pilih akses masuk. Admin dapat mengelola database dan peraturan; user fokus ke analisis dan chatbot.",
     username: "Username",
     password: "Password",
     signIn: "Masuk",
     adminLogin: "Admin",
     userLogin: "User",
     loginError: "Username atau password belum cocok.",
-    demoAuthNote: "Login memakai session server-side untuk prototype. Untuk production, gunakan SSO dan password hashing.",
     signedInAs: "Masuk sebagai",
     logout: "Keluar",
     roleAdmin: "Admin",
@@ -287,7 +286,7 @@ const copy = {
     noCaseDetail: "Dokumen ini belum punya hasil ekstraksi. Klik Ekstrak dulu untuk membuat detail putusan.",
     casePageLink: "Halaman",
     adminTitle: "Admin Center",
-    adminIntro: "Kelola pengguna demo, lihat log aktivitas, dan cek kesiapan API sebelum digunakan advisor.",
+    adminIntro: "Kelola pengguna, lihat log aktivitas, dan cek kesiapan API sebelum digunakan advisor.",
     adminLogs: "Log aktivitas",
     adminUsers: "User management",
     adminPrivacy: "Privacy & akses",
@@ -369,7 +368,7 @@ const copy = {
     taxpayerPosition: "Taxpayer position",
     evidence: "Available evidence",
     upload: "Upload document",
-    uploadHint: "For the Vercel demo, files are read in-browser and not stored. Production storage should use a database/object storage layer.",
+    uploadHint: "Files are processed in the browser and sent to the server for extraction. Storage uses Blob/database when integrations are configured.",
     results: "Analysis Result",
     recommendation: "Recommendation Draft",
     topCases: "Most Relevant Decisions",
@@ -530,14 +529,13 @@ const copy = {
     noSmartAnswer: "Ask a question to see an answer, RAG sources, and visualizations when relevant.",
     openReference: "Open reference",
     loginTitle: "Sign in to RSM Tax Dispute Agentic Advisor",
-    loginSubtitle: "Choose a demo role. Admin can manage the database and regulations; user focuses on analysis and chatbot workflows.",
+    loginSubtitle: "Choose an access type. Admin can manage the database and regulations; user focuses on analysis and chatbot workflows.",
     username: "Username",
     password: "Password",
     signIn: "Sign in",
     adminLogin: "Admin",
     userLogin: "User",
     loginError: "Username or password does not match.",
-    demoAuthNote: "This prototype uses server-side sessions. For production, use SSO and hashed passwords.",
     signedInAs: "Signed in as",
     logout: "Log out",
     roleAdmin: "Admin",
@@ -570,7 +568,7 @@ const copy = {
     noCaseDetail: "This document does not have extraction data yet. Click Extract first to create the decision detail.",
     casePageLink: "Page",
     adminTitle: "Admin Center",
-    adminIntro: "Manage demo users, review activity logs, and check API readiness before advisors use the app.",
+    adminIntro: "Manage users, review activity logs, and check API readiness before advisors use the app.",
     adminLogs: "Activity logs",
     adminUsers: "User management",
     adminPrivacy: "Privacy & access",
@@ -752,7 +750,6 @@ function LoginScreen({
           <button className="primary-button login-button" onClick={onSubmit}>
             {labels.signIn}
           </button>
-          <p className="muted login-note">{labels.demoAuthNote}</p>
         </div>
       </section>
     </main>
@@ -816,12 +813,12 @@ function saveStoredReports(items: StoredReport[]) {
   window.localStorage.setItem(STORED_REPORTS_KEY, JSON.stringify(items));
 }
 
-function loadDemoSession(): DemoSession | null {
+function loadAppSession(): AppSession | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(DEMO_SESSION_KEY);
+    const raw = window.localStorage.getItem(APP_SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as DemoSession;
+    const parsed = JSON.parse(raw) as AppSession;
     if (parsed.role !== "admin" && parsed.role !== "user") return null;
     return {
       ...parsed,
@@ -832,13 +829,13 @@ function loadDemoSession(): DemoSession | null {
   }
 }
 
-function saveDemoSession(session: DemoSession | null) {
+function saveAppSession(session: AppSession | null) {
   if (typeof window === "undefined") return;
   if (!session) {
-    window.localStorage.removeItem(DEMO_SESSION_KEY);
+    window.localStorage.removeItem(APP_SESSION_KEY);
     return;
   }
-  window.localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
+  window.localStorage.setItem(APP_SESSION_KEY, JSON.stringify(session));
 }
 
 function mergeManagedUsers(users: ManagedUser[]) {
@@ -916,7 +913,7 @@ function normalizeUserForClient(user: ManagedUser): ManagedUser {
   };
 }
 
-function normalizeSessionForClient(session: DemoSession): DemoSession {
+function normalizeSessionForClient(session: AppSession): AppSession {
   const role = session.role === "admin" ? "admin" : "user";
   return {
     ...session,
@@ -1235,7 +1232,7 @@ function printCaseDetail() {
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
-  const [session, setSession] = useState<DemoSession | null>(null);
+  const [session, setSession] = useState<AppSession | null>(() => loadAppSession());
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => loadManagedUsers());
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadActivityLogs());
   const [adminTab, setAdminTab] = useState<AdminTabKey>("logs");
@@ -1358,20 +1355,20 @@ export default function Home() {
     async function loadServerSession() {
       try {
         const response = await fetch("/api/auth/session", { cache: "no-store" });
-        const data = (await response.json().catch(() => ({}))) as { session?: DemoSession | null };
+        const data = (await response.json().catch(() => ({}))) as { session?: AppSession | null };
         if (cancelled) return;
         if (data.session) {
           const nextSession = normalizeSessionForClient(data.session);
           setSession(nextSession);
-          saveDemoSession(nextSession);
+          saveAppSession(nextSession);
         } else {
           setSession(null);
-          saveDemoSession(null);
+          saveAppSession(null);
         }
       } catch {
         if (!cancelled) {
           setSession(null);
-          saveDemoSession(null);
+          saveAppSession(null);
         }
       }
     }
@@ -1394,7 +1391,7 @@ export default function Home() {
           saveStoredDecisions(data.records);
         }
       } catch {
-        // Local browser cache remains the fallback until database connectivity is available.
+        // Local browser cache remains available until database connectivity is available.
       }
     }
     loadDatabaseDocuments();
@@ -1421,7 +1418,7 @@ export default function Home() {
           }
         }
       } catch {
-        // Local browser cache remains the fallback until database connectivity is available.
+        // Local browser cache remains available until database connectivity is available.
       }
     }
     loadReportDatabase();
@@ -1505,7 +1502,7 @@ export default function Home() {
     target: string,
     status: ActivityLog["status"] = "success",
     detail = "",
-    actorSession: DemoSession | null = session
+    actorSession: AppSession | null = session
   ) {
     const log: ActivityLog = {
       id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
@@ -1737,13 +1734,13 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password: loginPassword, role: loginRole })
       });
-      const data = (await response.json().catch(() => ({}))) as { session?: DemoSession; error?: string };
+      const data = (await response.json().catch(() => ({}))) as { session?: AppSession; error?: string };
       if (!response.ok || !data.session) {
         throw new Error(data.error || labels.loginError);
       }
       const nextSession = normalizeSessionForClient(data.session);
       setSession(nextSession);
-      saveDemoSession(nextSession);
+      saveAppSession(nextSession);
       setLoginPassword("");
       setLoginError("");
       setPage("smartchat");
@@ -1758,7 +1755,7 @@ export default function Home() {
   function logout() {
     fetch("/api/auth/logout", { method: "POST" }).catch(() => undefined);
     setSession(null);
-    saveDemoSession(null);
+    saveAppSession(null);
     setPage("dashboard");
     setLoginPassword("");
   }
@@ -2068,7 +2065,7 @@ export default function Home() {
           clientPayload: JSON.stringify({
             filename: file.name,
             size: file.size,
-            uploadedFrom: "tax-dispute-prototype"
+            uploadedFrom: "tax-dispute-agentic-advisor"
           }),
           onUploadProgress: (event) => {
             setBlobUploadStatus(
@@ -4176,7 +4173,7 @@ function AdminPanel({
   status: string;
   error: string;
   loading: boolean;
-  currentSession: DemoSession;
+  currentSession: AppSession;
   onTabChange: (tab: AdminTabKey) => void;
   onRefreshLogs: () => void;
   onRefreshUsers: () => void;

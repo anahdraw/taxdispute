@@ -43,8 +43,8 @@ export function missingKeyStatus(language: "id" | "en"): LlmStatus {
     model: configuredModel(),
     message:
       language === "en"
-        ? "OPENAI_API_KEY is not configured in the server environment; using local fallback."
-        : "OPENAI_API_KEY belum dikonfigurasi di server; memakai fallback lokal."
+        ? "OPENAI_API_KEY is not configured in the server environment; using local rule-based response."
+        : "OPENAI_API_KEY belum dikonfigurasi di server; memakai jawaban lokal berbasis aturan."
   };
 }
 
@@ -239,7 +239,7 @@ export async function buildLlmAnalysis(
       llmStatus: {
         used: false,
         model,
-        message: `${input.language === "en" ? "LLM failed; using local fallback" : "LLM gagal; memakai fallback lokal"}: ${
+        message: `${input.language === "en" ? "LLM failed; using local rule-based response" : "LLM gagal; memakai jawaban lokal berbasis aturan"}: ${
           error instanceof Error ? error.message : "Unknown error"
         }`
       }
@@ -290,7 +290,7 @@ export async function answerRegulationQuestion(question: string, language: "id" 
       llmStatus: {
         used: false,
         model,
-        message: language === "en" ? "LLM failed; using local fallback." : "LLM gagal; memakai fallback lokal."
+        message: language === "en" ? "LLM failed; using local rule-based response." : "LLM gagal; memakai jawaban lokal berbasis aturan."
       }
     };
   }

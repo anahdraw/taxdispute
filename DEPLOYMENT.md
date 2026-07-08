@@ -103,7 +103,7 @@ Use Vercel Dashboard:
 
 1. Project -> Storage.
 2. Create or connect Blob store.
-3. Prefer a public store for prototype PDF viewer behavior.
+3. Prefer a public store for PDF viewer behavior.
 4. Pull or copy `BLOB_READ_WRITE_TOKEN` into Vercel env.
 
 Used for:
@@ -134,7 +134,7 @@ No manual migration command is currently required.
 
 ## 6. Authentication and SaaS Access Model
 
-Current prototype supports:
+Current app supports:
 
 - `admin` role
 - `user` role
@@ -309,11 +309,11 @@ Set:
 TDP_AUTH_SECRET=long-random-value
 ```
 
-Without this, the app can still run, but production cookie signing relies on fallback secrets and should not be used for real users.
+Without this, the app can still run locally, but production cookie signing should use an explicit secret.
 
 ## 11. Production Hardening Checklist
 
-- Replace demo users and passwords.
+- Replace initial users and passwords.
 - Enforce tenant isolation in every table and API query.
 - Add SSO/MFA.
 - Add rate limits by user/tier.

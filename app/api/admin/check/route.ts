@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       hasExplicitAuthSecret()
         ? "TDP_AUTH_SECRET/AUTH_SECRET is configured for signed login cookies."
         : "Set TDP_AUTH_SECRET in Vercel for production-grade cookie signing.",
-      hasExplicitAuthSecret() ? "configured" : "fallback"
+      hasExplicitAuthSecret() ? "configured" : "local mode"
     ),
     check(
       "Vercel Blob",
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
   let counts: Record<string, number> = {};
   if (!hasDatabase()) {
-    checks.push(check("Database", "warning", "DATABASE_URL or POSTGRES_URL is not configured.", "browser fallback"));
+    checks.push(check("Database", "warning", "DATABASE_URL or POSTGRES_URL is not configured.", "local mode"));
   } else {
     try {
       counts = await getAdminTableCounts();
