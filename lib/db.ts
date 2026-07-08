@@ -5,6 +5,7 @@ import type { StoredDecisionFile } from "./stored-decisions";
 import type { StoredReport } from "./stored-reports";
 import type { ExtractionResult } from "./extraction";
 import type { Regulation } from "./mock-data";
+import { hashPassword, isPasswordHash, PASSWORD_HASH_PREFIX } from "./password";
 import { normalizeRegulationTopic } from "./regulation-knowledge";
 
 declare global {
@@ -414,8 +415,21 @@ export async function ensureAdminSchema() {
           ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (username) DO NOTHING;
       `,
-      [user.id, user.username, user.password, user.name, user.role, user.status, user.createdAt, user.updatedAt]
+      [user.id, user.username, hashPassword(user.password), user.name, user.role, user.status, user.createdAt, user.updatedAt]
     );
+  }
+  await migratePlaintextUserPasswords();
+}
+
+async function migratePlaintextUserPasswords() {
+  const result = await getPool().query(`SELECT id, password FROM app_users;`);
+  for (const row of result.rows) {
+    const password = String(row.password || "");
+    if (!password || isPasswordHash(password)) continue;
+    await getPool().query(`UPDATE app_users SET password = $1, updated_at = NOW() WHERE id = $2`, [
+      hashPassword(password),
+      String(row.id)
+    ]);
   }
 }
 
@@ -445,6 +459,7 @@ export async function upsertManagedUser(user: ManagedUser) {
   if (!username || !user.password || !user.name) {
     throw new Error("Username, password, and name are required.");
   }
+  const storedPassword = isPasswordHash(user.password) ? user.password : hashPassword(user.password);
   const now = new Date().toISOString();
   await getPool().query(
     `
@@ -462,7 +477,7 @@ export async function upsertManagedUser(user: ManagedUser) {
     [
       user.id || userIdFromUsername(username),
       username,
-      user.password,
+      storedPassword,
       user.name,
       user.role === "admin" ? "admin" : "user",
       user.status === "inactive" ? "inactive" : "active",
@@ -471,6 +486,14 @@ export async function upsertManagedUser(user: ManagedUser) {
       now
     ]
   );
+}
+
+export async function countLegacyPlaintextUsers() {
+  await ensureAdminSchema();
+  const result = await getPool().query(`SELECT COUNT(*)::int AS count FROM app_users WHERE password NOT LIKE $1`, [
+    `${PASSWORD_HASH_PREFIX}$%`
+  ]);
+  return Number(result.rows[0]?.count || 0);
 }
 
 export async function deleteManagedUser(id: string) {

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSessionToken, publicUser, setSessionCookie } from "@/lib/auth";
 import { normalizeUsername, seedUsers } from "@/lib/admin";
-import { hasDatabase, insertActivityLog, listManagedUsers, markManagedUserLogin } from "@/lib/db";
+import { hasDatabase, insertActivityLog, listManagedUsers, markManagedUserLogin, upsertManagedUser } from "@/lib/db";
+import { hashPassword, passwordNeedsHash, verifyPassword } from "@/lib/password";
 import type { ActivityLog, UserRole } from "@/lib/admin";
 
 export const runtime = "nodejs";
@@ -33,12 +34,15 @@ export async function POST(request: Request) {
     const users = hasDatabase() ? await listManagedUsers() : seedUsers;
     const user = users.find((item) => normalizeUsername(item.username) === username && item.role === role);
 
-    if (!user || user.status !== "active" || user.password !== password) {
+    if (!user || user.status !== "active" || !verifyPassword(password, user.password)) {
       await writeLoginLog(loginLog(username, role, "warning", "Invalid username, password, or role."));
       return NextResponse.json({ error: "Invalid username, password, or role." }, { status: 401 });
     }
 
     if (hasDatabase()) {
+      if (passwordNeedsHash(user.password)) {
+        await upsertManagedUser({ ...user, password: hashPassword(password) }).catch(() => undefined);
+      }
       await markManagedUserLogin(user.username).catch(() => undefined);
     }
 

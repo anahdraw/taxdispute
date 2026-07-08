@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { SystemCheck } from "@/lib/admin";
-import { getAdminTableCounts, hasDatabase } from "@/lib/db";
+import { countLegacyPlaintextUsers, getAdminTableCounts, hasDatabase } from "@/lib/db";
 import { configuredModel, hasOpenAIKey } from "@/lib/openai";
 import { hasExplicitAuthSecret, requireAuth } from "@/lib/auth";
+import { PASSWORD_HASH_ALGORITHM } from "@/lib/password";
 
 export const runtime = "nodejs";
 
@@ -43,12 +44,21 @@ export async function GET(request: Request) {
   } else {
     try {
       counts = await getAdminTableCounts();
+      const legacyPasswordUsers = await countLegacyPlaintextUsers();
       checks.push(
         check(
           "Database",
           "ok",
           "Database schema is reachable for decisions, reports, regulations, users, and logs.",
           `${counts.decisions || 0} decisions`
+        ),
+        check(
+          "Password hashing",
+          legacyPasswordUsers === 0 ? "ok" : "warning",
+          legacyPasswordUsers === 0
+            ? `User passwords are stored with ${PASSWORD_HASH_ALGORITHM}.`
+            : `${legacyPasswordUsers} legacy plaintext user password(s) still need migration.`,
+          legacyPasswordUsers === 0 ? "hashed" : `${legacyPasswordUsers} legacy`
         )
       );
     } catch (error) {
