@@ -1,33 +1,138 @@
-# RSM Tax Dispute Agentic Advisor Prototype
+# RSM Tax Dispute Agentic Advisor
 
-Prototype lokal untuk membaca PDF putusan Pengadilan Pajak, mencari putusan pembanding,
-memberi indikasi peluang sederhana, membuat review risiko, dan menyusun draft rekomendasi
-awal untuk Wajib Pajak.
+RSM Tax Dispute Agentic Advisor adalah prototype berbasis Next.js untuk membantu workflow sengketa pajak: upload putusan, ekstraksi data terstruktur, pencarian putusan pembanding, RAG chatbot untuk putusan dan peraturan, analisis risiko, scoring transparan, dan pembuatan draft Word/PDF untuk direview advisor.
 
-Sekarang prototype juga punya konektor lokal ke Datacenter Ortax untuk mengunduh,
-menyimpan, dan mencari peraturan PPN sebagai konteks dasar hukum analisis.
+Live prototype: https://taxdispute.vercel.app/
 
-## GitHub / Vercel
+> Prototype ini membantu analisis awal. Hasil ekstraksi, scoring, chatbot, dan draft rekomendasi tetap harus direview oleh professional pajak atau kuasa hukum sebelum digunakan.
 
-Repo ini sudah disiapkan agar aman dipush ke GitHub:
+## Status Integritas Aplikasi
 
-- `.env`, database SQLite, folder upload, PDF putusan, dan generated binary files di-ignore.
-- `requirements.txt` berisi dependency Python utama.
-- Aplikasi Streamlit lokal tetap disimpan sebagai prototype utama.
-- Folder `app/`, `lib/`, `package.json`, dan konfigurasi Next.js baru disiapkan untuk deployment Vercel.
+Pemeriksaan terakhir dilakukan lokal sebelum update dokumentasi:
 
-Catatan penting: versi Vercel sekarang adalah aplikasi Next.js terpisah yang meniru alur utama prototype tanpa mengubah data lokal Streamlit. File upload dan analisis di versi Vercel masih bersifat demo/browser-side dengan API mock sederhana; untuk production, storage dokumen, database, OCR, dan LLM perlu dipindah ke service/API managed.
+| Check | Command | Status |
+| --- | --- | --- |
+| TypeScript / lint | `npm run lint` | Passed |
+| Production build | `npm run build` | Passed |
+| Runtime smoke test | `npm run start -- --hostname 127.0.0.1 --port 3010` | Passed |
+| Home page | `GET /` | HTTP 200 |
+| Health JSON | `GET /api/health?format=json` | OK |
 
-Detail deployment ada di [`DEPLOYMENT.md`](DEPLOYMENT.md).
+Catatan lokal: jika `.env` belum diisi, health JSON akan menandai OpenAI, Blob, Database, dan Auth Secret sebagai `not configured`. Itu normal untuk mesin lokal tanpa secret.
 
-## Cara Menjalankan Next.js untuk Vercel
+## Fitur Utama
+
+- **Guided Flow**: upload PDF, ekstraksi LLM, analisis risiko, scoring, dan report draft.
+- **Decision Database**: penyimpanan metadata putusan, hasil ekstraksi JSON, confidence extraction, pagination, detail page per putusan, re-extract/edit/delete untuk admin.
+- **Dispute Analysis**: RAG chatbot untuk bertanya atas database putusan dan peraturan, termasuk visualisasi sederhana untuk distribusi outcome.
+- **Regulations**: import/update peraturan dari input manual, Ortax reference, dan Excel/CSV list; smart regulation bot untuk menelaah aturan.
+- **Reports**: database report yang pernah dibuat agar user bisa membuka dan mengunduh ulang tanpa analisis ulang.
+- **Reference Viewer**: halaman referensi untuk PDF putusan/peraturan dengan pencarian dan smartbot context.
+- **Admin Center**: activity logs, user management, privacy & access control, dan API/integration check.
+- **Bilingual UI**: Bahasa Indonesia dan English.
+- **Export**: dokumen Word/PDF dengan identitas RSM dan struktur report yang lebih rapi.
+
+## Arsitektur Singkat
+
+```text
+Browser UI (Next.js)
+  -> API Routes (Next.js server runtime)
+    -> OpenAI Responses API for extraction, analysis, chatbot
+    -> Vercel Blob for PDF object storage
+    -> PostgreSQL/Neon for decisions, reports, regulations, users, logs
+    -> Local fallback/mock data for prototype demo
+```
+
+Komponen penting:
+
+| Area | File / Folder |
+| --- | --- |
+| UI utama | `app/page.tsx` |
+| Decision detail page | `app/decisions/[slug]/page.tsx` |
+| Reference viewer | `app/references/[kind]/[slug]/page.tsx` |
+| API routes | `app/api/*` |
+| Auth/session | `lib/auth.ts`, `lib/admin.ts`, `lib/password.ts` |
+| Database adapter | `lib/db.ts` |
+| LLM integration | `lib/openai.ts` |
+| Extraction model | `lib/extraction.ts` |
+| Scoring and analysis | `lib/analyze.ts`, `lib/scorecard.ts` |
+| Report generation | `lib/report.ts` |
+| RAG ranking | `lib/smart-chat.ts`, `lib/case-search.ts` |
+
+## Privacy & Access Control
+
+Prototype memakai dua konsep terpisah:
+
+- **Role**: kewenangan sistem, yaitu `admin` atau `user`.
+- **Tier**: paket SaaS, yaitu `Silver`, `Gold`, atau `Platinum`.
+
+Tier saat ini:
+
+| Tier | Cocok untuk | Akses utama |
+| --- | --- | --- |
+| Silver | User awal / reviewer ringan | Dashboard, Guided Flow, Dispute Analysis, Reports |
+| Gold | Tim advisor | Silver + read-only Decision Database dan Regulations |
+| Platinum | Organisasi/admin | Full access, admin center, database/regulation write controls |
+
+Kontrol yang sudah ada:
+
+- Session cookie server-side dengan HttpOnly, SameSite, dan Secure-aware config.
+- Password user disimpan sebagai hash `scrypt`, bukan plaintext.
+- API admin memakai server-side role guard.
+- API database putusan dan peraturan memakai tier guard.
+- Activity log untuk login, upload, ekstraksi, export, update aturan, dan admin action.
+- API list memakai pagination dan summary payload; detail lengkap dimuat saat dibutuhkan.
+
+Untuk SaaS production, tambahkan tenant isolation, object-level RBAC, SSO/MFA, billing metering, data retention policy, dan audit export.
+
+## Demo Login
+
+Default seed user:
+
+| Role | Username | Password | Tier |
+| --- | --- | --- | --- |
+| Admin | `admin` | `Admin@RSM2026` | Platinum |
+| User | `user` | `User@RSM2026` | Silver |
+
+Untuk production, ganti password default, set `TDP_AUTH_SECRET`, dan gunakan identity provider/SSO.
+
+## Local Setup
+
+Kebutuhan:
+
+- Node.js 20+
+- npm
+- Optional: Python 3.9+ untuk prototype Streamlit lama
+
+Install dependency:
 
 ```bash
 npm install
+```
+
+Salin env template:
+
+```bash
+cp .env.example .env
+```
+
+Isi minimal untuk fitur penuh:
+
+```bash
+OPENAI_API_KEY=sk-...
+TDP_LLM_MODEL=gpt-5.4-mini
+TDP_AUTH_SECRET=replace-with-a-long-random-secret
+BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxx
+DATABASE_URL=postgres://user:password@host/db?sslmode=require
+```
+
+Jalankan lokal:
+
+```bash
 npm run dev
 ```
 
-Lalu buka:
+Buka:
 
 ```text
 http://localhost:3000
@@ -36,141 +141,104 @@ http://localhost:3000
 Build production lokal:
 
 ```bash
+npm run lint
 npm run build
+npm run start
 ```
 
-Fitur Next.js/Vercel yang tersedia:
+## Health Check
 
-- Upload PDF dan ekstraksi field kasus via LLM (`/api/extract`).
-- PDF besar dipecah di browser menjadi chunk halaman kecil sebelum ekstraksi, agar tidak terkena limit payload Vercel.
-- Analisis risiko dan rekomendasi mendalam via LLM (`/api/analyze`).
-- Chatbot aturan PPN (`/api/regulation-chat`).
-- Export hasil analisis ke Word dan PDF (`/api/export`).
-
-## Test PDF dari Folder TestData
-
-Test case lengkap ada di [`TEST_CASES.md`](TEST_CASES.md).
-
-Jalankan smoke test ingest dari folder `TestData` tanpa mengubah database prototype lokal:
-
-```bash
-python3 scripts/run_testdata_ingest.py --testdata TestData
-```
-
-Buat sample PDF dummy jika folder `TestData` kosong:
-
-```bash
-python3 scripts/run_testdata_ingest.py --testdata TestData --generate-samples
-```
-
-Jalankan unit test otomatis:
-
-```bash
-python3 -m unittest tests/test_testdata_ingest.py
-```
-
-## Cara Menjalankan
-
-```bash
-streamlit run prototype_app.py --server.address 127.0.0.1 --server.port 8501
-```
-
-Lalu buka:
+Human-readable health page:
 
 ```text
-http://127.0.0.1:8501
+/api/health
 ```
 
-## Alur Demo
+JSON health endpoint:
 
-1. Buka menu `Alur Terpandu`.
-2. Upload PDF baru atau pilih dokumen yang sudah diingest.
-3. Pilih jenis dokumen: putusan, surat banding, keberatan, SPHP, uraian banding, bantahan, atau dokumen pendukung.
-4. Ekstraksi menyimpan field minimum: metadata putusan, objek sengketa, pihak, pokok sengketa, argumen, pertimbangan, dan outcome.
-5. Jika nomor putusan sudah ada, ekstraksi ditolak dan aplikasi menampilkan dokumen yang sama. Nama WP tidak dipakai sebagai kunci duplikat karena satu WP bisa punya banyak sengketa.
-6. Ekstraksi detail memakai LLM jika `OPENAI_API_KEY` tersedia; heuristik lokal hanya menjadi fallback awal.
-7. Review parameter kasus yang sudah auto-fill.
-8. Klik `Cari Pembanding + Buat Analisis`.
-9. Baca putusan pembanding, indikasi peluang, review risiko, dan draft rekomendasi WP.
+```text
+/api/health?format=json
+```
 
-Untuk menambahkan dan menanyakan dasar hukum PPN:
+Admin integration check:
 
-1. Buka menu `Peraturan`.
-2. Klik `Unduh/Refresh Berkala dari Ortax` untuk mengambil dan memperbarui aturan awal dari Ortax.
-3. Tambahkan ID/URL Ortax tertentu jika ada aturan yang ingin dipakai sebagai rujukan khusus.
-4. Gunakan tab `Chatbot Aturan` untuk bertanya aturan dan lokasi pasal/bagiannya.
-5. Jalankan analisis ulang agar tab `Peraturan Terkait` dan draft rekomendasi ikut memakai konteks aturan lokal.
+```text
+/api/admin/check
+```
 
-Menu tambahan:
+## Data dan Storage
 
-- `Ingest Putusan`: ekstraksi batch PDF dari folder lokal.
-- `LLM Labeling`: label satu dokumen atau batch dokumen dengan LLM.
-- `Search Putusan`: pencarian pembanding manual.
-- `Peraturan`: chatbot aturan, unduh/refresh berkala, dan cari aturan PPN dari Datacenter Ortax.
-- `Analisis Kasus WP`: analisis manual dengan opsi auto-fill dari dokumen.
-- `Reports`: melihat dan download hasil analisis.
+Data production disimpan melalui:
 
-## Kebutuhan Saat Ini
+- **Vercel Blob**: PDF putusan/peraturan.
+- **PostgreSQL/Neon**: metadata putusan, hasil ekstraksi, report, regulation cards, users, logs.
+- **Browser/local fallback**: hanya untuk prototype jika database belum tersedia.
 
-- Python 3.9+
-- `streamlit`
-- `pypdf`
-- `pdftotext` sebagai fallback extraction
-- `openai` opsional untuk LLM eksternal
-- Akses internet saat mengunduh peraturan dari Ortax
+Jangan commit:
 
-Semua dependency di atas sudah terdeteksi di environment lokal saat prototype dibuat.
-Jika pindah mesin, install paket Python dengan:
+- `.env`
+- `data/`
+- `uploads/`
+- file `.sqlite`, `.db`
+- PDF putusan rahasia
+- generated Word/PDF/Excel/PowerPoint
+- `node_modules/`
+- `.next/`
+
+## Import Data
+
+Import putusan dari Excel:
+
+```bash
+npm run import:excel
+```
+
+Test data PDF berada di:
+
+```text
+TestData/
+```
+
+Test case lama:
+
+```text
+TEST_CASES.md
+```
+
+## Streamlit Prototype Lama
+
+Prototype Python/Streamlit masih disimpan untuk referensi dan workflow lokal:
 
 ```bash
 python3 -m pip install -r requirements.txt
+python3 -m streamlit run prototype_app.py --server.address 127.0.0.1 --server.port 8501
 ```
 
-## LLM Opsional
+Next.js/Vercel adalah surface utama untuk deployment online.
 
-Prototype tetap bisa berjalan tanpa API key. Jika ingin memakai OpenAI LLM untuk catatan
-review tambahan, isi file `.env`:
+## Deployment
 
-```bash
-OPENAI_API_KEY=sk-...
-TDP_LLM_MODEL=gpt-5.4-mini
-TDP_REASONING_EFFORT=low
-TDP_TEXT_VERBOSITY=low
+Lihat detail lengkap di:
+
+```text
+DEPLOYMENT.md
 ```
 
-Untuk Vercel, isi environment variables yang sama di Project Settings. Jangan memasukkan API key ke repository.
+Ringkas:
 
-Jika API key tidak ada, aplikasi memakai scoring lokal berbasis:
+1. Push repository ke GitHub.
+2. Import repository di Vercel.
+3. Framework preset: Next.js.
+4. Build command: `npm run build`.
+5. Install command: `npm install`.
+6. Set environment variables.
+7. Deploy.
+8. Cek `/api/health?format=json`.
 
-- distribusi outcome putusan pembanding,
-- similarity score,
-- kelengkapan bukti,
-- keyword positif/negatif,
-- risiko formal.
+## Known Limitations
 
-## File Penting
-
-- `prototype_app.py`: UI Streamlit lokal.
-- `tax_dispute_core.py`: ingestion, extraction, search, scoring, dan draft rekomendasi.
-- `tax_regulation_connector.py`: konektor Ortax, database, dan search peraturan PPN.
-- `data/tax_dispute_prototype.sqlite`: database lokal yang dibuat otomatis.
-- `uploads/`: folder dokumen yang di-upload melalui UI.
-
-## Status Saat Ini
-
-- 100 PDF sudah diingest.
-- 30 PDF sudah dilabeli dengan LLM `gpt-5.5`.
-- Label LLM disimpan di tabel `llm_labels`.
-- Metadata dokumen diperbarui dari label LLM untuk search dan auto-fill.
-- Dashboard memakai tabel `dashboard_metrics` untuk visualisasi ringkas.
-- Detail ekstraksi tersimpan di tabel `document_extractions`.
-- Tabel peraturan PPN dibuat otomatis: `tax_regulations`, `tax_regulation_chunks`, dan `tax_regulation_links`.
-
-## Batasan Prototype
-
-- Belum memakai PostgreSQL/pgvector.
-- Belum melakukan OCR gambar penuh untuk PDF scan.
-- Extraction metadata masih heuristik.
-- Prediction bersifat indikatif, bukan kepastian hukum.
-- Draft rekomendasi wajib direview ahli pajak/kuasa hukum sebelum dipakai.
-- Untuk production, gunakan izin/API/sumber resmi yang sesuai untuk pengambilan peraturan secara berkala.
+- OCR penuh untuk PDF scan belum menjadi pipeline background khusus.
+- RAG ranking masih lightweight cosine/keyword; production idealnya memakai embeddings + hybrid search.
+- Multi-tenant isolation belum diterapkan penuh di database schema.
+- Billing/metering belum aktif walaupun tier model sudah tersedia.
+- LLM output harus tetap direview manusia.
