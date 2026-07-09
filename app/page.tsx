@@ -263,6 +263,18 @@ const copy = {
     quickChat: "Buka Dispute Analysis",
     quickAdmin: "Kelola database dan peraturan",
     openAction: "Buka",
+    workspace: "Workspace",
+    commandCenter: "Command Center",
+    activeRole: "Role aktif",
+    dataMode: "Mode data",
+    workspaceSignal: "Sinyal knowledge",
+    liveWorkspace: "Database aktif",
+    localWorkspace: "Local first",
+    indexedHelper: "Korpus putusan tersimpan",
+    coverageHelper: "Dokumen sudah diekstrak",
+    vatDocsHelper: "Tag PPN/TP terdeteksi",
+    localRulesHelper: "Knowledge peraturan",
+    llmLabelsHelper: "Label ekstraksi struktur",
     scoreMethodology: "Metodologi skor",
     scoreFormula: "Formula",
     scoreComponent: "Komponen",
@@ -545,6 +557,18 @@ const copy = {
     quickChat: "Open Dispute Analysis",
     quickAdmin: "Manage database and regulations",
     openAction: "Open",
+    workspace: "Workspace",
+    commandCenter: "Command Center",
+    activeRole: "Active role",
+    dataMode: "Data mode",
+    workspaceSignal: "Knowledge signal",
+    liveWorkspace: "Live database",
+    localWorkspace: "Local first",
+    indexedHelper: "Stored decision corpus",
+    coverageHelper: "Documents extracted",
+    vatDocsHelper: "VAT/TP tags detected",
+    localRulesHelper: "Regulation knowledge",
+    llmLabelsHelper: "Structured extraction labels",
     scoreMethodology: "Scoring methodology",
     scoreFormula: "Formula",
     scoreComponent: "Component",
@@ -2708,99 +2732,124 @@ export default function Home() {
         </div>
         <header className="hero">
           <div>
-            <h1>{APP_NAME}</h1>
-            <p>{labels.subtitle}</p>
+            <p className="eyebrow">{page === "dashboard" ? labels.commandCenter : APP_SHORT_NAME}</p>
+            <h1>{page === "dashboard" ? APP_SHORT_NAME : APP_NAME}</h1>
+            <p>{page === "dashboard" ? labels.appGuidance : labels.subtitle}</p>
           </div>
         </header>
 
         {page === "dashboard" && (
           <>
-            <section className="quick-actions" aria-label={labels.quickStart}>
-              <article className="quick-action-card quick-action-green">
-                <div>
-                  <span>{labels.quickStart}</span>
-                  <b>{labels.quickChat}</b>
-                  <button className="table-button" onClick={() => setPage("smartchat")}>{labels.openAction}</button>
-                </div>
-                <QuickActionIcon type="chatbot" />
-              </article>
-              <article className="quick-action-card quick-action-blue">
-                <div>
-                  <span>{labels.quickStart}</span>
-                  <b>{labels.quickGuided}</b>
-                  <button className="table-button" onClick={() => setPage("guided")}>{labels.openAction}</button>
-                </div>
-                <QuickActionIcon type="document" />
-              </article>
-              {session.role === "admin" && (
-                <article className="quick-action-card quick-action-gray">
-                  <div>
-                    <span>{labels.quickStart}</span>
-                    <b>{labels.quickAdmin}</b>
-                    <button className="table-button" onClick={() => setPage("admin")}>{labels.openAction}</button>
-                  </div>
-                  <QuickActionIcon type="database" />
-                </article>
-              )}
+            <section className="workspace-strip" aria-label={labels.workspace}>
+              <div className="workspace-strip-item workspace-strip-main">
+                <span>{labels.workspace}</span>
+                <b>{session.name}</b>
+              </div>
+              <div className="workspace-strip-item">
+                <span>{labels.activeRole}</span>
+                <b>{session.role === "admin" ? labels.roleAdmin : labels.roleUser} · {tierLabel(session.tier)}</b>
+              </div>
+              <div className="workspace-strip-item">
+                <span>{labels.dataMode}</span>
+                <b>{dynamicDashboard.stats.indexedDecisions ? labels.liveWorkspace : labels.localWorkspace}</b>
+              </div>
+              <div className="workspace-strip-item">
+                <span>{labels.workspaceSignal}</span>
+                <b>{dynamicDashboard.stats.localRegulations} {language === "en" ? "rules" : "aturan"} · {dynamicDashboard.stats.llmLabels} label</b>
+              </div>
             </section>
-            <section className="kpi-grid" aria-label={labels.dataSummary}>
-              <Kpi label={labels.indexed} value={dynamicDashboard.stats.indexedDecisions.toString()} tone="blue" />
-              <Kpi label={labels.coverage} value={`${dynamicDashboard.stats.extractionCoverage}%`} tone="green" />
-              <Kpi label={labels.vatDocs} value={dynamicDashboard.stats.vatDocuments.toString()} tone="blue" />
-              <Kpi label={labels.localRules} value={dynamicDashboard.stats.localRegulations.toString()} tone="gray" />
-              <Kpi label={labels.llmLabels} value={dynamicDashboard.stats.llmLabels.toString()} tone="gray" />
-            </section>
-            <section className="panel-grid">
-              <Panel title={labels.decisionOutcomes}>
-                {dynamicDashboard.outcomeDistribution.length ? (
-                  <>
-                    <div className="donut" style={buildDonutStyle(dynamicDashboard.outcomeDistribution)} />
-                    <div className="legend">
-                      {dynamicDashboard.outcomeDistribution.map((item) => (
-                        <span key={item.label}>
-                          <i style={{ background: item.color }} /> {item.label} ({item.value})
-                        </span>
-                      ))}
+            <section className="dashboard-command-grid">
+              <div className="dashboard-primary">
+                <section className="quick-actions dashboard-actions" aria-label={labels.quickStart}>
+                  <article className="quick-action-card quick-action-green">
+                    <div>
+                      <span>{labels.quickStart}</span>
+                      <b>{labels.quickChat}</b>
+                      <button className="table-button" onClick={() => setPage("smartchat")}>{labels.openAction}</button>
                     </div>
-                  </>
-                ) : (
-                  <div className="empty-state">{labels.noDynamicDocuments}</div>
-                )}
-              </Panel>
-              <Panel title={labels.topDisputeIssues}>
-                {dynamicDashboard.issueDistribution.length ? dynamicDashboard.issueDistribution.map((item) => (
-                  <MiniBar key={item.label} label={item.label} value={item.value} />
-                )) : <div className="empty-state">{labels.noDynamicDocuments}</div>}
-              </Panel>
+                    <QuickActionIcon type="chatbot" />
+                  </article>
+                  <article className="quick-action-card quick-action-blue">
+                    <div>
+                      <span>{labels.quickStart}</span>
+                      <b>{labels.quickGuided}</b>
+                      <button className="table-button" onClick={() => setPage("guided")}>{labels.openAction}</button>
+                    </div>
+                    <QuickActionIcon type="document" />
+                  </article>
+                  {session.role === "admin" && (
+                    <article className="quick-action-card quick-action-gray">
+                      <div>
+                        <span>{labels.quickStart}</span>
+                        <b>{labels.quickAdmin}</b>
+                        <button className="table-button" onClick={() => setPage("admin")}>{labels.openAction}</button>
+                      </div>
+                      <QuickActionIcon type="database" />
+                    </article>
+                  )}
+                </section>
+                <Panel title={labels.recentDocs} className="dashboard-recent">
+                  {dynamicDashboard.recentDocuments.length ? <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Decision</th>
+                          <th>Document Type</th>
+                          <th>Taxpayer</th>
+                          <th>Tax</th>
+                          <th>Issue</th>
+                          <th>Outcome</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dynamicDashboard.recentDocuments.map((doc) => (
+                          <tr key={doc.decision}>
+                            <td>{doc.decision}</td>
+                            <td>{doc.documentType}</td>
+                            <td>{doc.taxpayer}</td>
+                            <td>{doc.tax}</td>
+                            <td>{doc.issue}</td>
+                            <td>{doc.outcome}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div> : <div className="empty-state">{labels.noDynamicDocuments}</div>}
+                </Panel>
+              </div>
+              <aside className="dashboard-secondary" aria-label={labels.dataSummary}>
+                <section className="kpi-grid dashboard-kpis">
+                  <Kpi label={labels.indexed} value={dynamicDashboard.stats.indexedDecisions.toString()} tone="blue" caption={labels.indexedHelper} />
+                  <Kpi label={labels.coverage} value={`${dynamicDashboard.stats.extractionCoverage}%`} tone="green" caption={labels.coverageHelper} />
+                  <Kpi label={labels.vatDocs} value={dynamicDashboard.stats.vatDocuments.toString()} tone="blue" caption={labels.vatDocsHelper} />
+                  <Kpi label={labels.localRules} value={dynamicDashboard.stats.localRegulations.toString()} tone="gray" caption={labels.localRulesHelper} />
+                  <Kpi label={labels.llmLabels} value={dynamicDashboard.stats.llmLabels.toString()} tone="gray" caption={labels.llmLabelsHelper} />
+                </section>
+                <section className="dashboard-chart-grid">
+                  <Panel title={labels.decisionOutcomes} className="dashboard-outcomes">
+                    {dynamicDashboard.outcomeDistribution.length ? (
+                      <>
+                        <div className="donut" style={buildDonutStyle(dynamicDashboard.outcomeDistribution)} />
+                        <div className="legend">
+                          {dynamicDashboard.outcomeDistribution.map((item) => (
+                            <span key={item.label}>
+                              <i style={{ background: item.color }} /> {item.label} ({item.value})
+                            </span>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="empty-state">{labels.noDynamicDocuments}</div>
+                    )}
+                  </Panel>
+                  <Panel title={labels.topDisputeIssues} className="dashboard-issues">
+                    {dynamicDashboard.issueDistribution.length ? dynamicDashboard.issueDistribution.map((item) => (
+                      <MiniBar key={item.label} label={item.label} value={item.value} />
+                    )) : <div className="empty-state">{labels.noDynamicDocuments}</div>}
+                  </Panel>
+                </section>
+              </aside>
             </section>
-            <Panel title={labels.recentDocs}>
-              {dynamicDashboard.recentDocuments.length ? <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Decision</th>
-                      <th>Document Type</th>
-                      <th>Taxpayer</th>
-                      <th>Tax</th>
-                      <th>Issue</th>
-                      <th>Outcome</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dynamicDashboard.recentDocuments.map((doc) => (
-                      <tr key={doc.decision}>
-                        <td>{doc.decision}</td>
-                        <td>{doc.documentType}</td>
-                        <td>{doc.taxpayer}</td>
-                        <td>{doc.tax}</td>
-                        <td>{doc.issue}</td>
-                        <td>{doc.outcome}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div> : <div className="empty-state">{labels.noDynamicDocuments}</div>}
-            </Panel>
           </>
         )}
 
@@ -3213,18 +3262,19 @@ export default function Home() {
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: string; tone: "blue" | "green" | "gray" }) {
+function Kpi({ label, value, tone, caption }: { label: string; value: string; tone: "blue" | "green" | "gray"; caption?: string }) {
   return (
     <article className={`kpi ${tone}`}>
       <span>{label}</span>
       <strong>{value}</strong>
+      {caption && <small>{caption}</small>}
     </article>
   );
 }
 
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+function Panel({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className="panel">
+    <section className={`panel ${className}`.trim()}>
       <h2>{title}</h2>
       {children}
     </section>
