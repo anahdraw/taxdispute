@@ -18,6 +18,7 @@ import type { ActivityLog, ManagedUser, SubscriptionTier, SystemCheck, TierFeatu
 import { defaultTierForRole, normalizeSubscriptionTier, normalizeUsername, seedUsers, subscriptionTierConfigs, tierHasFeature, userIdFromUsername } from "@/lib/admin";
 
 type Language = "id" | "en";
+type ThemeMode = "dark" | "light";
 type PageKey = "dashboard" | "guided" | "database" | "smartchat" | "regulations" | "reports" | "admin";
 type RegulationTabKey = "bot" | "update" | "list" | "manual";
 type GuidedTabKey = "analysis" | "reports";
@@ -35,7 +36,8 @@ const STORED_REPORTS_KEY = "tax-dispute-stored-reports";
 const APP_SESSION_KEY = "tax-dispute-session";
 const ADMIN_USERS_KEY = "tax-dispute-admin-users";
 const ACTIVITY_LOGS_KEY = "tax-dispute-activity-logs";
-const APP_NAME = "RSM Tax Dispute Agentic Advisor";
+const THEME_MODE_KEY = "tax-dispute-theme-mode";
+const APP_NAME = "Tax Dispute Agentic Advisor";
 const APP_SHORT_NAME = "Tax Dispute Agentic Advisor";
 const DEFAULT_USER_BY_ROLE = {
   admin: seedUsers.find((user) => user.role === "admin") || seedUsers[0],
@@ -60,8 +62,8 @@ const evidenceOptions = {
 
 const copy = {
   id: {
-    subtitle: "Gunakan alur kerja ini untuk upload putusan, ekstraksi data terstruktur, mencari putusan pembanding, bertanya aturan PPN atau Transfer Pricing, lalu membuat draft Word/PDF untuk direview advisor.",
-    appGuidance: "Gunakan alur ini untuk upload putusan, ekstraksi data, mencari pembanding, tanya peraturan PPN atau Transfer Pricing, lalu membuat draft Word/PDF untuk review advisor.",
+    subtitle: "Upload putusan, ekstrak data, cari pembanding, tanya aturan, lalu ekspor draft.",
+    appGuidance: "Upload putusan, ekstrak data, cari pembanding, tanya aturan, lalu ekspor draft.",
     dashboard: "Dashboard",
     guided: "Alur Terpandu",
     database: "Database Putusan",
@@ -86,7 +88,7 @@ const copy = {
     taxpayerPosition: "Posisi WP",
     evidence: "Bukti tersedia",
     upload: "Upload dokumen",
-    uploadHint: "File diproses di browser dan dikirim ke server untuk ekstraksi. Penyimpanan memakai Blob/database jika integrasi tersedia.",
+    uploadHint: "Pilih PDF untuk ekstraksi. Penyimpanan aktif jika Blob/database tersedia.",
     results: "Hasil Analisis",
     recommendation: "Draft Rekomendasi",
     topCases: "Putusan Paling Terkait",
@@ -110,7 +112,7 @@ const copy = {
     chunking: "PDF besar terdeteksi. Memecah dokumen menjadi beberapa bagian halaman...",
     extractingChunk: "Mengekstrak bagian",
     caseSearchTitle: "Pencarian Kasus Mirip",
-    caseSearchIntro: "Cari putusan pembanding berdasarkan narasi sengketa, kata kunci, atau PDF. Hasil menampilkan persentase kemiripan dan alasan mengapa putusan tersebut relevan.",
+    caseSearchIntro: "Cari putusan pembanding dari narasi, kata kunci, atau PDF.",
     caseQuery: "Kata kunci / narasi kasus",
     caseQueryPlaceholder: "Contoh: Sengketa PPN atas koreksi DPP, bukti pembayaran lengkap, faktur pajak, SPT Masa PPN, DJP menolak karena rekonsiliasi transaksi.",
     caseUpload: "Upload dokumen kasus",
@@ -127,7 +129,7 @@ const copy = {
     guidedTabAnalysis: "Analisis baru",
     guidedTabReports: "Database report",
     reportDatabaseTitle: "Database Report",
-    reportDatabaseIntro: "Report yang sudah pernah dibuat disimpan agar bisa dibuka dan diunduh ulang tanpa analisis ulang.",
+    reportDatabaseIntro: "Buka dan unduh ulang report tersimpan.",
     savedReports: "Report tersimpan",
     noSavedReports: "Belum ada report tersimpan. Buat analisis di tab Analisis baru terlebih dahulu.",
     reportSaved: "Report tersimpan di database.",
@@ -139,8 +141,8 @@ const copy = {
     useSavedReport: "Pakai report ini",
     loadingReportDetail: "Memuat detail report...",
     databaseTitle: "Database Putusan",
-    databaseIntro: "Upload PDF putusan besar langsung ke Vercel Blob. Setelah upload, aplikasi akan mengekstrak informasi utama dengan LLM dan menyimpan metadata beserta hasil ekstraksi ke database.",
-    databaseUploadHint: "PDF akan disimpan ke Blob. Setelah itu klik Upload + Ekstrak, atau gunakan tombol Ekstrak pada dokumen yang sudah tersimpan.",
+    databaseIntro: "Upload PDF putusan, ekstrak metadata, lalu simpan ke database.",
+    databaseUploadHint: "PDF disimpan ke Blob. Ekstraksi dapat dijalankan setelah upload.",
     uploadDecisionPdfs: "Upload PDF Putusan",
     uploadToBlob: "Upload ke Blob",
     uploadAndExtract: "Upload + Ekstrak",
@@ -188,7 +190,7 @@ const copy = {
     uploadManualRule: "Upload file teks aturan",
     saveManualRule: "Simpan aturan manual",
     savingManualRule: "Menyimpan aturan...",
-    regulationHelp: "Pilih topik untuk memperbarui knowledge dari Ortax. Untuk aturan yang belum tersedia, upload/paste ringkasan manual agar chatbot bisa memakainya.",
+    regulationHelp: "Kelola bot, import, dan daftar aturan per topik.",
     allTopics: "Semua topik",
     totalRecords: "Total data",
     itemsPerPage: "Per halaman",
@@ -200,7 +202,7 @@ const copy = {
     jumpToStoredRules: "Lihat list aturan tersimpan",
     noRegulations: "Belum ada aturan untuk topik ini.",
     regulationBotTitle: "Smart Regulation Bot",
-    regulationBotIntro: "Tanya banyak aturan sekaligus. Bot memakai RAG khusus peraturan agar jawaban tetap ringkas, berbasis sumber, dan efisien token.",
+    regulationBotIntro: "Tanya aturan tersimpan dengan jawaban berbasis sumber.",
     regulationQuestion: "Pertanyaan aturan",
     regulationQuestionPlaceholder: "Contoh: aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?",
     askRegulationBot: "Tanya Bot Aturan",
@@ -208,7 +210,7 @@ const copy = {
     regulationBotAnswer: "Jawaban bot aturan",
     noRegulationBotAnswer: "Ajukan pertanyaan untuk menelaah seluruh aturan tersimpan.",
     bulkRegulationUpload: "Upload list aturan Excel/CSV",
-    bulkRegulationHint: "Kolom yang didukung: title/nama, citation/nomor, topic/topik, focus/ringkasan, sourceUrl/link, content/catatan, relevance.",
+    bulkRegulationHint: "Kolom: title, citation, topic, focus, sourceUrl, content, relevance.",
     importingRegulations: "Mengimpor aturan...",
     importedRegulations: "aturan berhasil diimpor/diperbarui.",
     enrichSources: "Enrich dari link sumber",
@@ -221,14 +223,14 @@ const copy = {
     regulationTabList: "Aturan tersimpan",
     regulationTabManual: "Input manual",
     regulationUpdateTitle: "Update knowledge aturan",
-    regulationUpdateIntro: "Pilih topik, tarik referensi awal dari Ortax, import daftar aturan, atau enrich isi aturan dari link sumber.",
+    regulationUpdateIntro: "Tarik Ortax, import daftar, atau enrich dari link sumber.",
     editRule: "Edit",
     deleteRule: "Hapus",
     updateRule: "Update aturan",
     cancelEdit: "Batal edit",
     cannotDeleteSeed: "Aturan bawaan seed tidak bisa dihapus dari database. Edit/salin sebagai aturan manual jika perlu.",
     smartChatTitle: "Dispute Analysis",
-    smartChatIntro: "Tanya langsung dengan RAG atau cari kasus mirip dari narasi/PDF. Relevansi memakai hybrid retrieval: kecocokan nama WP/perusahaan, nomor putusan, isu, outcome, lalu similarity teks.",
+    smartChatIntro: "Tanya RAG atau cari kasus mirip dari narasi/PDF.",
     disputeTabChat: "RAG Chatbot",
     disputeTabSimilar: "Cari kasus mirip",
     smartQuestion: "Pertanyaan",
@@ -247,7 +249,7 @@ const copy = {
     noSmartAnswer: "Ajukan pertanyaan untuk melihat jawaban, sumber RAG, dan visualisasi jika relevan.",
     openReference: "Buka referensi",
     loginTitle: "Masuk ke RSM Tax Dispute Agentic Advisor",
-    loginSubtitle: "Pilih akses masuk. Admin dapat mengelola database dan peraturan; user fokus ke analisis dan chatbot.",
+    loginSubtitle: "Admin mengelola sistem; user fokus analisis dan chatbot.",
     username: "Username",
     password: "Password",
     signIn: "Masuk",
@@ -270,11 +272,14 @@ const copy = {
     workspaceSignal: "Sinyal knowledge",
     liveWorkspace: "Database aktif",
     localWorkspace: "Local first",
-    indexedHelper: "Korpus putusan tersimpan",
-    coverageHelper: "Dokumen sudah diekstrak",
-    vatDocsHelper: "Tag PPN/TP terdeteksi",
-    localRulesHelper: "Knowledge peraturan",
-    llmLabelsHelper: "Label ekstraksi struktur",
+    indexedHelper: "Korpus putusan",
+    coverageHelper: "Ekstraksi selesai",
+    vatDocsHelper: "Tag PPN/TP",
+    localRulesHelper: "Knowledge aturan",
+    llmLabelsHelper: "Label struktur",
+    theme: "Tema",
+    lightMode: "Terang",
+    darkMode: "Gelap",
     scoreMethodology: "Metodologi skor",
     scoreFormula: "Formula",
     scoreComponent: "Komponen",
@@ -298,29 +303,29 @@ const copy = {
     noCaseDetail: "Dokumen ini belum punya hasil ekstraksi. Klik Ekstrak dulu untuk membuat detail putusan.",
     casePageLink: "Halaman",
     adminTitle: "Admin Center",
-    adminIntro: "Kelola pengguna, lihat log aktivitas, dan cek kesiapan API sebelum digunakan advisor.",
+    adminIntro: "Kelola user, log, privasi, dan kesiapan API.",
     adminLogs: "Log aktivitas",
     adminUsers: "User management",
-    adminPrivacy: "Privacy & akses",
+    adminPrivacy: "Privasi & akses",
     adminCheckApi: "Check API",
-    privacyTitle: "Privacy & access control",
-    privacyIntro: "Fondasi kontrol akses SaaS: role mengatur kewenangan sistem, tier mengatur hak paket layanan.",
-    subscriptionTier: "Paket SaaS",
+    privacyTitle: "Kontrol akses & privasi",
+    privacyIntro: "Role mengatur izin. Paket akses mengatur fitur dan limit bulanan.",
+    subscriptionTier: "Paket akses",
     tierSilver: "Silver",
     tierGold: "Gold",
     tierPlatinum: "Platinum",
-    tierDocuments: "Dokumen / bulan",
-    tierChats: "Chatbot / bulan",
+    tierDocuments: "Limit dokumen bulanan",
+    tierChats: "Limit pertanyaan chatbot bulanan",
     unlimited: "Unlimited",
     accessMatrix: "Matriks akses",
-    securityControls: "Kontrol privacy yang sudah diterapkan",
-    saasReadiness: "Langkah tambahan untuk SaaS production",
+    securityControls: "Kontrol aktif",
+    saasReadiness: "Kesiapan production",
     featureLabel: "Fitur",
     allowed: "Ya",
     blocked: "Tidak",
-    privacySilverDesc: "Untuk user awal yang fokus pada analisis sederhana dan draft report.",
-    privacyGoldDesc: "Untuk tim advisor yang perlu membaca database putusan dan peraturan.",
-    privacyPlatinumDesc: "Untuk organisasi yang perlu kontrol penuh, admin, dan integrasi enterprise.",
+    privacySilverDesc: "Analisis dan draft sederhana.",
+    privacyGoldDesc: "Tim advisor dengan akses database.",
+    privacyPlatinumDesc: "Kontrol penuh, admin, dan integrasi.",
     activityLogs: "Log aktivitas aplikasi",
     noActivityLogs: "Belum ada log aktivitas.",
     refresh: "Refresh",
@@ -346,7 +351,7 @@ const copy = {
     userDeleted: "User berhasil dihapus.",
     apiCheck: "API & integrasi",
     runApiCheck: "Jalankan check",
-    apiCheckIntro: "Cek koneksi OpenAI, Vercel Blob, database, dan tabel utama aplikasi.",
+    apiCheckIntro: "Cek OpenAI, Blob, database, dan tabel utama.",
     lastChecked: "Terakhir dicek",
     okStatus: "OK",
     warningStatus: "Warning",
@@ -354,8 +359,8 @@ const copy = {
     openHealthPage: "Buka halaman health"
   },
   en: {
-    subtitle: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT or Transfer Pricing regulation questions, then produce Word/PDF drafts for advisor review.",
-    appGuidance: "Use this workflow to upload decisions, extract structured data, find comparators, ask VAT or Transfer Pricing regulation questions, then produce Word/PDF drafts for advisor review.",
+    subtitle: "Upload decisions, extract data, find comparators, ask rules, then export drafts.",
+    appGuidance: "Upload decisions, extract data, find comparators, ask rules, then export drafts.",
     dashboard: "Dashboard",
     guided: "Guided Flow",
     database: "Decision Database",
@@ -380,7 +385,7 @@ const copy = {
     taxpayerPosition: "Taxpayer position",
     evidence: "Available evidence",
     upload: "Upload document",
-    uploadHint: "Files are processed in the browser and sent to the server for extraction. Storage uses Blob/database when integrations are configured.",
+    uploadHint: "Choose a PDF for extraction. Storage is used when Blob/database is configured.",
     results: "Analysis Result",
     recommendation: "Recommendation Draft",
     topCases: "Most Relevant Decisions",
@@ -404,7 +409,7 @@ const copy = {
     chunking: "Large PDF detected. Splitting document into page sections...",
     extractingChunk: "Extracting section",
     caseSearchTitle: "Similar Case Search",
-    caseSearchIntro: "Search comparable decisions using a dispute narrative, keywords, or a PDF. Results show similarity percentage and why each decision is relevant.",
+    caseSearchIntro: "Find comparable decisions from narrative, keywords, or PDF.",
     caseQuery: "Keywords / case narrative",
     caseQueryPlaceholder: "Example: VAT dispute on tax base correction, complete payment evidence, tax invoices, VAT return, tax authority rejects due to transaction reconciliation.",
     caseUpload: "Upload case document",
@@ -421,7 +426,7 @@ const copy = {
     guidedTabAnalysis: "New analysis",
     guidedTabReports: "Report database",
     reportDatabaseTitle: "Report Database",
-    reportDatabaseIntro: "Previously generated reports are saved so they can be reopened and downloaded again without running analysis twice.",
+    reportDatabaseIntro: "Open and redownload saved reports.",
     savedReports: "Saved reports",
     noSavedReports: "No saved reports yet. Create an analysis in the New analysis tab first.",
     reportSaved: "Report saved to database.",
@@ -433,8 +438,8 @@ const copy = {
     useSavedReport: "Use this report",
     loadingReportDetail: "Loading report detail...",
     databaseTitle: "Decision Database",
-    databaseIntro: "Upload large decision PDFs directly to Vercel Blob. After upload, the app extracts key information with the LLM and saves both metadata and extraction JSON to the database.",
-    databaseUploadHint: "PDFs are stored in Blob. Then click Upload + Extract, or use the Extract button for already stored documents.",
+    databaseIntro: "Upload decision PDFs, extract metadata, and save to the database.",
+    databaseUploadHint: "PDFs are stored in Blob. Extraction can run after upload.",
     uploadDecisionPdfs: "Upload decision PDFs",
     uploadToBlob: "Upload to Blob",
     uploadAndExtract: "Upload + Extract",
@@ -482,7 +487,7 @@ const copy = {
     uploadManualRule: "Upload rule text file",
     saveManualRule: "Save manual rule",
     savingManualRule: "Saving rule...",
-    regulationHelp: "Choose a topic to refresh knowledge from Ortax. For rules not yet available, upload or paste a manual summary so the chatbot can use it.",
+    regulationHelp: "Manage the bot, imports, and stored rules by topic.",
     allTopics: "All topics",
     totalRecords: "Total records",
     itemsPerPage: "Per page",
@@ -494,7 +499,7 @@ const copy = {
     jumpToStoredRules: "View stored regulation list",
     noRegulations: "No regulations yet for this topic.",
     regulationBotTitle: "Smart Regulation Bot",
-    regulationBotIntro: "Ask across stored regulations. The bot uses regulation-only RAG so answers stay source-based and token-efficient.",
+    regulationBotIntro: "Ask stored rules and get source-based answers.",
     regulationQuestion: "Regulation question",
     regulationQuestionPlaceholder: "Example: which rules govern transfer pricing documentation and the arm's length principle?",
     askRegulationBot: "Ask Regulation Bot",
@@ -502,7 +507,7 @@ const copy = {
     regulationBotAnswer: "Regulation bot answer",
     noRegulationBotAnswer: "Ask a question to review all stored regulation cards.",
     bulkRegulationUpload: "Upload regulation list Excel/CSV",
-    bulkRegulationHint: "Supported columns: title/name, citation/number, topic, focus/summary, sourceUrl/link, content/notes, relevance.",
+    bulkRegulationHint: "Columns: title, citation, topic, focus, sourceUrl, content, relevance.",
     importingRegulations: "Importing regulations...",
     importedRegulations: "regulation(s) imported/updated.",
     enrichSources: "Enrich from source links",
@@ -515,14 +520,14 @@ const copy = {
     regulationTabList: "Stored rules",
     regulationTabManual: "Manual input",
     regulationUpdateTitle: "Update regulation knowledge",
-    regulationUpdateIntro: "Choose a topic, pull starter references from Ortax, import rule lists, or enrich rule content from source links.",
+    regulationUpdateIntro: "Pull Ortax, import lists, or enrich from source links.",
     editRule: "Edit",
     deleteRule: "Delete",
     updateRule: "Update rule",
     cancelEdit: "Cancel edit",
     cannotDeleteSeed: "Seed regulations cannot be deleted from the database. Edit/save a manual copy if needed.",
     smartChatTitle: "Dispute Analysis",
-    smartChatIntro: "Ask the RAG bot directly or find similar cases from a narrative/PDF. Relevance uses hybrid retrieval: taxpayer/company, decision number, issue, outcome intent, then text similarity.",
+    smartChatIntro: "Ask RAG or find similar cases from narrative/PDF.",
     disputeTabChat: "RAG Chatbot",
     disputeTabSimilar: "Similar case search",
     smartQuestion: "Question",
@@ -541,7 +546,7 @@ const copy = {
     noSmartAnswer: "Ask a question to see an answer, RAG sources, and visualizations when relevant.",
     openReference: "Open reference",
     loginTitle: "Sign in to RSM Tax Dispute Agentic Advisor",
-    loginSubtitle: "Choose an access type. Admin can manage the database and regulations; user focuses on analysis and chatbot workflows.",
+    loginSubtitle: "Admins manage the system; users focus on analysis and chat.",
     username: "Username",
     password: "Password",
     signIn: "Sign in",
@@ -564,11 +569,14 @@ const copy = {
     workspaceSignal: "Knowledge signal",
     liveWorkspace: "Live database",
     localWorkspace: "Local first",
-    indexedHelper: "Stored decision corpus",
-    coverageHelper: "Documents extracted",
-    vatDocsHelper: "VAT/TP tags detected",
-    localRulesHelper: "Regulation knowledge",
-    llmLabelsHelper: "Structured extraction labels",
+    indexedHelper: "Decision corpus",
+    coverageHelper: "Extracted files",
+    vatDocsHelper: "VAT/TP tags",
+    localRulesHelper: "Rule knowledge",
+    llmLabelsHelper: "Structured labels",
+    theme: "Theme",
+    lightMode: "Light",
+    darkMode: "Dark",
     scoreMethodology: "Scoring methodology",
     scoreFormula: "Formula",
     scoreComponent: "Component",
@@ -592,29 +600,29 @@ const copy = {
     noCaseDetail: "This document does not have extraction data yet. Click Extract first to create the decision detail.",
     casePageLink: "Page",
     adminTitle: "Admin Center",
-    adminIntro: "Manage users, review activity logs, and check API readiness before advisors use the app.",
+    adminIntro: "Manage users, logs, privacy, and API readiness.",
     adminLogs: "Activity logs",
     adminUsers: "User management",
     adminPrivacy: "Privacy & access",
     adminCheckApi: "API check",
-    privacyTitle: "Privacy & access control",
-    privacyIntro: "SaaS access foundation: roles control system authority, while tiers control subscription entitlements.",
-    subscriptionTier: "SaaS tier",
+    privacyTitle: "Access & privacy controls",
+    privacyIntro: "Roles set permissions. Access plans set features and monthly limits.",
+    subscriptionTier: "Access plan",
     tierSilver: "Silver",
     tierGold: "Gold",
     tierPlatinum: "Platinum",
-    tierDocuments: "Documents / month",
-    tierChats: "Chatbot / month",
+    tierDocuments: "Monthly document limit",
+    tierChats: "Monthly chatbot question limit",
     unlimited: "Unlimited",
     accessMatrix: "Access matrix",
-    securityControls: "Privacy controls already implemented",
-    saasReadiness: "Additional steps for production SaaS",
+    securityControls: "Active controls",
+    saasReadiness: "Production readiness",
     featureLabel: "Feature",
     allowed: "Yes",
     blocked: "No",
-    privacySilverDesc: "For starter users focused on simple analysis and report drafting.",
-    privacyGoldDesc: "For advisor teams that need to read the decision and regulation databases.",
-    privacyPlatinumDesc: "For organizations that need full controls, admin access, and enterprise integration.",
+    privacySilverDesc: "Simple analysis and report drafting.",
+    privacyGoldDesc: "Advisor teams with database access.",
+    privacyPlatinumDesc: "Full controls, admin, and integrations.",
     activityLogs: "Application activity logs",
     noActivityLogs: "No activity logs yet.",
     refresh: "Refresh",
@@ -640,7 +648,7 @@ const copy = {
     userDeleted: "User deleted.",
     apiCheck: "API & integrations",
     runApiCheck: "Run check",
-    apiCheckIntro: "Check OpenAI, Vercel Blob, database, and core application tables.",
+    apiCheckIntro: "Check OpenAI, Blob, database, and core tables.",
     lastChecked: "Last checked",
     okStatus: "OK",
     warningStatus: "Warning",
@@ -715,14 +723,39 @@ function QuickActionIcon({ type }: { type: "document" | "chatbot" | "database" }
   );
 }
 
+function ThemeToggle({
+  labels,
+  value,
+  onChange,
+  compact = false
+}: {
+  labels: (typeof copy)["en"];
+  value: ThemeMode;
+  onChange: (mode: ThemeMode) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`theme-toggle ${compact ? "compact" : ""}`} role="group" aria-label={labels.theme}>
+      <button type="button" className={value === "light" ? "active" : ""} onClick={() => onChange("light")}>
+        {labels.lightMode}
+      </button>
+      <button type="button" className={value === "dark" ? "active" : ""} onClick={() => onChange("dark")}>
+        {labels.darkMode}
+      </button>
+    </div>
+  );
+}
+
 function LoginScreen({
   language,
   labels,
+  themeMode,
   role,
   username,
   password,
   error,
   onLanguageChange,
+  onThemeChange,
   onRoleChange,
   onUsernameChange,
   onPasswordChange,
@@ -730,18 +763,20 @@ function LoginScreen({
 }: {
   language: Language;
   labels: (typeof copy)["en"];
+  themeMode: ThemeMode;
   role: UserRole;
   username: string;
   password: string;
   error: string;
   onLanguageChange: (language: Language) => void;
+  onThemeChange: (mode: ThemeMode) => void;
   onRoleChange: (role: UserRole) => void;
   onUsernameChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onSubmit: () => void;
 }) {
   return (
-    <main className="login-shell">
+    <main className={`login-shell theme-${themeMode}`}>
       <section className="login-card">
         <div className="login-brand">
           <RsmMark />
@@ -757,6 +792,8 @@ function LoginScreen({
             <option value="en">English</option>
             <option value="id">Bahasa Indonesia</option>
           </select>
+          <label className="field-label theme-field-label">{labels.theme}</label>
+          <ThemeToggle labels={labels} value={themeMode} onChange={onThemeChange} />
           <div className="role-toggle" aria-label="Login role">
             <button className={role === "admin" ? "active" : ""} onClick={() => onRoleChange("admin")}>
               {labels.adminLogin}
@@ -1256,6 +1293,7 @@ function printCaseDetail() {
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [session, setSession] = useState<AppSession | null>(() => loadAppSession());
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => loadManagedUsers());
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadActivityLogs());
@@ -1373,6 +1411,17 @@ export default function Home() {
     ["admin", labels.admin]
   ];
   const visiblePages = pages.filter(([key]) => (session ? canAccessPage(session.role, session.tier, key) : false));
+
+  useEffect(() => {
+    try {
+      const storedTheme = window.localStorage.getItem(THEME_MODE_KEY);
+      if (storedTheme === "light" || storedTheme === "dark") {
+        setThemeMode(storedTheme);
+      }
+    } catch {
+      // Theme persistence is optional; the UI still works with the default mode.
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -1740,6 +1789,15 @@ export default function Home() {
     if (caseSearchText || caseSearchExtraction) {
       const query = [caseSearchText, extractionToSearchText(caseSearchExtraction)].filter(Boolean).join("\n");
       setCaseSearchResults(searchSimilarCases(query, nextLanguage));
+    }
+  }
+
+  function changeTheme(nextTheme: ThemeMode) {
+    setThemeMode(nextTheme);
+    try {
+      window.localStorage.setItem(THEME_MODE_KEY, nextTheme);
+    } catch {
+      // Theme persistence is optional; the active session still updates immediately.
     }
   }
 
@@ -2665,11 +2723,13 @@ export default function Home() {
       <LoginScreen
         language={language}
         labels={labels}
+        themeMode={themeMode}
         role={loginRole}
         username={loginUsername}
         password={loginPassword}
         error={loginError}
         onLanguageChange={changeLanguage}
+        onThemeChange={changeTheme}
         onRoleChange={changeLoginRole}
         onUsernameChange={(value) => {
           setLoginUsername(value.trim().toLowerCase());
@@ -2685,7 +2745,7 @@ export default function Home() {
   }
 
   return (
-    <main className={`app-shell ${sidebarHidden ? "sidebar-hidden" : ""}`}>
+    <main className={`app-shell theme-${themeMode} ${sidebarHidden ? "sidebar-hidden" : ""}`}>
       <aside className="sidebar">
         <RsmMark />
         <p className="caption">{APP_SHORT_NAME}</p>
@@ -2726,6 +2786,7 @@ export default function Home() {
 
       <section className="content">
         <div className="content-toolbar">
+          <ThemeToggle labels={labels} value={themeMode} onChange={changeTheme} compact />
           <button className="table-button compact sidebar-visibility-button" onClick={() => setSidebarHidden((current) => !current)}>
             {sidebarHidden ? (language === "en" ? "Show menu" : "Tampilkan menu") : language === "en" ? "Hide menu" : "Sembunyikan menu"}
           </button>
@@ -4266,37 +4327,37 @@ function AdminPanel({
   ];
   const securityControls = isEnglish
     ? [
-        "HttpOnly, SameSite, Secure-aware session cookies.",
-        "Passwords are stored as scrypt hashes, not plaintext.",
-        "Admin APIs use server-side role guards.",
-        "Activity logs record login, upload, extraction, export, regulation, and admin actions.",
-        "List APIs use pagination and summary payloads; full detail loads only when needed.",
-        "PDF files are separated in Blob storage while metadata and extraction JSON stay in the database."
+        "Secure session cookies.",
+        "Passwords use scrypt hashes.",
+        "Admin APIs require server-side role checks.",
+        "Activity logs track key actions.",
+        "List APIs paginate; detail loads on demand.",
+        "PDF files stay separate from metadata and extraction JSON."
       ]
     : [
-        "Session cookie memakai HttpOnly, SameSite, dan Secure sesuai environment.",
-        "Password disimpan sebagai hash scrypt, bukan plaintext.",
+        "Cookie session aman.",
+        "Password memakai hash scrypt.",
         "API admin memakai role guard server-side.",
-        "Activity log mencatat login, upload, ekstraksi, export, update aturan, dan admin action.",
-        "List API memakai pagination dan summary payload; detail lengkap hanya diambil saat dibuka.",
-        "File PDF dipisahkan di Blob storage, sedangkan metadata dan JSON ekstraksi berada di database."
+        "Activity log mencatat aksi penting.",
+        "List API memakai pagination; detail dimuat saat dibuka.",
+        "PDF dipisah dari metadata dan JSON ekstraksi."
       ];
   const productionSteps = isEnglish
     ? [
-        "Add tenant isolation so each client only sees its own matters, users, blobs, reports, and logs.",
-        "Connect SSO/MFA and enterprise identity policies.",
-        "Add object-level RBAC for specific cases, reports, and regulation folders.",
-        "Define data retention, legal hold, delete, and export policies.",
-        "Add metering for documents, chatbot queries, exports, storage, and API usage.",
-        "Provide audit export and admin approval workflows for sensitive actions."
+        "Isolate matters, users, blobs, reports, and logs by tenant.",
+        "Connect SSO/MFA.",
+        "Add case, report, and folder RBAC.",
+        "Set retention, legal hold, delete, and export policies.",
+        "Meter documents, chats, exports, storage, and API use.",
+        "Add audit export and approval workflows."
       ]
     : [
-        "Tambahkan isolasi tenant agar setiap klien hanya melihat perkara, user, blob, report, dan log miliknya.",
-        "Hubungkan SSO/MFA serta kebijakan identitas enterprise.",
-        "Tambahkan object-level RBAC untuk kasus, report, dan folder peraturan tertentu.",
-        "Tetapkan kebijakan retensi data, legal hold, penghapusan, dan export.",
-        "Tambahkan metering untuk dokumen, pertanyaan chatbot, export, storage, dan penggunaan API.",
-        "Sediakan audit export dan approval workflow untuk aksi sensitif."
+        "Pisahkan perkara, user, blob, report, dan log per tenant.",
+        "Hubungkan SSO/MFA.",
+        "Tambah RBAC untuk kasus, report, dan folder.",
+        "Atur retensi, legal hold, hapus, dan export.",
+        "Metering dokumen, chat, export, storage, dan API.",
+        "Tambah audit export dan approval workflow."
       ];
 
   return (
@@ -4465,7 +4526,7 @@ function AdminPanel({
                 <h3>{labels.privacyTitle}</h3>
                 <p className="muted">{labels.privacyIntro}</p>
               </div>
-              <span className="admin-edit-pill">{isEnglish ? "SaaS-ready control model" : "Model kontrol siap SaaS"}</span>
+              <span className="admin-edit-pill">{isEnglish ? "Access model" : "Model akses"}</span>
             </div>
 
             <div className="tier-card-grid">
@@ -4478,11 +4539,11 @@ function AdminPanel({
                     <p>{tierDescriptions[tier]}</p>
                     <div className="tier-metrics">
                       <div>
-                        <small>{labels.tierDocuments}</small>
+                        <small>{labels.tierDocuments}: </small>
                         <b>{config.monthlyDocumentLimit === null ? labels.unlimited : config.monthlyDocumentLimit.toLocaleString()}</b>
                       </div>
                       <div>
-                        <small>{labels.tierChats}</small>
+                        <small>{labels.tierChats}: </small>
                         <b>{config.monthlyChatLimit === null ? labels.unlimited : config.monthlyChatLimit.toLocaleString()}</b>
                       </div>
                     </div>
