@@ -3238,6 +3238,217 @@ pre {
   }
 }
 
+/* Compact dispute composer keeps the primary action visible without scrolling. */
+.smart-question-panel .panel-body {
+  gap: 0;
+}
+
+.smart-question-panel .ask-entry-heading {
+  margin-bottom: 8px;
+}
+
+.smart-question-panel .ask-entry-icon {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+}
+
+.smart-question-panel .tier-answer-guide {
+  gap: 9px;
+  margin-bottom: 9px;
+  padding: 8px 10px;
+}
+
+.smart-question-panel .tier-answer-guide > div {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.smart-question-panel .tier-answer-guide p {
+  margin-top: 0;
+}
+
+.smart-question-panel .starter-question-block {
+  gap: 6px;
+  margin-bottom: 9px;
+}
+
+.smart-question-panel .starter-question-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.smart-question-panel .starter-question-list button {
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 6px;
+  min-height: 58px;
+  padding: 7px 8px;
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.smart-question-panel .starter-question-list button > span {
+  width: 20px;
+  height: 20px;
+  font-size: 0.62rem;
+}
+
+.smart-question-panel .smart-chat-form {
+  gap: 8px;
+}
+
+.composer-label-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.composer-label-row > span {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.composer-label-row small {
+  color: #82929b;
+  font-size: 0.63rem;
+  font-weight: 650;
+  text-align: right;
+}
+
+.smart-question-panel .smart-chat-form textarea {
+  min-height: 96px;
+  max-height: 210px;
+  padding: 10px 12px;
+}
+
+.smart-composer-footer {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.smart-scope-control {
+  display: grid;
+  gap: 5px;
+}
+
+.smart-scope-control > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.mode-segment.scope-icon-segment {
+  display: grid;
+  grid-template-columns: repeat(3, 38px);
+  width: max-content;
+  gap: 5px;
+  margin: 0;
+}
+
+.mode-segment.scope-icon-segment .scope-icon-button {
+  position: relative;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+}
+
+.scope-icon-button::after {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  z-index: 20;
+  width: max-content;
+  max-width: 220px;
+  border: 1px solid #35454d;
+  border-radius: 6px;
+  background: #091014;
+  color: #e7f0f4;
+  content: attr(data-tooltip);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.25;
+  opacity: 0;
+  padding: 6px 8px;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(3px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  white-space: normal;
+}
+
+.scope-icon-button:hover::after,
+.scope-icon-button:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.smart-scope-locked.compact {
+  width: max-content;
+  min-height: 38px;
+  padding: 7px 9px;
+}
+
+.smart-question-panel .ask-chat-button {
+  min-width: 184px;
+  min-height: 38px;
+  margin: 0;
+}
+
+.smart-answer-panel .smart-answer-empty {
+  min-height: 190px;
+  padding: 22px;
+}
+
+.theme-light .composer-label-row small {
+  color: #6f7f89;
+}
+
+.theme-light .scope-icon-button::after {
+  border-color: #c8d6dd;
+  background: #ffffff;
+  color: #26343c;
+  box-shadow: 0 8px 20px rgba(31, 48, 58, 0.14);
+}
+
+@media (max-width: 1120px) {
+  .smart-question-panel .starter-question-list {
+    grid-template-columns: 1fr;
+  }
+
+  .smart-question-panel .starter-question-list button {
+    min-height: 38px;
+  }
+}
+
+@media (max-width: 620px) {
+  .smart-question-panel .tier-answer-guide > div,
+  .composer-label-row {
+    display: grid;
+    gap: 3px;
+  }
+
+  .composer-label-row small {
+    text-align: left;
+  }
+
+  .smart-composer-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .smart-question-panel .ask-chat-button {
+    width: 100%;
+  }
+}
+
 /* Compact application shell: workflow rail on the left, account controls on top. */
 .app-icon {
   display: block;

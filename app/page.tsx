@@ -5256,6 +5256,14 @@ function SmartChatPanel({
   const scopeCopy = tier === "silver"
     ? (isEnglish ? "Regulations only for concise rule guidance" : "Khusus peraturan untuk panduan aturan ringkas")
     : (isEnglish ? "Regulations and decisions are reviewed together" : "Peraturan dan putusan ditelaah bersama");
+  const compactScopeCopy = tier === "silver"
+    ? (isEnglish ? "Rules only" : "Aturan saja")
+    : (isEnglish ? "Rules + decisions" : "Aturan + putusan");
+  const scopeOptions: Array<[SmartChatSourceMode, string, AppIconName, string]> = [
+    ["all", labels.smartModeAll, "smartchat", isEnglish ? "Search decisions and regulations" : "Cari putusan dan peraturan"],
+    ["decisions", labels.smartModeDecisions, "database", isEnglish ? "Search comparable decisions only" : "Cari putusan pembanding saja"],
+    ["regulations", labels.smartModeRegulations, "regulations", isEnglish ? "Search regulations only" : "Cari peraturan saja"]
+  ];
 
   return (
     <section className="dispute-analysis-page">
@@ -5300,42 +5308,57 @@ function SmartChatPanel({
             </div>
             <div className="smart-chat-form">
               <label className="control wide">
-                <span>{isEnglish ? "Your question" : "Pertanyaan Anda"}</span>
+                <span className="composer-label-row">
+                  <span>{isEnglish ? "Your question" : "Pertanyaan Anda"}</span>
+                  <small>{isEnglish ? "Enter to ask · Shift+Enter for a new line" : "Enter untuk bertanya · Shift+Enter untuk baris baru"}</small>
+                </span>
                 <textarea
                   value={question}
                   onChange={(event) => onQuestionChange(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                      event.preventDefault();
+                      if (!loading && question.trim()) onAsk();
+                    }
+                  }}
                   placeholder={labels.smartQuestionPlaceholder}
-                  rows={5}
+                  rows={3}
                 />
               </label>
-              <div className="control">
-                <span>{isEnglish ? "Research scope" : "Cakupan riset"}</span>
+              <div className="smart-composer-footer">
+                <div className="smart-scope-control">
+                  <span>{isEnglish ? "Research scope" : "Cakupan riset"}</span>
                 {tier === "platinum" ? (
-                  <div className="mode-segment">
-                    {[
-                      ["all", labels.smartModeAll, "smartchat"],
-                      ["decisions", labels.smartModeDecisions, "database"],
-                      ["regulations", labels.smartModeRegulations, "regulations"]
-                    ].map(([value, title, icon]) => (
-                      <button key={value} className={mode === value ? "active" : ""} onClick={() => onModeChange(value as SmartChatSourceMode)}>
-                        <AppIcon name={icon as AppIconName} />
-                        <span>{title}</span>
+                  <div className="mode-segment scope-icon-segment">
+                    {scopeOptions.map(([value, title, icon, description]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`scope-icon-button ${mode === value ? "active" : ""}`}
+                        onClick={() => onModeChange(value)}
+                        aria-label={title}
+                        aria-pressed={mode === value}
+                        title={description}
+                        data-tooltip={description}
+                      >
+                        <AppIcon name={icon} />
                       </button>
                     ))}
                   </div>
                 ) : (
-                  <div className="smart-scope-locked">
+                  <div className="smart-scope-locked compact" title={scopeCopy}>
                     <AppIcon name={tier === "silver" ? "regulations" : "smartchat"} />
-                    <span>{scopeCopy}</span>
+                    <span>{compactScopeCopy}</span>
                   </div>
                 )}
+                </div>
+                <button className="primary-button ask-chat-button" type="button" onClick={onAsk} disabled={loading || !question.trim()}>
+                  <AppIcon name="smartchat" />
+                  <span>{loading ? labels.askingSmartChat : (isEnglish ? "Ask the advisor" : "Tanya advisor")}</span>
+                </button>
               </div>
             </div>
             {error && <div className="status-banner error">{error}</div>}
-            <button className="primary-button ask-chat-button" onClick={onAsk} disabled={loading || !question.trim()}>
-              <AppIcon name="smartchat" />
-              <span>{loading ? labels.askingSmartChat : (isEnglish ? "Ask the advisor" : "Tanya advisor")}</span>
-            </button>
           </Panel>
 
           <Panel title={labels.smartAnswer} className="smart-answer-panel">
