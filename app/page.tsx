@@ -2210,6 +2210,12 @@ export default function Home() {
       setLoginPassword("");
       setLoginError("");
       setPage("smartchat");
+      setSmartResponse(null);
+      setSmartStatus("");
+      setSmartError("");
+      setRegulationBotResponse(null);
+      setRegulationBotStatus("");
+      setRegulationBotError("");
       if (nextSession.role === "admin") {
         void refreshManagedUsers();
       }
@@ -2224,6 +2230,12 @@ export default function Home() {
     saveAppSession(null);
     setPage("dashboard");
     setLoginPassword("");
+    setSmartResponse(null);
+    setSmartStatus("");
+    setSmartError("");
+    setRegulationBotResponse(null);
+    setRegulationBotStatus("");
+    setRegulationBotError("");
   }
 
   function updateForm(field: keyof AnalyzeInput, value: string) {
@@ -3425,6 +3437,7 @@ export default function Home() {
         {page === "smartchat" && (
           <SmartChatPanel
             labels={labels}
+            tier={session.tier}
             question={smartQuestion}
             mode={smartMode}
             response={smartResponse}
@@ -3779,7 +3792,65 @@ function InlineRichText({ text }: { text: string }) {
   );
 }
 
-function MarkdownText({ text }: { text: string }) {
+function MarkdownBlock({ block, blockKey }: { block: string; blockKey: string }) {
+  const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+  const isList = lines.every((line) => /^[-•]\s+/.test(line));
+  const isNumberedList = lines.every((line) => /^\d+[.)]\s+/.test(line));
+  if (isList || isNumberedList) {
+    const ListTag = isNumberedList ? "ol" : "ul";
+    return (
+      <ListTag key={blockKey}>
+        {lines.map((line, lineIndex) => (
+          <li key={`${blockKey}-${lineIndex}`}>
+            <InlineRichText text={line.replace(isNumberedList ? /^\d+[.)]\s+/ : /^[-•]\s+/, "")} />
+          </li>
+        ))}
+      </ListTag>
+    );
+  }
+  return (
+    <p key={blockKey}>
+      <InlineRichText text={block.replace(/^#{1,6}\s*/, "")} />
+    </p>
+  );
+}
+
+function StructuredMarkdownText({ text }: { text: string }) {
+  const blocks = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+  const sections: Array<{ title: string; blocks: string[] }> = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+    const heading = lines[0]?.match(/^#{1,6}\s+(.+)$/);
+    if (heading) {
+      sections.push({ title: heading[1], blocks: lines.length > 1 ? [lines.slice(1).join("\n")] : [] });
+    } else if (sections.length) {
+      sections[sections.length - 1].blocks.push(block);
+    } else {
+      sections.push({ title: "", blocks: [block] });
+    }
+  }
+
+  return (
+    <div className="rich-text answer-brief">
+      {sections.map((section, sectionIndex) => (
+        <section className="answer-section" key={`${section.title}-${sectionIndex}`}>
+          {section.title && <h4>{section.title}</h4>}
+          {section.blocks.map((block, blockIndex) => (
+            <MarkdownBlock key={`${sectionIndex}-${blockIndex}`} block={block} blockKey={`${sectionIndex}-${blockIndex}`} />
+          ))}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function MarkdownText({ text, structured = false }: { text: string; structured?: boolean }) {
+  if (structured) return <StructuredMarkdownText text={text} />;
   const blocks = String(text || "")
     .replace(/\r\n/g, "\n")
     .split(/\n{2,}/)
@@ -3789,24 +3860,7 @@ function MarkdownText({ text }: { text: string }) {
   return (
     <div className="rich-text">
       {blocks.map((block, index) => {
-        const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
-        const isList = lines.every((line) => /^[-•]\s+/.test(line));
-        if (isList) {
-          return (
-            <ul key={`block-${index}`}>
-              {lines.map((line, lineIndex) => (
-                <li key={`line-${lineIndex}`}>
-                  <InlineRichText text={line.replace(/^[-•]\s+/, "")} />
-                </li>
-              ))}
-            </ul>
-          );
-        }
-        return (
-          <p key={`block-${index}`}>
-            <InlineRichText text={block.replace(/^#{1,6}\s*/, "")} />
-          </p>
-        );
+        return <MarkdownBlock key={`block-${index}`} block={block} blockKey={`block-${index}`} />;
       })}
     </div>
   );
@@ -5128,6 +5182,7 @@ function AdminPanel({
 
 function SmartChatPanel({
   labels,
+  tier,
   question,
   mode,
   response,
@@ -5149,6 +5204,7 @@ function SmartChatPanel({
   onCaseSearch
 }: {
   labels: (typeof copy)["en"];
+  tier: SubscriptionTier;
   question: string;
   mode: SmartChatSourceMode;
   response: SmartChatResponse | null;
@@ -5170,25 +5226,81 @@ function SmartChatPanel({
   onCaseSearch: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<DisputeTabKey>("chat");
+  const [captureMode, setCaptureMode] = useState(false);
+  const isEnglish = labels.signIn === "Sign in";
+  const tierGuide = {
+    silver: {
+      title: isEnglish ? "Concise rule answer" : "Jawaban aturan ringkas",
+      description: isEnglish ? "A short answer from the closest regulations, with one clear next step." : "Jawaban singkat dari aturan terdekat dengan satu langkah lanjut yang jelas."
+    },
+    gold: {
+      title: isEnglish ? "Rules + decision references" : "Aturan + referensi putusan",
+      description: isEnglish ? "An advisor-level answer citing relevant regulations and comparable decisions." : "Jawaban level advisor dengan sitasi aturan dan putusan pembanding."
+    },
+    platinum: {
+      title: isEnglish ? "Deep structured analysis" : "Analisis mendalam terstruktur",
+      description: isEnglish ? "A senior-review brief covering issues, rules, decisions, evidence, risks, and strategy." : "Brief untuk review senior yang mencakup isu, aturan, putusan, bukti, risiko, dan strategi."
+    }
+  }[tier];
+  const starterQuestions = isEnglish
+    ? [
+        "Which rules govern this tax issue and what should I check first?",
+        "Which decisions are most comparable and how do their outcomes differ?",
+        "What evidence gaps and argument strategy should the advisor prioritize?"
+      ]
+    : [
+        "Aturan apa yang mengatur isu pajak ini dan apa yang perlu dicek terlebih dahulu?",
+        "Putusan mana yang paling sebanding dan bagaimana perbedaan outcome-nya?",
+        "Celah bukti dan strategi argumentasi apa yang perlu diprioritaskan advisor?"
+      ];
+  const scopeCopy = tier === "silver"
+    ? (isEnglish ? "Regulations only for concise rule guidance" : "Khusus peraturan untuk panduan aturan ringkas")
+    : (isEnglish ? "Regulations and decisions are reviewed together" : "Peraturan dan putusan ditelaah bersama");
 
   return (
     <section className="dispute-analysis-page">
       <div className="regulation-tab-list dispute-tab-list" role="tablist" aria-label={labels.smartChatTitle}>
         <button className={activeTab === "chat" ? "active" : ""} onClick={() => setActiveTab("chat")}>
-          {labels.disputeTabChat}
+          <AppIcon name="smartchat" />
+          <span>{labels.disputeTabChat}</span>
         </button>
         <button className={activeTab === "similar" ? "active" : ""} onClick={() => setActiveTab("similar")}>
-          {labels.disputeTabSimilar}
+          <AppIcon name="database" />
+          <span>{labels.disputeTabSimilar}</span>
         </button>
       </div>
 
       {activeTab === "chat" ? (
-        <section className="smart-chat-layout">
+        <section className={`smart-chat-layout ${captureMode ? "answer-focus-mode" : ""}`}>
           <Panel title={labels.smartChatTitle} className="smart-question-panel">
-            <p className="muted lead-copy">{labels.smartChatIntro}</p>
+            <div className="ask-entry-heading">
+              <span className="ask-entry-icon"><AppIcon name="smartchat" /></span>
+              <div>
+                <b>{isEnglish ? "Ask your tax dispute question" : "Tanyakan sengketa pajak Anda"}</b>
+                <p>{isEnglish ? "Write naturally. The assistant will retrieve the most relevant sources." : "Tulis dengan bahasa biasa. Asisten akan mengambil sumber yang paling relevan."}</p>
+              </div>
+            </div>
+            <div className={`tier-answer-guide ${tier}`}>
+              <span className="tier-answer-badge">{tierLabel(tier)}</span>
+              <div>
+                <b>{tierGuide.title}</b>
+                <p>{tierGuide.description}</p>
+              </div>
+            </div>
+            <div className="starter-question-block">
+              <span>{isEnglish ? "Try a starter question" : "Coba pertanyaan awal"}</span>
+              <div className="starter-question-list">
+                {starterQuestions.map((starter, index) => (
+                  <button key={starter} type="button" onClick={() => onQuestionChange(starter)}>
+                    <span>{index + 1}</span>
+                    {starter}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="smart-chat-form">
               <label className="control wide">
-                <span>{labels.smartQuestion}</span>
+                <span>{isEnglish ? "Your question" : "Pertanyaan Anda"}</span>
                 <textarea
                   value={question}
                   onChange={(event) => onQuestionChange(event.target.value)}
@@ -5197,33 +5309,56 @@ function SmartChatPanel({
                 />
               </label>
               <div className="control">
-                <span>{labels.smartMode}</span>
-                <div className="mode-segment">
-                  {[
-                    ["all", labels.smartModeAll],
-                    ["decisions", labels.smartModeDecisions],
-                    ["regulations", labels.smartModeRegulations]
-                  ].map(([value, title]) => (
-                    <button key={value} className={mode === value ? "active" : ""} onClick={() => onModeChange(value as SmartChatSourceMode)}>
-                      {title}
-                    </button>
-                  ))}
-                </div>
+                <span>{isEnglish ? "Research scope" : "Cakupan riset"}</span>
+                {tier === "platinum" ? (
+                  <div className="mode-segment">
+                    {[
+                      ["all", labels.smartModeAll, "smartchat"],
+                      ["decisions", labels.smartModeDecisions, "database"],
+                      ["regulations", labels.smartModeRegulations, "regulations"]
+                    ].map(([value, title, icon]) => (
+                      <button key={value} className={mode === value ? "active" : ""} onClick={() => onModeChange(value as SmartChatSourceMode)}>
+                        <AppIcon name={icon as AppIconName} />
+                        <span>{title}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="smart-scope-locked">
+                    <AppIcon name={tier === "silver" ? "regulations" : "smartchat"} />
+                    <span>{scopeCopy}</span>
+                  </div>
+                )}
               </div>
             </div>
             {error && <div className="status-banner error">{error}</div>}
-            <button className="primary-button" onClick={onAsk} disabled={loading || !question.trim()}>
-              {loading ? labels.askingSmartChat : labels.askSmartChat}
+            <button className="primary-button ask-chat-button" onClick={onAsk} disabled={loading || !question.trim()}>
+              <AppIcon name="smartchat" />
+              <span>{loading ? labels.askingSmartChat : (isEnglish ? "Ask the advisor" : "Tanya advisor")}</span>
             </button>
           </Panel>
 
           <Panel title={labels.smartAnswer} className="smart-answer-panel">
             {!response ? (
-              <div className="empty-state">{labels.noSmartAnswer}</div>
+              <div className="smart-answer-empty">
+                <span><AppIcon name="smartchat" /></span>
+                <b>{isEnglish ? "Your structured answer will appear here" : "Jawaban terstruktur akan tampil di sini"}</b>
+                <p>{tierGuide.description}</p>
+              </div>
             ) : (
               <>
+                <div className="answer-brief-header">
+                  <div>
+                    <span>{isEnglish ? "Tiered advisory answer" : "Jawaban advisor sesuai tier"}</span>
+                    <b>{tierLabel(response.retrieval.tier as SubscriptionTier)} · {tierGuide.title}</b>
+                  </div>
+                  <button className="table-button answer-capture-button" type="button" onClick={() => setCaptureMode((current) => !current)}>
+                    <AppIcon name={captureMode ? "collapse" : "expand"} />
+                    <span>{captureMode ? (isEnglish ? "Exit screenshot view" : "Keluar tampilan screenshot") : (isEnglish ? "Screenshot view" : "Tampilan screenshot")}</span>
+                  </button>
+                </div>
                 {status && <div className="status-banner success">{status}</div>}
-                <MarkdownText text={response.answer} />
+                <MarkdownText text={response.answer} structured />
                 <div className="retrieval-summary">
                   <b>{labels.retrievalSummary}</b>
                   <span>

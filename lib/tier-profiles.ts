@@ -49,7 +49,7 @@ export const tierWorkProfiles: Record<SubscriptionTier, TierWorkProfile> = {
     regulationDepth: "basic",
     decisionContextLimit: 1,
     regulationContextLimit: 2,
-    smartDecisionLimit: 3,
+    smartDecisionLimit: 0,
     smartRegulationLimit: 2,
     evidenceGapLimit: 4,
     labels: {
@@ -73,7 +73,7 @@ export const tierWorkProfiles: Record<SubscriptionTier, TierWorkProfile> = {
         analysisInstruction:
           "Use the Silver profile: produce a concise triage answer. Focus on issue summary, initial risk, the strongest evidence gaps, and 3-5 next steps. Keep the recommendation short and do not draft a full legal memo.",
         smartChatInstruction:
-          "Use the Silver profile: answer briefly from the strongest retrieved context only. Give practical next steps and clearly say when deeper database or regulation review is needed.",
+          "Use the Silver profile: answer briefly from regulation context only. Use exactly three sections with Markdown headings: Short answer, Main rule, and Next step. Keep the answer under 250 words and clearly say when deeper review is needed.",
         regulationInstruction:
           "Use the Silver profile: explain the closest rule cards in plain language, cite the main source, and identify what rule or evidence should be added next. Avoid broad synthesis."
       },
@@ -81,7 +81,7 @@ export const tierWorkProfiles: Record<SubscriptionTier, TierWorkProfile> = {
         analysisInstruction:
           "Gunakan profil Silver: buat jawaban triage yang ringkas. Fokus pada ringkasan isu, risiko awal, celah bukti terkuat, dan 3-5 langkah berikutnya. Rekomendasi tetap pendek dan jangan membuat memo hukum penuh.",
         smartChatInstruction:
-          "Gunakan profil Silver: jawab singkat dari konteks retrieval terkuat saja. Beri langkah praktis dan katakan jelas bila perlu pendalaman database atau peraturan.",
+          "Gunakan profil Silver: jawab singkat hanya dari konteks peraturan. Gunakan tepat tiga bagian dengan heading Markdown: Jawaban singkat, Aturan utama, dan Langkah berikutnya. Batasi jawaban maksimal 250 kata dan katakan jelas bila perlu pendalaman.",
         regulationInstruction:
           "Gunakan profil Silver: jelaskan kartu aturan terdekat dengan bahasa sederhana, sebutkan sumber utama, dan identifikasi aturan/bukti yang perlu ditambahkan. Hindari sintesis luas."
       }
@@ -117,7 +117,7 @@ export const tierWorkProfiles: Record<SubscriptionTier, TierWorkProfile> = {
         analysisInstruction:
           "Use the Gold profile: produce an advisor-ready analysis with issue framing, legal basis, evidence gaps, comparable decision positioning, recommendation, and next steps. Be detailed but avoid overlong memo drafting.",
         smartChatInstruction:
-          "Use the Gold profile: compare the strongest retrieved decisions and regulation cards, cite numbers/citations, explain why each source matters, and end with advisor next steps.",
+          "Use the Gold profile: compare the strongest retrieved decisions and regulation cards, cite numbers/citations, explain why each source matters, and use five Markdown sections: Executive answer, Applicable rules, Relevant decisions, Practical implications, and Next steps.",
         regulationInstruction:
           "Use the Gold profile: answer from source-based regulation cards, compare relevant rules, explain evidence and procedural implications, and list missing regulation cards if context is incomplete."
       },
@@ -125,7 +125,7 @@ export const tierWorkProfiles: Record<SubscriptionTier, TierWorkProfile> = {
         analysisInstruction:
           "Gunakan profil Gold: buat analisis siap advisor dengan framing isu, dasar hukum, celah bukti, posisi putusan pembanding, rekomendasi, dan langkah berikutnya. Cukup mendalam tetapi tidak sepanjang memo penuh.",
         smartChatInstruction:
-          "Gunakan profil Gold: bandingkan putusan dan kartu aturan terkuat, sebutkan nomor/sitasi, jelaskan relevansinya, dan akhiri dengan langkah advisor.",
+          "Gunakan profil Gold: bandingkan putusan dan kartu aturan terkuat, sebutkan nomor/sitasi, jelaskan relevansinya, dan gunakan lima bagian Markdown: Jawaban eksekutif, Aturan yang berlaku, Putusan relevan, Implikasi praktis, dan Langkah berikutnya.",
         regulationInstruction:
           "Gunakan profil Gold: jawab dari kartu aturan berbasis sumber, bandingkan aturan relevan, jelaskan implikasi bukti/prosedur, dan daftar aturan yang masih perlu ditambahkan bila konteks belum lengkap."
       }
@@ -161,7 +161,7 @@ export const tierWorkProfiles: Record<SubscriptionTier, TierWorkProfile> = {
         analysisInstruction:
           "Use the Platinum profile: produce a deep case memo suitable for senior advisor review. Include executive summary, chronology, tax authority position, taxpayer position, disputed amount mapping, legal/regulatory basis, evidence sufficiency, counterarguments, comparable decision strategy, procedural strategy, document checklist, and next steps.",
         smartChatInstruction:
-          "Use the Platinum profile: synthesize retrieved decisions and regulations as a senior tax dispute memo. Compare patterns, distinguish weak and strong comparables, flag missing evidence, and propose argument strategy.",
+          "Use the Platinum profile: synthesize retrieved decisions and regulations as a senior tax dispute memo. Use clear Markdown sections: Executive summary, Issue map, Regulatory analysis, Decision pattern, Evidence assessment, Argument strategy, Risks and counterarguments, and Recommended actions. Use concise bullets inside sections so the result is easy to scan and capture as a screenshot.",
         regulationInstruction:
           "Use the Platinum profile: synthesize the regulation database structurally. Map rule hierarchy, source reliability, procedural requirements, evidence consequences, conflicts or gaps, and a knowledge-update plan for missing rules."
       },
@@ -169,7 +169,7 @@ export const tierWorkProfiles: Record<SubscriptionTier, TierWorkProfile> = {
         analysisInstruction:
           "Gunakan profil Platinum: buat memo kasus mendalam untuk review senior advisor. Sertakan ringkasan eksekutif, kronologi, posisi DJP, posisi WP, pemetaan nilai sengketa, dasar hukum/peraturan, kecukupan bukti, counterargument, strategi putusan pembanding, strategi prosedural, checklist dokumen, dan langkah berikutnya.",
         smartChatInstruction:
-          "Gunakan profil Platinum: sintesis putusan dan peraturan hasil retrieval seperti memo senior sengketa pajak. Bandingkan pola, bedakan pembanding kuat/lemah, tandai bukti yang kurang, dan usulkan strategi argumentasi.",
+          "Gunakan profil Platinum: sintesis putusan dan peraturan hasil retrieval seperti memo senior sengketa pajak. Gunakan bagian Markdown yang jelas: Ringkasan eksekutif, Peta isu, Analisis peraturan, Pola putusan, Penilaian bukti, Strategi argumentasi, Risiko dan counterargument, serta Rekomendasi tindakan. Gunakan bullet ringkas agar hasil mudah dipindai dan di-screenshot.",
         regulationInstruction:
           "Gunakan profil Platinum: sintesis database aturan secara terstruktur. Petakan hierarki aturan, reliabilitas sumber, syarat prosedural, konsekuensi pembuktian, konflik/celah, dan rencana update knowledge untuk aturan yang hilang."
       }
@@ -179,9 +179,8 @@ export const tierWorkProfiles: Record<SubscriptionTier, TierWorkProfile> = {
 
 export function isTierDepthEnabled() {
   const flag = process.env.TDP_TIER_DEPTH_ENABLED;
-  if (flag === "true") return true;
   if (flag === "false") return false;
-  return process.env.NODE_ENV !== "production";
+  return true;
 }
 
 export function getTierWorkProfile(tier: SubscriptionTier) {
@@ -191,4 +190,3 @@ export function getTierWorkProfile(tier: SubscriptionTier) {
 export function getActiveTierWorkProfile(tier: SubscriptionTier) {
   return isTierDepthEnabled() ? getTierWorkProfile(tier) : tierWorkProfiles.platinum;
 }
-

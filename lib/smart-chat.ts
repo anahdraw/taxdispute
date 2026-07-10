@@ -368,14 +368,6 @@ export function rankRegulations(query: string, records: Regulation[], limit = 8)
     }));
 }
 
-function hasDecisionIntent(question: string) {
-  return /putusan|keputusan|case|decision|sengketa|menang|kalah|dikabulkan|ditolak|outcome|similar|mirip/i.test(question);
-}
-
-function hasRegulationIntent(question: string) {
-  return /aturan|peraturan|pasal|pmk|per-|uu|law|regulation|regulated|diatur|dasar hukum|ortax/i.test(question);
-}
-
 function hasChartIntent(question: string) {
   return /berapa|jumlah|distribusi|visual|chart|grafik|menang|kalah|win|lose|outcome|dikabulkan|ditolak|ratio|persentase|percentage/i.test(question);
 }
@@ -435,48 +427,117 @@ function localSmartAnswer(
   language: "id" | "en",
   decisionHits: SmartChatDecisionHit[],
   ruleHits: SmartChatRuleHit[],
-  charts: SmartChatChart[]
+  charts: SmartChatChart[],
+  tierProfile: TierWorkProfile
 ) {
   const decisionLine =
     decisionHits.length > 0
       ? decisionHits
-          .slice(0, 3)
-          .map((item) => `${item.number} (${item.issue}; ${item.outcome})`)
-          .join("; ")
+          .slice(0, tierProfile.smartDecisionLimit)
+          .map((item) => `- **${item.number}** — ${item.issue}; ${item.outcome}`)
+          .join("\n")
       : language === "en"
-        ? "no closely matched decision was found"
-        : "belum ada putusan yang cukup dekat";
+        ? "- No closely matched decision was found."
+        : "- Belum ada putusan yang cukup dekat.";
   const ruleLine =
     ruleHits.length > 0
       ? ruleHits
-          .slice(0, 3)
-          .map((item) => `${item.title} (${item.citation})`)
-          .join("; ")
+          .slice(0, tierProfile.smartRegulationLimit)
+          .map((item) => `- **${item.citation}** — ${item.title}`)
+          .join("\n")
       : language === "en"
-        ? "no closely matched regulation was found"
-        : "belum ada aturan yang cukup dekat";
+        ? "- No closely matched regulation was found."
+        : "- Belum ada aturan yang cukup dekat.";
   const chartLine = charts[0]
     ? charts[0].items.map((item) => `${item.label}: ${item.value}`).join(", ")
     : "";
 
+  if (tierProfile.tier === "silver") {
+    return language === "en"
+      ? [
+          "## Short answer",
+          `The closest stored rules were screened for this question: **${question}**. This is a concise rule-level orientation, not a full case opinion.`,
+          "## Main rule",
+          ruleLine,
+          "## Next step",
+          "- Confirm the transaction facts and tax period.\n- Open the cited rule before relying on it.\n- Upgrade the review when decision comparisons or argument strategy are required."
+        ].join("\n\n")
+      : [
+          "## Jawaban singkat",
+          `Aturan tersimpan yang paling dekat telah disaring untuk pertanyaan: **${question}**. Ini merupakan orientasi aturan secara ringkas, bukan opini kasus penuh.`,
+          "## Aturan utama",
+          ruleLine,
+          "## Langkah berikutnya",
+          "- Konfirmasi fakta transaksi dan masa pajak.\n- Buka aturan yang dirujuk sebelum digunakan.\n- Lakukan pendalaman bila memerlukan pembanding putusan atau strategi argumentasi."
+        ].join("\n\n");
+  }
+
+  if (tierProfile.tier === "gold") {
+    return language === "en"
+      ? [
+          "## Executive answer",
+          `The database was screened for both regulations and comparable decisions relevant to: **${question}**.`,
+          "## Applicable rules",
+          ruleLine,
+          "## Relevant decisions",
+          decisionLine,
+          "## Practical implications",
+          chartLine ? `- Matched outcome pattern: ${chartLine}.\n- Confirm that the cited facts and evidence align with the current case.` : "- Compare the facts, evidence chain, and procedural stage before relying on an outcome.",
+          "## Next steps",
+          "- Validate citations and decision texts.\n- Reconcile invoices, payments, returns, and correspondence.\n- Prepare an advisor review note for unresolved differences."
+        ].join("\n\n")
+      : [
+          "## Jawaban eksekutif",
+          `Database peraturan dan putusan pembanding telah disaring untuk pertanyaan: **${question}**.`,
+          "## Aturan yang berlaku",
+          ruleLine,
+          "## Putusan relevan",
+          decisionLine,
+          "## Implikasi praktis",
+          chartLine ? `- Pola outcome pembanding: ${chartLine}.\n- Pastikan fakta dan rantai bukti kasus saat ini sejalan dengan sumber.` : "- Bandingkan fakta, rantai bukti, dan tahap prosedural sebelum mengandalkan outcome.",
+          "## Langkah berikutnya",
+          "- Validasi sitasi dan teks putusan.\n- Rekonsiliasi faktur, pembayaran, SPT, dan korespondensi.\n- Siapkan catatan review advisor untuk perbedaan yang belum selesai."
+        ].join("\n\n");
+  }
+
   if (language === "en") {
     return [
-      `I screened the database with hybrid RAG retrieval before forming the answer. Relevant decisions: ${decisionLine}.`,
-      `Relevant regulations: ${ruleLine}.`,
-      chartLine ? `For the matched decisions, the outcome split is: ${chartLine}.` : "",
-      "Use this as an initial research answer. For filing or client advice, review the cited decisions and regulations directly."
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+      "## Executive summary",
+      `A deep hybrid-RAG review was prepared for: **${question}**. The answer should be treated as a structured senior-review brief, subject to source validation.`,
+      "## Issue map",
+      "- Identify the disputed tax treatment, period, amount, procedural stage, and burden of proof.\n- Separate factual disagreements from legal interpretation and procedural defects.",
+      "## Regulatory analysis",
+      ruleLine,
+      "## Decision pattern",
+      decisionLine,
+      "## Evidence assessment",
+      "- Test consistency across invoices, contracts, payment flow, accounting records, returns, and third-party confirmation.\n- Record missing documents and contradictions by disputed transaction line.",
+      "## Argument strategy",
+      "- Lead with the strongest verified facts and controlling rules.\n- Use comparable decisions by analogy, while expressly distinguishing adverse facts.",
+      "## Risks and counterarguments",
+      chartLine ? `- Retrieved outcome pattern: ${chartLine}.\n- A comparable outcome alone does not establish that the facts are legally equivalent.` : "- Insufficient source coverage or weak evidence reconciliation can materially reduce the argument's reliability.",
+      "## Recommended actions",
+      "- Verify every citation against the source document.\n- Build an issue-by-issue evidence matrix.\n- Escalate unresolved legal conflicts for senior advisor review before filing or client delivery."
+    ].join("\n\n");
   }
   return [
-    `Saya menyaring database dengan hybrid RAG retrieval sebelum menyusun jawaban. Putusan relevan: ${decisionLine}.`,
-    `Peraturan relevan: ${ruleLine}.`,
-    chartLine ? `Untuk putusan yang relevan, distribusi outcome adalah: ${chartLine}.` : "",
-    "Gunakan ini sebagai jawaban riset awal. Untuk filing atau advice ke klien, tetap review langsung putusan dan peraturan yang dirujuk."
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+    "## Ringkasan eksekutif",
+    `Review hybrid RAG mendalam disusun untuk: **${question}**. Jawaban ini merupakan brief terstruktur untuk review senior dan tetap memerlukan validasi sumber.`,
+    "## Peta isu",
+    "- Identifikasi perlakuan pajak, masa, nilai sengketa, tahap prosedural, dan beban pembuktian.\n- Pisahkan perbedaan fakta, interpretasi hukum, dan cacat prosedural.",
+    "## Analisis peraturan",
+    ruleLine,
+    "## Pola putusan",
+    decisionLine,
+    "## Penilaian bukti",
+    "- Uji konsistensi faktur, kontrak, aliran pembayaran, pembukuan, SPT, dan konfirmasi pihak ketiga.\n- Catat dokumen yang hilang dan kontradiksi per transaksi yang disengketakan.",
+    "## Strategi argumentasi",
+    "- Dahulukan fakta terverifikasi dan aturan yang paling mengikat.\n- Gunakan putusan pembanding secara analogi serta bedakan secara tegas fakta yang merugikan.",
+    "## Risiko dan counterargument",
+    chartLine ? `- Pola outcome hasil retrieval: ${chartLine}.\n- Kesamaan outcome saja tidak membuktikan fakta dan dasar hukum yang identik.` : "- Keterbatasan sumber atau rekonsiliasi bukti yang lemah dapat menurunkan keandalan argumentasi.",
+    "## Rekomendasi tindakan",
+    "- Verifikasi setiap sitasi pada dokumen sumber.\n- Susun matriks bukti per isu.\n- Eskalasi konflik hukum yang belum selesai untuk review senior sebelum filing atau penyampaian ke klien."
+  ].join("\n\n");
 }
 
 export async function answerSmartChat({
@@ -496,14 +557,15 @@ export async function answerSmartChat({
   tierProfile?: TierWorkProfile;
   modelChoice?: LlmModelChoice;
 }): Promise<SmartChatResponse> {
-  const wantsDecisions = mode !== "regulations" && (mode === "decisions" || hasDecisionIntent(question) || !hasRegulationIntent(question));
-  const wantsRules = mode !== "decisions" && (mode === "regulations" || hasRegulationIntent(question) || !hasDecisionIntent(question));
+  const effectiveMode: SmartChatSourceMode = tierProfile.tier === "silver" ? "regulations" : tierProfile.tier === "gold" ? "all" : mode;
+  const wantsDecisions = effectiveMode === "all" || effectiveMode === "decisions";
+  const wantsRules = effectiveMode === "all" || effectiveMode === "regulations";
   const decisionHits = wantsDecisions ? rankDecisionDocuments(question, documents, tierProfile.smartDecisionLimit) : [];
   const ruleHits = wantsRules ? rankRegulations(question, regulations, tierProfile.smartRegulationLimit) : [];
   const charts = wantsDecisions ? buildCharts(question, documents, language) : [];
 
   const retrieval = {
-    mode,
+    mode: effectiveMode,
     totalDecisions: documents.filter((item) => item.extraction).length,
     totalRegulations: regulations.length,
     usedDecisions: decisionHits.length,
@@ -515,7 +577,7 @@ export async function answerSmartChat({
   };
 
   if (!hasRemoteLlm(modelChoice)) {
-    const localAnswer = localSmartAnswer(question, language, decisionHits, ruleHits, charts);
+    const localAnswer = localSmartAnswer(question, language, decisionHits, ruleHits, charts, tierProfile);
     const tierNote =
       language === "en"
         ? `\n\nTier profile: ${tierProfile.labels.en.analysis}; regulation review: ${tierProfile.labels.en.regulation}; new-rule intake: ${tierProfile.labels.en.ruleIntake}.`
@@ -595,7 +657,7 @@ export async function answerSmartChat({
       retrieval
     };
   } catch (error) {
-    const localAnswer = localSmartAnswer(question, language, decisionHits, ruleHits, charts);
+    const localAnswer = localSmartAnswer(question, language, decisionHits, ruleHits, charts, tierProfile);
     const tierNote =
       language === "en"
         ? `\n\nTier profile: ${tierProfile.labels.en.analysis}; regulation review: ${tierProfile.labels.en.regulation}; new-rule intake: ${tierProfile.labels.en.ruleIntake}.`
