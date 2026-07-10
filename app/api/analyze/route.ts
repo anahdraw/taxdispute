@@ -5,12 +5,15 @@ import type { ExtractionResult } from "@/lib/extraction";
 import { mergeRegulationRecords } from "@/lib/regulation-knowledge";
 import { buildLlmAnalysis } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
+import { getActiveTierWorkProfile } from "@/lib/tier-profiles";
+import { modelChoiceFromRequest } from "@/lib/model-options";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const auth = requireAuth(request);
   if ("response" in auth) return auth.response;
+  const modelChoice = modelChoiceFromRequest(request);
   try {
     const body = await request.json();
     const input = ("input" in body ? body.input : body) as AnalyzeInput;
@@ -19,7 +22,16 @@ export async function POST(request: Request) {
     const decisionContext = decisionDocumentsToComparables(storedDocuments);
     const localAnalysis = buildAnalysis(input, extraction, decisionContext.length ? decisionContext : undefined);
     const storedRegulations = hasDatabase() ? await listTaxRegulations().catch(() => []) : [];
-    return NextResponse.json(await buildLlmAnalysis(input, localAnalysis, extraction, mergeRegulationRecords(storedRegulations)));
+    return NextResponse.json(
+      await buildLlmAnalysis(
+        input,
+        localAnalysis,
+        extraction,
+        mergeRegulationRecords(storedRegulations),
+        getActiveTierWorkProfile(auth.session.tier),
+        modelChoice
+      )
+    );
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Invalid analysis request" },

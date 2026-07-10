@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { callOpenAIText, configuredModel, hasOpenAIKey, missingKeyStatus } from "@/lib/openai";
+import { modelChoiceFromRequest } from "@/lib/model-options";
+import { callOpenAIText, configuredModel, hasRemoteLlm, missingKeyStatus } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -38,6 +39,7 @@ function localReferenceAnswer(question: string, context: string, language: "id" 
 export async function POST(request: Request) {
   const auth = requireAuth(request);
   if ("response" in auth) return auth.response;
+  const modelChoice = modelChoiceFromRequest(request);
   try {
     const body = (await request.json()) as {
       question?: string;
@@ -57,10 +59,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: language === "en" ? "Reference context is empty." : "Konteks referensi kosong." }, { status: 400 });
     }
 
-    if (!hasOpenAIKey()) {
+    if (!hasRemoteLlm(modelChoice)) {
       return NextResponse.json({
         answer: localReferenceAnswer(question, context, language),
-        llmStatus: missingKeyStatus(language)
+        llmStatus: missingKeyStatus(language, modelChoice)
       });
     }
 
@@ -79,12 +81,12 @@ export async function POST(request: Request) {
       null,
       2
     );
-    const answer = await callOpenAIText(prompt, system);
+    const answer = await callOpenAIText(prompt, system, modelChoice);
     return NextResponse.json({
       answer,
       llmStatus: {
         used: true,
-        model: configuredModel(),
+        model: configuredModel(modelChoice),
         message: language === "en" ? "Reference smartbot answered with opened reference context." : "Smartbot referensi menjawab dengan konteks referensi yang sedang dibuka."
       }
     });

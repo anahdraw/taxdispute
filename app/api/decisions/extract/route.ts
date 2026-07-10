@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import { hasDatabase, upsertDecisionExtraction } from "@/lib/db";
 import { emptyPpnComponents, extractPdfWithLlm, type ExtractionResult, type PpnComponents } from "@/lib/extraction";
+import { modelChoiceFromRequest } from "@/lib/model-options";
+import { canUsePdfModel, configuredModel } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -182,8 +184,21 @@ function friendlyExtractionError(error: unknown, sections?: number) {
 export async function POST(request: Request) {
   const auth = requireAuth(request, ["admin"]);
   if ("response" in auth) return auth.response;
+  const modelChoice = modelChoiceFromRequest(request);
   let chunkCount = 0;
   try {
+    if (!canUsePdfModel(modelChoice)) {
+      return NextResponse.json(
+        {
+          error:
+            modelChoice === "local-rules"
+              ? "Local rules cannot extract PDF files. Choose Mini/Nano or configure an on-prem PDF-capable endpoint."
+              : `PDF extraction model is not configured for ${configuredModel(modelChoice)}.`
+        },
+        { status: 500 }
+      );
+    }
+
     const body = (await request.json()) as {
       id?: string;
       filename?: string;
@@ -211,9 +226,9 @@ export async function POST(request: Request) {
     const extractedParts: ExtractionResult[] = [];
     for (const chunk of chunks) {
       try {
-        extractedParts.push(await extractPdfWithLlm(chunk, language));
+        extractedParts.push(await extractPdfWithLlm(chunk, language, modelChoice));
       } catch {
-        extractedParts.push(await extractPdfWithLlm(chunk, language));
+        extractedParts.push(await extractPdfWithLlm(chunk, language, modelChoice));
       }
     }
     const extraction = mergeExtractions(extractedParts, filename, language);

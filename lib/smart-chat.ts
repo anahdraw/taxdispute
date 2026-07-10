@@ -1,6 +1,8 @@
 import type { StoredDecisionFile } from "./stored-decisions";
 import type { Regulation } from "./mock-data";
-import { callOpenAIText, configuredModel, hasOpenAIKey, missingKeyStatus, type LlmStatus } from "./openai";
+import { DEFAULT_LLM_MODEL_CHOICE, type LlmModelChoice } from "./model-options";
+import { callOpenAIText, configuredModel, hasRemoteLlm, missingKeyStatus, type LlmStatus } from "./openai";
+import { tierWorkProfiles, type TierWorkProfile } from "./tier-profiles";
 
 export type SmartChatSourceMode = "all" | "decisions" | "regulations";
 
@@ -46,6 +48,10 @@ export type SmartChatResponse = {
     totalRegulations: number;
     usedDecisions: number;
     usedRegulations: number;
+    tier: string;
+    analysisDepth: string;
+    regulationDepth: string;
+    modelChoice: string;
   };
 };
 
@@ -478,18 +484,22 @@ export async function answerSmartChat({
   language,
   documents,
   regulations,
-  mode
+  mode,
+  tierProfile = tierWorkProfiles.platinum,
+  modelChoice = DEFAULT_LLM_MODEL_CHOICE
 }: {
   question: string;
   language: "id" | "en";
   documents: StoredDecisionFile[];
   regulations: Regulation[];
   mode: SmartChatSourceMode;
+  tierProfile?: TierWorkProfile;
+  modelChoice?: LlmModelChoice;
 }): Promise<SmartChatResponse> {
   const wantsDecisions = mode !== "regulations" && (mode === "decisions" || hasDecisionIntent(question) || !hasRegulationIntent(question));
   const wantsRules = mode !== "decisions" && (mode === "regulations" || hasRegulationIntent(question) || !hasDecisionIntent(question));
-  const decisionHits = wantsDecisions ? rankDecisionDocuments(question, documents, 8) : [];
-  const ruleHits = wantsRules ? rankRegulations(question, regulations, 8) : [];
+  const decisionHits = wantsDecisions ? rankDecisionDocuments(question, documents, tierProfile.smartDecisionLimit) : [];
+  const ruleHits = wantsRules ? rankRegulations(question, regulations, tierProfile.smartRegulationLimit) : [];
   const charts = wantsDecisions ? buildCharts(question, documents, language) : [];
 
   const retrieval = {
@@ -497,30 +507,53 @@ export async function answerSmartChat({
     totalDecisions: documents.filter((item) => item.extraction).length,
     totalRegulations: regulations.length,
     usedDecisions: decisionHits.length,
-    usedRegulations: ruleHits.length
+    usedRegulations: ruleHits.length,
+    tier: tierProfile.tier,
+    analysisDepth: tierProfile.analysisDepth,
+    regulationDepth: tierProfile.regulationDepth,
+    modelChoice
   };
 
-  if (!hasOpenAIKey()) {
+  if (!hasRemoteLlm(modelChoice)) {
+    const localAnswer = localSmartAnswer(question, language, decisionHits, ruleHits, charts);
+    const tierNote =
+      language === "en"
+        ? `\n\nTier profile: ${tierProfile.labels.en.analysis}; regulation review: ${tierProfile.labels.en.regulation}; new-rule intake: ${tierProfile.labels.en.ruleIntake}.`
+        : `\n\nProfil tier: ${tierProfile.labels.id.analysis}; review aturan: ${tierProfile.labels.id.regulation}; konsumsi aturan baru: ${tierProfile.labels.id.ruleIntake}.`;
+    const status = missingKeyStatus(language, modelChoice);
     return {
-      answer: localSmartAnswer(question, language, decisionHits, ruleHits, charts),
+      answer: `${localAnswer}${tierNote}`,
       decisionHits,
       ruleHits,
       charts,
-      llmStatus: missingKeyStatus(language),
+      llmStatus: {
+        ...status,
+        message:
+          language === "en"
+            ? `${status.message} Local ${tierProfile.labels.en.analysis} profile applied.`
+            : `${status.message} Profil lokal ${tierProfile.labels.id.analysis} diterapkan.`
+      },
       retrieval
     };
   }
 
   const system =
     language === "en"
-      ? "You are Smart Dispute Bot, an Indonesian tax dispute RAG assistant. Answer using only the retrieved decision and regulation context. Prioritize exact taxpayer/company matches, decision numbers, and issue matches over generic outcome matches. Be concise but useful, cite decision numbers and rule citations, and say when context is insufficient."
-      : "Anda adalah Smart Dispute Bot, asisten RAG sengketa pajak Indonesia. Jawab hanya dari konteks putusan dan peraturan yang diambil melalui retrieval. Prioritaskan kecocokan nama WP/perusahaan, nomor putusan, dan isu dibanding kecocokan outcome yang generik. Ringkas tetapi berguna, sebutkan nomor putusan dan sitasi aturan, dan katakan bila konteks belum cukup.";
+      ? `You are Smart Dispute Bot, an Indonesian tax dispute RAG assistant. Answer using only the retrieved decision and regulation context. Prioritize exact taxpayer/company matches, decision numbers, and issue matches over generic outcome matches. Cite decision numbers and rule citations, and say when context is insufficient. ${tierProfile.prompts.en.smartChatInstruction}`
+      : `Anda adalah Smart Dispute Bot, asisten RAG sengketa pajak Indonesia. Jawab hanya dari konteks putusan dan peraturan yang diambil melalui retrieval. Prioritaskan kecocokan nama WP/perusahaan, nomor putusan, dan isu dibanding kecocokan outcome yang generik. Sebutkan nomor putusan dan sitasi aturan, dan katakan bila konteks belum cukup. ${tierProfile.prompts.id.smartChatInstruction}`;
   const prompt = JSON.stringify(
     {
       question,
+      tierProfile: {
+        tier: tierProfile.tier,
+        analysisDepth: tierProfile.analysisDepth,
+        regulationDepth: tierProfile.regulationDepth,
+        decisionContextLimit: tierProfile.smartDecisionLimit,
+        regulationContextLimit: tierProfile.smartRegulationLimit
+      },
       retrievalPolicy:
         "The app already ranked context with hybrid relevance: cosine similarity plus boosts for exact taxpayer/company, decision number, tax/issue, and outcome intent. Use only these compact top hits to keep token usage efficient.",
-      decisionContext: decisionHits.slice(0, 5).map((item) => ({
+      decisionContext: decisionHits.slice(0, tierProfile.smartDecisionLimit).map((item) => ({
         number: item.number,
         taxpayer: item.taxpayer,
         taxType: item.taxType,
@@ -530,7 +563,7 @@ export async function answerSmartChat({
         matchReasons: item.matchReasons || [],
         snippet: item.snippet
       })),
-      regulationContext: ruleHits.slice(0, 5).map((item) => ({
+      regulationContext: ruleHits.slice(0, tierProfile.smartRegulationLimit).map((item) => ({
         title: item.title,
         citation: item.citation,
         topic: item.topic,
@@ -545,7 +578,7 @@ export async function answerSmartChat({
   );
 
   try {
-    const answer = await callOpenAIText(prompt, system);
+    const answer = await callOpenAIText(prompt, system, modelChoice);
     return {
       answer,
       decisionHits,
@@ -553,14 +586,22 @@ export async function answerSmartChat({
       charts,
       llmStatus: {
         used: true,
-        model: configuredModel(),
-        message: language === "en" ? "Smart Dispute Bot answered with hybrid RAG context" : "Smart Dispute Bot menjawab dengan konteks hybrid RAG"
+        model: configuredModel(modelChoice),
+        message:
+          language === "en"
+            ? `Smart Dispute Bot answered with hybrid RAG context (${tierProfile.labels.en.analysis})`
+            : `Smart Dispute Bot menjawab dengan konteks hybrid RAG (${tierProfile.labels.id.analysis})`
       },
       retrieval
     };
   } catch (error) {
+    const localAnswer = localSmartAnswer(question, language, decisionHits, ruleHits, charts);
+    const tierNote =
+      language === "en"
+        ? `\n\nTier profile: ${tierProfile.labels.en.analysis}; regulation review: ${tierProfile.labels.en.regulation}; new-rule intake: ${tierProfile.labels.en.ruleIntake}.`
+        : `\n\nProfil tier: ${tierProfile.labels.id.analysis}; review aturan: ${tierProfile.labels.id.regulation}; konsumsi aturan baru: ${tierProfile.labels.id.ruleIntake}.`;
     return {
-      answer: `${localSmartAnswer(question, language, decisionHits, ruleHits, charts)}\n\n${
+      answer: `${localAnswer}${tierNote}\n\n${
         language === "en" ? "LLM note" : "Catatan LLM"
       }: ${error instanceof Error ? error.message : "Unknown error"}`,
       decisionHits,
@@ -568,7 +609,7 @@ export async function answerSmartChat({
       charts,
       llmStatus: {
         used: false,
-        model: configuredModel(),
+        model: configuredModel(modelChoice),
         message: language === "en" ? "LLM failed; using retrieved local answer." : "LLM gagal; memakai jawaban lokal dari retrieval."
       },
       retrieval

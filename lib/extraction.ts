@@ -1,4 +1,5 @@
 import type { AnalyzeInput } from "./analyze";
+import { DEFAULT_LLM_MODEL_CHOICE, type LlmModelChoice } from "./model-options";
 import { callOpenAIWithPdf, configuredModel, extractJsonObject } from "./openai";
 
 export type PpnComponents = {
@@ -102,7 +103,7 @@ export function extractionToAnalyzeInput(extraction: ExtractionResult, language:
   };
 }
 
-function normalizeExtraction(raw: Partial<ExtractionResult>, filename: string): ExtractionResult {
+function normalizeExtraction(raw: Partial<ExtractionResult>, filename: string, modelChoice: LlmModelChoice = DEFAULT_LLM_MODEL_CHOICE): ExtractionResult {
   const evidence = Array.isArray(raw.evidence) ? raw.evidence.map(String).filter(Boolean).slice(0, 12) : [];
   const legalReferences = Array.isArray(raw.legalReferences) ? raw.legalReferences.map(String).filter(Boolean).slice(0, 12) : [];
   const judgeNames = Array.isArray(raw.judgeNames) ? raw.judgeNames.map(String).filter(Boolean).slice(0, 8) : [];
@@ -171,13 +172,13 @@ function normalizeExtraction(raw: Partial<ExtractionResult>, filename: string): 
     extractedAt: new Date().toISOString(),
     llmStatus: {
       used: true,
-      model: configuredModel(),
+      model: configuredModel(modelChoice),
       message: "PDF extracted with LLM"
     }
   };
 }
 
-export async function extractPdfWithLlm(file: File, language: "id" | "en"): Promise<ExtractionResult> {
+export async function extractPdfWithLlm(file: File, language: "id" | "en", modelChoice: LlmModelChoice = DEFAULT_LLM_MODEL_CHOICE): Promise<ExtractionResult> {
   const bytes = Buffer.from(await file.arrayBuffer());
   if (bytes.byteLength > 4 * 1024 * 1024) {
     throw new Error(language === "en" ? "PDF is too large for this upload. Please use a file below 4 MB." : "PDF terlalu besar untuk upload ini. Gunakan file di bawah 4 MB.");
@@ -199,7 +200,7 @@ documentType, putusanNumber, putusanYear, courtPanel, judgeNames, clerkName, pro
 ppnComponents harus object dengan key persis: ppn_dpp, ppn_pajak_keluaran, ppn_pajak_masukan, ppn_kb_lb, ppn_kompensasi, ppn_masih_harus_bayar, ppn_dpp_djp, ppn_pm_djp, ppn_sanksi_pasal_13, ppn_koreksi_dpp, ppn_koreksi_pm, ppn_tarif, ppn_is_lb, ppn_jenis_penyerahan, ppn_objek_sengketa, ppn_notes.
 Khusus kasus PPN, ekstrak komponen ini dari tabel dan pertimbangan. ppn_dpp adalah DPP menurut Pengadilan Pajak; ppn_pajak_keluaran adalah Pajak Keluaran atau DPP x tarif; ppn_pajak_masukan adalah Pajak Masukan/Kredit Pajak menurut Pengadilan Pajak; ppn_kb_lb adalah signed value PPN Kurang/Lebih Bayar dengan nilai positif = Kurang Bayar dan negatif = Lebih Bayar; ppn_kompensasi adalah kompensasi ke masa berikutnya; ppn_masih_harus_bayar adalah total final yang masih harus dibayar setelah putusan; ppn_dpp_djp dan ppn_pm_djp adalah posisi DJP/Terbanding sebelum putusan; ppn_sanksi_pasal_13 adalah sanksi administrasi Pasal 13; ppn_koreksi_dpp dan ppn_koreksi_pm adalah nilai koreksi sengketa DPP/Pajak Masukan. ppn_jenis_penyerahan wajib salah satu BKP_DN, JKP_Luar_Pabean, Impor, Ekspor, Mixed, atau kosong. ppn_objek_sengketa wajib salah satu DPP, PM, DPP_dan_PM, Formal, atau kosong. ppn_is_lb true untuk lebih bayar/restitusi, false untuk kurang bayar, null jika tidak jelas.
 Gunakan Bahasa Indonesia untuk ringkasan, tetapi pertahankan nama/nomor resmi sesuai sumber. judgeNames, evidence, dan legalReferences harus array. Jika field tidak tersedia, isi string kosong, array kosong, atau null untuk ppn_is_lb.`;
-  const text = await callOpenAIWithPdf(prompt, system, { filename: file.name, fileData });
+  const text = await callOpenAIWithPdf(prompt, system, { filename: file.name, fileData }, modelChoice);
   const parsed = extractJsonObject(text) as Partial<ExtractionResult>;
-  return normalizeExtraction(parsed, file.name);
+  return normalizeExtraction(parsed, file.name, modelChoice);
 }

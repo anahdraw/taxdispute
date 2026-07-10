@@ -13,6 +13,7 @@ export type StoredReport = {
   input: AnalyzeInput;
   extraction?: ExtractionResult | null;
   analysis: AnalysisResult;
+  modelChoice?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -33,7 +34,7 @@ function hashString(value: string) {
   return Math.abs(hash).toString(36);
 }
 
-export function buildReportKey(input: AnalyzeInput, extraction?: ExtractionResult | null) {
+export function buildReportKey(input: AnalyzeInput, extraction?: ExtractionResult | null, modelChoice?: string) {
   const decisionNumber = extraction?.putusanNumber || extraction?.skpNumber || extraction?.djpDecisionNumber || "";
   return [
     normalizePart(decisionNumber),
@@ -41,7 +42,8 @@ export function buildReportKey(input: AnalyzeInput, extraction?: ExtractionResul
     normalizePart(input.taxType || extraction?.taxType),
     normalizePart(input.issueType || extraction?.issueType),
     normalizePart(input.stage),
-    normalizePart(input.correctionAmount || extraction?.correctionAmount)
+    normalizePart(input.correctionAmount || extraction?.correctionAmount),
+    modelChoice ? `model:${normalizePart(modelChoice)}` : ""
   ]
     .filter(Boolean)
     .join("|");
@@ -51,14 +53,16 @@ export function buildStoredReport({
   input,
   extraction,
   analysis,
-  language
+  language,
+  modelChoice
 }: {
   input: AnalyzeInput;
   extraction?: ExtractionResult | null;
   analysis: AnalysisResult;
   language: "id" | "en";
+  modelChoice?: string;
 }): StoredReport {
-  const reportKey = buildReportKey(input, extraction);
+  const reportKey = buildReportKey(input, extraction, modelChoice);
   const caseNumber = extraction?.putusanNumber || extraction?.skpNumber || extraction?.djpDecisionNumber || input.issueType || "case";
   const taxpayerName = input.taxpayerName || extraction?.taxpayerName || "Taxpayer";
   const title = `${taxpayerName} - ${caseNumber}`;
@@ -75,8 +79,8 @@ export function buildStoredReport({
     input,
     extraction: extraction || null,
     analysis,
+    modelChoice,
     createdAt: now,
     updatedAt: now
   };
 }
-

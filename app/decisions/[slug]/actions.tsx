@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ExtractionResult } from "@/lib/extraction";
+import { LLM_MODEL_HEADER, MODEL_CHOICE_STORAGE_KEY, normalizeModelChoice } from "@/lib/model-options";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 
 type DecisionDetailActionsProps = {
@@ -35,6 +36,14 @@ async function readActionResponse(response: Response): Promise<{ error?: string 
   }
 }
 
+function currentModelHeader() {
+  try {
+    return { [LLM_MODEL_HEADER]: normalizeModelChoice(window.localStorage.getItem(MODEL_CHOICE_STORAGE_KEY)) };
+  } catch {
+    return { [LLM_MODEL_HEADER]: normalizeModelChoice("") };
+  }
+}
+
 export function DecisionDetailActions({ document, backLabel, printLabel, canManage = false }: DecisionDetailActionsProps) {
   const router = useRouter();
   const [busyAction, setBusyAction] = useState<"" | "extract" | "save" | "delete">("");
@@ -61,7 +70,7 @@ export function DecisionDetailActions({ document, backLabel, printLabel, canMana
     try {
       const response = await fetch("/api/decisions/extract", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...currentModelHeader() },
         body: JSON.stringify({ ...document, language: "id" })
       });
       const data = await readActionResponse(response);

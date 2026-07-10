@@ -4,12 +4,15 @@ import { regulations as seedRegulations } from "@/lib/mock-data";
 import { mergeRegulationRecords } from "@/lib/regulation-knowledge";
 import { answerSmartChat, type SmartChatSourceMode } from "@/lib/smart-chat";
 import { requireAuth } from "@/lib/auth";
+import { getActiveTierWorkProfile } from "@/lib/tier-profiles";
+import { modelChoiceFromRequest } from "@/lib/model-options";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const auth = requireAuth(request);
   if ("response" in auth) return auth.response;
+  const modelChoice = modelChoiceFromRequest(request);
   try {
     const body = (await request.json()) as {
       question?: string;
@@ -34,7 +37,9 @@ export async function POST(request: Request) {
         language,
         documents,
         regulations: regulationRecords,
-        mode
+        mode,
+        tierProfile: getActiveTierWorkProfile(auth.session.tier),
+        modelChoice
       })
     );
   } catch (error) {

@@ -3,12 +3,15 @@ import { hasDatabase, listTaxRegulations } from "@/lib/db";
 import { answerRegulationQuestion } from "@/lib/openai";
 import { mergeRegulationRecords, chooseRegulationContext } from "@/lib/regulation-knowledge";
 import { requireAuth } from "@/lib/auth";
+import { getActiveTierWorkProfile } from "@/lib/tier-profiles";
+import { modelChoiceFromRequest } from "@/lib/model-options";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   const auth = requireAuth(request);
   if ("response" in auth) return auth.response;
+  const modelChoice = modelChoiceFromRequest(request);
   try {
     const body = (await request.json()) as { question?: string; language?: "id" | "en"; topic?: string };
     const question = (body.question || "").trim();
@@ -18,7 +21,15 @@ export async function POST(request: Request) {
     }
     const stored = hasDatabase() ? await listTaxRegulations().catch(() => []) : [];
     const records = mergeRegulationRecords(stored);
-    return NextResponse.json(await answerRegulationQuestion(question, language, chooseRegulationContext(records, question, body.topic)));
+    return NextResponse.json(
+      await answerRegulationQuestion(
+        question,
+        language,
+        chooseRegulationContext(records, question, body.topic),
+        getActiveTierWorkProfile(auth.session.tier),
+        modelChoice
+      )
+    );
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Invalid regulation chat request" },

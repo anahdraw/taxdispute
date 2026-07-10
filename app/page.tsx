@@ -16,6 +16,15 @@ import { decisionDetailPath } from "@/lib/decision-links";
 import { referenceDetailPath } from "@/lib/reference-links";
 import type { ActivityLog, ManagedUser, SubscriptionTier, SystemCheck, TierFeatureKey, UserRole } from "@/lib/admin";
 import { defaultTierForRole, normalizeSubscriptionTier, normalizeUsername, seedUsers, subscriptionTierConfigs, tierHasFeature, userIdFromUsername } from "@/lib/admin";
+import {
+  DEFAULT_LLM_MODEL_CHOICE,
+  LLM_MODEL_HEADER,
+  MODEL_CHOICE_STORAGE_KEY,
+  modelChoices,
+  normalizeModelChoice,
+  type LlmModelChoice
+} from "@/lib/model-options";
+import { tierWorkProfiles } from "@/lib/tier-profiles";
 
 type Language = "id" | "en";
 type ThemeMode = "dark" | "light";
@@ -53,6 +62,14 @@ function canAccessPage(role: UserRole, tier: SubscriptionTier, key: PageKey) {
   if (key === "regulations") return tierHasFeature(tier, "regulationRead");
   if (key === "reports") return tierHasFeature(tier, "reports");
   return false;
+}
+
+function modelRequestHeaders(modelChoice: LlmModelChoice) {
+  return { [LLM_MODEL_HEADER]: modelChoice };
+}
+
+function jsonRequestHeaders(modelChoice: LlmModelChoice) {
+  return { "Content-Type": "application/json", ...modelRequestHeaders(modelChoice) };
 }
 
 const evidenceOptions = {
@@ -269,6 +286,33 @@ const copy = {
     commandCenter: "Command Center",
     activeRole: "Role aktif",
     dataMode: "Mode data",
+    aiRuntime: "AI runtime",
+    aiRuntimeHint: "Mini seimbang, Nano cepat, Local offline, On-prem privat.",
+    modelMini: "Mini",
+    modelMiniHint: "Seimbang",
+    modelNano: "Nano",
+    modelNanoHint: "Cepat",
+    modelLocal: "Local",
+    modelLocalHint: "Rules",
+    modelOnPrem: "On-prem",
+    modelOnPremHint: "Privat",
+    aiModelTitle: "Model AI",
+    aiProvider: "Penyedia AI",
+    aiProviderOpenAI: "OpenAI / kompatibel (cloud/API)",
+    aiProviderOllama: "Ollama / lokal on-premise",
+    aiProviderRules: "Local rules / tanpa LLM",
+    aiModelOpenAI: "Model OpenAI",
+    aiModelLocal: "Model lokal",
+    aiApiBaseUrl: "Alamat API (Base URL)",
+    aiGoodFor: "Cocok untuk",
+    aiNote: "Catatan",
+    aiRecommendation: "Rekomendasi",
+    aiRuntimeLocked: "Model detail dan endpoint produksi dibaca dari environment server.",
+    aiInstalled: "Tersedia",
+    aiEnvOnly: "Env server",
+    aiVariation: "Variasi jawaban",
+    aiContextCapacity: "Kapasitas konteks",
+    aiTextLimit: "Batas teks per proses",
     workspaceSignal: "Sinyal knowledge",
     liveWorkspace: "Database aktif",
     localWorkspace: "Local first",
@@ -323,6 +367,11 @@ const copy = {
     featureLabel: "Fitur",
     allowed: "Ya",
     blocked: "Tidak",
+    analysisDepth: "Level analisis",
+    regulationDepth: "Pendalaman aturan",
+    comparableDepth: "Analisis putusan",
+    reportDepth: "Output report",
+    ruleIntakeStrategy: "Konsumsi aturan baru",
     privacySilverDesc: "Analisis dan draft sederhana.",
     privacyGoldDesc: "Tim advisor dengan akses database.",
     privacyPlatinumDesc: "Kontrol penuh, admin, dan integrasi.",
@@ -566,6 +615,33 @@ const copy = {
     commandCenter: "Command Center",
     activeRole: "Active role",
     dataMode: "Data mode",
+    aiRuntime: "AI runtime",
+    aiRuntimeHint: "Mini balanced, Nano fast, Local offline, On-prem private.",
+    modelMini: "Mini",
+    modelMiniHint: "Balanced",
+    modelNano: "Nano",
+    modelNanoHint: "Fast",
+    modelLocal: "Local",
+    modelLocalHint: "Rules",
+    modelOnPrem: "On-prem",
+    modelOnPremHint: "Private",
+    aiModelTitle: "AI model",
+    aiProvider: "AI provider",
+    aiProviderOpenAI: "OpenAI / compatible (cloud/API)",
+    aiProviderOllama: "Ollama / local on-premise",
+    aiProviderRules: "Local rules / no LLM",
+    aiModelOpenAI: "OpenAI model",
+    aiModelLocal: "Local model",
+    aiApiBaseUrl: "API address (Base URL)",
+    aiGoodFor: "Good for",
+    aiNote: "Note",
+    aiRecommendation: "Recommendation",
+    aiRuntimeLocked: "Production model details and endpoints are read from server environment variables.",
+    aiInstalled: "Available",
+    aiEnvOnly: "Server env",
+    aiVariation: "Answer variation",
+    aiContextCapacity: "Context capacity",
+    aiTextLimit: "Text limit per process",
     workspaceSignal: "Knowledge signal",
     liveWorkspace: "Live database",
     localWorkspace: "Local first",
@@ -620,6 +696,11 @@ const copy = {
     featureLabel: "Feature",
     allowed: "Yes",
     blocked: "No",
+    analysisDepth: "Analysis depth",
+    regulationDepth: "Regulation depth",
+    comparableDepth: "Decision analysis",
+    reportDepth: "Report output",
+    ruleIntakeStrategy: "New-rule intake",
     privacySilverDesc: "Simple analysis and report drafting.",
     privacyGoldDesc: "Advisor teams with database access.",
     privacyPlatinumDesc: "Full controls, admin, and integrations.",
@@ -743,6 +824,251 @@ function ThemeToggle({
         {labels.darkMode}
       </button>
     </div>
+  );
+}
+
+function modelRuntimeCopy(labels: (typeof copy)["en"], choice: LlmModelChoice) {
+  if (choice === "openai-nano") return { label: labels.modelNano, hint: labels.modelNanoHint };
+  if (choice === "local-rules") return { label: labels.modelLocal, hint: labels.modelLocalHint };
+  if (choice === "local-onprem") return { label: labels.modelOnPrem, hint: labels.modelOnPremHint };
+  return { label: labels.modelMini, hint: labels.modelMiniHint };
+}
+
+function ModelRuntimeMenu({
+  labels,
+  value,
+  onChange
+}: {
+  labels: (typeof copy)["en"];
+  value: LlmModelChoice;
+  onChange: (value: LlmModelChoice) => void;
+}) {
+  const active = modelRuntimeCopy(labels, value);
+  return (
+    <section className="model-runtime-menu" aria-label={labels.aiRuntime}>
+      <div className="model-runtime-head">
+        <span>{labels.aiRuntime}</span>
+        <b>{active.label}</b>
+      </div>
+      <div className="model-runtime-grid" role="group" aria-label={labels.aiRuntime}>
+        {modelChoices.map((choice) => {
+          const item = modelRuntimeCopy(labels, choice.id);
+          return (
+            <button key={choice.id} className={value === choice.id ? "active" : ""} onClick={() => onChange(choice.id)} type="button">
+              <span>{item.label}</span>
+              <small>{item.hint}</small>
+            </button>
+          );
+        })}
+      </div>
+      <p>{labels.aiRuntimeHint}</p>
+    </section>
+  );
+}
+
+type AiProviderChoice = "openai" | "ollama" | "rules";
+
+function modelProviderFromChoice(choice: LlmModelChoice): AiProviderChoice {
+  if (choice === "local-onprem") return "ollama";
+  if (choice === "local-rules") return "rules";
+  return "openai";
+}
+
+function ModelRuntimePanel({
+  labels,
+  value,
+  onChange
+}: {
+  labels: (typeof copy)["en"];
+  value: LlmModelChoice;
+  onChange: (value: LlmModelChoice) => void;
+}) {
+  const isEnglish = labels.signIn === "Sign in";
+  const provider = modelProviderFromChoice(value);
+  const active = modelRuntimeCopy(labels, value);
+  const providerOptions: Array<{ value: AiProviderChoice; label: string }> = [
+    { value: "openai", label: labels.aiProviderOpenAI },
+    { value: "ollama", label: labels.aiProviderOllama },
+    { value: "rules", label: labels.aiProviderRules }
+  ];
+  const summaries: Record<LlmModelChoice, { title: string; badge: string; goodFor: string; note: string }> = {
+    "openai-mini": {
+      title: isEnglish ? "Balanced cloud" : "Cloud hemat-akurat",
+      badge: "API",
+      goodFor: isEnglish
+        ? "metadata extraction, summaries, classification, and normal report drafts."
+        : "ekstraksi metadata, ringkasan, klasifikasi, dan draft laporan umum.",
+      note: isEnglish
+        ? "Default for stable demos and advisor-quality output."
+        : "Default untuk demo stabil dan kualitas jawaban advisor."
+    },
+    "openai-nano": {
+      title: isEnglish ? "Fast cloud" : "Cloud cepat-hemat",
+      badge: "API",
+      goodFor: isEnglish ? "cheap triage, short labels, and high-volume quick checks." : "triase murah, label pendek, dan cek cepat volume tinggi.",
+      note: isEnglish ? "Use mini again for harder reasoning." : "Gunakan mini lagi untuk penalaran yang lebih sulit."
+    },
+    "local-rules": {
+      title: isEnglish ? "Offline rules" : "Rules lokal",
+      badge: "Offline",
+      goodFor: isEnglish ? "safe fallback, scoring demo, and deterministic local analysis." : "fallback aman, demo scoring, dan analisis lokal deterministik.",
+      note: isEnglish ? "No external AI call is made." : "Tidak ada panggilan AI eksternal."
+    },
+    "local-onprem": {
+      title: isEnglish ? "Private endpoint" : "Endpoint privat",
+      badge: "Private",
+      goodFor: isEnglish ? "on-premise deployments with OpenAI-compatible local gateways." : "deployment on-premise dengan gateway lokal kompatibel OpenAI.",
+      note: isEnglish ? "Configure TDP_LOCAL_LLM_URL and TDP_LOCAL_LLM_MODEL on the server." : "Atur TDP_LOCAL_LLM_URL dan TDP_LOCAL_LLM_MODEL di server."
+    }
+  };
+  const summary = summaries[value];
+  const baseUrlValue =
+    provider === "openai" ? "https://api.openai.com/v1" : provider === "ollama" ? "TDP_LOCAL_LLM_URL" : "local-rules";
+  const localModelValue = provider === "ollama" ? "TDP_LOCAL_LLM_MODEL / local-tax-dispute" : "local-rules";
+  const presetCards: Array<{ choice: LlmModelChoice; title: string; subtitle: string; badge: string }> = [
+    {
+      choice: "openai-mini",
+      title: "gpt-5.4-mini",
+      subtitle: isEnglish ? "Balanced cloud" : "Cloud hemat-akurat",
+      badge: "API"
+    },
+    {
+      choice: "openai-nano",
+      title: "gpt-5.4-nano",
+      subtitle: isEnglish ? "Lowest-cost cloud" : "Cloud paling hemat",
+      badge: "API"
+    },
+    {
+      choice: "local-rules",
+      title: isEnglish ? "Local rules" : "Rules lokal",
+      subtitle: isEnglish ? "Offline fallback" : "Fallback offline",
+      badge: "Offline"
+    },
+    {
+      choice: "local-onprem",
+      title: isEnglish ? "On-prem endpoint" : "Endpoint on-prem",
+      subtitle: isEnglish ? "Private compatible API" : "API privat kompatibel",
+      badge: "Private"
+    }
+  ];
+  const localCandidates = [
+    { name: "qwen3:8b", size: "~5.2GB", hint: isEnglish ? "accurate local default" : "default lokal akurat" },
+    { name: "qwen3:4b", size: "~2.5GB", hint: isEnglish ? "small-machine friendly" : "hemat untuk mesin kecil" },
+    { name: "qwen3-vl:8b", size: "~6.1GB", hint: isEnglish ? "document vision" : "vision dokumen" },
+    { name: "deepseek-ocr", size: "~6.7GB", hint: isEnglish ? "OCR experiment" : "eksperimen OCR" }
+  ];
+
+  const changeProvider = (nextProvider: AiProviderChoice) => {
+    if (nextProvider === "openai") onChange(value === "openai-nano" ? "openai-nano" : "openai-mini");
+    if (nextProvider === "ollama") onChange("local-onprem");
+    if (nextProvider === "rules") onChange("local-rules");
+  };
+
+  return (
+    <section className="model-ai-panel" aria-label={labels.aiModelTitle}>
+      <div className="model-ai-panel-head">
+        <div>
+          <span>{labels.aiModelTitle}</span>
+          <p>{labels.aiRuntimeLocked}</p>
+        </div>
+        <b>{active.label} · {active.hint}</b>
+      </div>
+
+      <label className="model-ai-field model-ai-field-full">
+        <span>{labels.aiProvider}</span>
+        <select value={provider} onChange={(event) => changeProvider(event.target.value as AiProviderChoice)}>
+          {providerOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="model-ai-form-row">
+        <label className="model-ai-field">
+          <span>{provider === "openai" ? labels.aiModelOpenAI : labels.aiModelLocal}</span>
+          {provider === "openai" ? (
+            <select value={value === "openai-nano" ? "openai-nano" : "openai-mini"} onChange={(event) => onChange(event.target.value as LlmModelChoice)}>
+              <option value="openai-mini">gpt-5.4-mini - {isEnglish ? "balanced cloud" : "cloud hemat-akurat"}</option>
+              <option value="openai-nano">gpt-5.4-nano - {isEnglish ? "fast low-cost cloud" : "cloud cepat-hemat"}</option>
+            </select>
+          ) : (
+            <input value={localModelValue} readOnly />
+          )}
+        </label>
+        <label className="model-ai-field">
+          <span>{labels.aiApiBaseUrl}</span>
+          <input value={baseUrlValue} readOnly />
+        </label>
+      </div>
+
+      <article className={`model-ai-summary ${value}`}>
+        <div>
+          <strong>{summary.title}</strong>
+          <small>{summary.badge}</small>
+        </div>
+        <p>
+          <b>{labels.aiGoodFor}:</b> {summary.goodFor}
+        </p>
+        <p>
+          <b>{labels.aiNote}:</b> {summary.note}
+        </p>
+      </article>
+
+      <div className="model-ai-preset-grid" role="group" aria-label={labels.aiRuntime}>
+        {presetCards.map((card) => (
+          <button key={card.choice} type="button" className={value === card.choice ? "active" : ""} onClick={() => onChange(card.choice)}>
+            <span>{card.title}</span>
+            <small>{card.subtitle}</small>
+            <i>{card.badge}</i>
+          </button>
+        ))}
+      </div>
+
+      {provider === "ollama" && (
+        <div className="model-ai-local-block">
+          <div className="model-ai-installed">OK {isEnglish ? "Local endpoint mode is selected." : "Mode endpoint lokal sudah dipilih."}</div>
+          <div className="model-ai-candidate-grid" aria-label={labels.aiProviderOllama}>
+            {localCandidates.map((candidate) => (
+              <article key={candidate.name}>
+                <div>
+                  <b>{candidate.name}</b>
+                  <span>{candidate.size}</span>
+                </div>
+                <p>{candidate.hint}</p>
+                <small>{labels.aiEnvOnly}</small>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="model-ai-recommendation">
+        {labels.aiRecommendation}:{" "}
+        {isEnglish
+          ? "use mini for dependable cloud work, nano for cheap volume, local rules for offline demos, and on-prem when client data must stay private."
+          : "pakai mini untuk cloud yang stabil, nano untuk volume murah, local rules untuk demo offline, dan on-prem saat data klien harus tetap privat."}
+      </p>
+
+      <div className="model-ai-params">
+        <label>
+          <span>{labels.aiVariation}</span>
+          <input value="0" readOnly />
+          <small>{isEnglish ? "0 = stable and consistent" : "0 = stabil dan konsisten"}</small>
+        </label>
+        <label>
+          <span>{labels.aiContextCapacity}</span>
+          <input value="8192" readOnly />
+          <small>{isEnglish ? "tokens readable by the active model" : "token yang bisa dibaca model"}</small>
+        </label>
+        <label>
+          <span>{labels.aiTextLimit}</span>
+          <input value="12000" readOnly />
+          <small>{isEnglish ? "characters per AI request" : "karakter per panggilan AI"}</small>
+        </label>
+      </div>
+    </section>
   );
 }
 
@@ -1294,7 +1620,8 @@ function printCaseDetail() {
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
-  const [session, setSession] = useState<AppSession | null>(() => loadAppSession());
+  const [modelChoice, setModelChoice] = useState<LlmModelChoice>(DEFAULT_LLM_MODEL_CHOICE);
+  const [session, setSession] = useState<AppSession | null>(null);
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => loadManagedUsers());
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadActivityLogs());
   const [adminTab, setAdminTab] = useState<AdminTabKey>("logs");
@@ -1384,7 +1711,7 @@ export default function Home() {
   const labels = copy[language];
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }, extraction), [form, language, extraction]);
   const analysis = serverAnalysis ?? localAnalysis;
-  const currentReportKey = useMemo(() => buildReportKey({ ...form, language }, extraction), [form, language, extraction]);
+  const currentReportKey = useMemo(() => buildReportKey({ ...form, language }, extraction, modelChoice), [form, language, extraction, modelChoice]);
   const reusableReport = useMemo(
     () => storedReports.find((report) => report.language === language && report.reportKey === currentReportKey) || null,
     [storedReports, language, currentReportKey]
@@ -1420,6 +1747,14 @@ export default function Home() {
       }
     } catch {
       // Theme persistence is optional; the UI still works with the default mode.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      setModelChoice(normalizeModelChoice(window.localStorage.getItem(MODEL_CHOICE_STORAGE_KEY)));
+    } catch {
+      // Model preference is optional; server-side allow-list still protects requests.
     }
   }, []);
 
@@ -1643,7 +1978,7 @@ export default function Home() {
     setAdminError("");
     if (showStatus) setAdminStatus("");
     try {
-      const response = await fetch("/api/admin/check");
+      const response = await fetch("/api/admin/check", { headers: modelRequestHeaders(modelChoice) });
       const data = (await response.json()) as {
         checks?: SystemCheck[];
         counts?: Record<string, number>;
@@ -1801,6 +2136,21 @@ export default function Home() {
     }
   }
 
+  function changeModelChoice(nextChoice: LlmModelChoice) {
+    setModelChoice(nextChoice);
+    setServerAnalysis(null);
+    setSmartResponse(null);
+    setRegulationBotResponse(null);
+    setAnalysisError("");
+    setSmartError("");
+    setRegulationBotError("");
+    try {
+      window.localStorage.setItem(MODEL_CHOICE_STORAGE_KEY, nextChoice);
+    } catch {
+      // Model preference is optional; the active request headers still update immediately.
+    }
+  }
+
   function changeLoginRole(nextRole: UserRole) {
     setLoginRole(nextRole);
     setLoginUsername((managedUsers.find((user) => user.role === nextRole && user.status === "active") || DEFAULT_USER_BY_ROLE[nextRole]).username);
@@ -1922,7 +2272,7 @@ export default function Home() {
     const payload = new FormData();
     payload.append("file", file);
     payload.append("language", language);
-    const response = await fetch("/api/extract", { method: "POST", body: payload });
+    const response = await fetch("/api/extract", { method: "POST", headers: modelRequestHeaders(modelChoice), body: payload });
     const contentType = response.headers.get("content-type") || "";
     const data = contentType.includes("application/json") ? await response.json() : { error: await response.text() };
     if (!response.ok) {
@@ -2219,7 +2569,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/decisions/extract", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonRequestHeaders(modelChoice),
         body: JSON.stringify({ ...item, language })
       });
       const data = (await response.json()) as { extraction?: ExtractionResult; error?: string };
@@ -2292,7 +2642,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonRequestHeaders(modelChoice),
         body: JSON.stringify({ input: currentInput, extraction })
       });
       const data = await response.json();
@@ -2301,7 +2651,7 @@ export default function Home() {
       }
       const nextAnalysis = data as AnalysisResultType;
       setServerAnalysis(nextAnalysis);
-      const report = buildStoredReport({ input: currentInput, extraction, analysis: nextAnalysis, language });
+      const report = buildStoredReport({ input: currentInput, extraction, analysis: nextAnalysis, language, modelChoice });
       await persistReport(report);
       setActiveReportId(report.id);
       setSelectedReportId(report.id);
@@ -2443,7 +2793,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/smart-chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonRequestHeaders(modelChoice),
         body: JSON.stringify({ question: smartQuestion, language, mode: smartMode })
       });
       const data = await response.json();
@@ -2470,7 +2820,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/smart-chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: jsonRequestHeaders(modelChoice),
         body: JSON.stringify({ question: regulationQuestion, language, mode: "regulations" })
       });
       const data = await response.json();
@@ -2764,6 +3114,7 @@ export default function Home() {
           <option value="en">English</option>
           <option value="id">Bahasa Indonesia</option>
         </select>
+        <ModelRuntimeMenu labels={labels} value={modelChoice} onChange={changeModelChoice} />
         <nav>
           {visiblePages.map(([key, title]) => (
             <button key={key} className={page === key ? "active" : ""} onClick={() => setPage(key)}>
@@ -2815,6 +3166,10 @@ export default function Home() {
                 <b>{dynamicDashboard.stats.indexedDecisions ? labels.liveWorkspace : labels.localWorkspace}</b>
               </div>
               <div className="workspace-strip-item">
+                <span>{labels.aiRuntime}</span>
+                <b>{modelRuntimeCopy(labels, modelChoice).label} · {modelRuntimeCopy(labels, modelChoice).hint}</b>
+              </div>
+              <div className="workspace-strip-item">
                 <span>{labels.workspaceSignal}</span>
                 <b>{dynamicDashboard.stats.localRegulations} {language === "en" ? "rules" : "aturan"} · {dynamicDashboard.stats.llmLabels} label</b>
               </div>
@@ -2851,7 +3206,15 @@ export default function Home() {
                 </section>
                 <Panel title={labels.recentDocs} className="dashboard-recent">
                   {dynamicDashboard.recentDocuments.length ? <div className="table-wrap">
-                    <table>
+                    <table className="recent-documents-table">
+                      <colgroup>
+                        <col className="recent-col-decision" />
+                        <col className="recent-col-type" />
+                        <col className="recent-col-taxpayer" />
+                        <col className="recent-col-tax" />
+                        <col className="recent-col-issue" />
+                        <col className="recent-col-outcome" />
+                      </colgroup>
                       <thead>
                         <tr>
                           <th>Decision</th>
@@ -2865,12 +3228,12 @@ export default function Home() {
                       <tbody>
                         {dynamicDashboard.recentDocuments.map((doc) => (
                           <tr key={doc.decision}>
-                            <td>{doc.decision}</td>
-                            <td>{doc.documentType}</td>
-                            <td>{doc.taxpayer}</td>
-                            <td>{doc.tax}</td>
-                            <td>{doc.issue}</td>
-                            <td>{doc.outcome}</td>
+                            <td className="recent-decision" title={doc.decision}>{doc.decision}</td>
+                            <td title={doc.documentType}>{doc.documentType}</td>
+                            <td title={doc.taxpayer}>{doc.taxpayer}</td>
+                            <td title={doc.tax}>{doc.tax}</td>
+                            <td className="recent-issue" title={doc.issue}>{doc.issue}</td>
+                            <td className="recent-outcome" title={doc.outcome}>{doc.outcome}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3307,10 +3670,12 @@ export default function Home() {
             error={adminError}
             loading={adminLoading}
             currentSession={session}
+            modelChoice={modelChoice}
             onTabChange={setAdminTab}
             onRefreshLogs={refreshActivityLogs}
             onRefreshUsers={refreshManagedUsers}
             onRunCheck={() => runSystemCheck(true)}
+            onModelChoiceChange={changeModelChoice}
             onUserFormChange={setUserForm}
             onSaveUser={saveUser}
             onResetUser={resetUserForm}
@@ -4262,10 +4627,12 @@ function AdminPanel({
   error,
   loading,
   currentSession,
+  modelChoice,
   onTabChange,
   onRefreshLogs,
   onRefreshUsers,
   onRunCheck,
+  onModelChoiceChange,
   onUserFormChange,
   onSaveUser,
   onResetUser,
@@ -4285,10 +4652,12 @@ function AdminPanel({
   error: string;
   loading: boolean;
   currentSession: AppSession;
+  modelChoice: LlmModelChoice;
   onTabChange: (tab: AdminTabKey) => void;
   onRefreshLogs: () => void;
   onRefreshUsers: () => void;
   onRunCheck: () => void;
+  onModelChoiceChange: (value: LlmModelChoice) => void;
   onUserFormChange: (user: ManagedUser) => void;
   onSaveUser: () => void;
   onResetUser: () => void;
@@ -4314,7 +4683,8 @@ function AdminPanel({
     gold: labels.tierGold,
     platinum: labels.tierPlatinum
   };
-  const accessRows: Array<{ key: TierFeatureKey; label: string }> = [
+  const tierList: SubscriptionTier[] = ["silver", "gold", "platinum"];
+  const featureRows: Array<{ key: TierFeatureKey; label: string }> = [
     { key: "dashboard", label: labels.dashboard },
     { key: "guided", label: labels.guided },
     { key: "databaseRead", label: isEnglish ? "Read decision database" : "Baca database putusan" },
@@ -4324,6 +4694,61 @@ function AdminPanel({
     { key: "regulationWrite", label: isEnglish ? "Update regulation knowledge" : "Update knowledge peraturan" },
     { key: "reports", label: labels.reports },
     { key: "admin", label: `${labels.adminTitle} ${isEnglish ? "(admin role)" : "(role admin)"}` }
+  ];
+  const accessRows: Array<{
+    key: string;
+    label: string;
+    values: Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>;
+  }> = [
+    ...featureRows.map((row) => ({
+      key: row.key,
+      label: row.label,
+      values: tierList.reduce((acc, tier) => {
+        const enabled = tierHasFeature(tier, row.key);
+        acc[tier] = { text: enabled ? labels.allowed : labels.blocked, enabled };
+        return acc;
+      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
+    })),
+    {
+      key: "analysis-depth",
+      label: labels.analysisDepth,
+      values: tierList.reduce((acc, tier) => {
+        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].analysis, enabled: true, depth: true };
+        return acc;
+      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
+    },
+    {
+      key: "regulation-depth",
+      label: labels.regulationDepth,
+      values: tierList.reduce((acc, tier) => {
+        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].regulation, enabled: true, depth: true };
+        return acc;
+      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
+    },
+    {
+      key: "comparable-depth",
+      label: labels.comparableDepth,
+      values: tierList.reduce((acc, tier) => {
+        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].comparable, enabled: true, depth: true };
+        return acc;
+      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
+    },
+    {
+      key: "report-depth",
+      label: labels.reportDepth,
+      values: tierList.reduce((acc, tier) => {
+        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].report, enabled: true, depth: true };
+        return acc;
+      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
+    },
+    {
+      key: "rule-intake",
+      label: labels.ruleIntakeStrategy,
+      values: tierList.reduce((acc, tier) => {
+        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].ruleIntake, enabled: true, depth: true };
+        return acc;
+      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
+    }
   ];
   const securityControls = isEnglish
     ? [
@@ -4569,12 +4994,12 @@ function AdminPanel({
                       {accessRows.map((row) => (
                         <tr key={row.key}>
                           <td>{row.label}</td>
-                          {(["silver", "gold", "platinum"] as SubscriptionTier[]).map((tier) => {
-                            const allowed = tierHasFeature(tier, row.key);
+                          {tierList.map((tier) => {
+                            const value = row.values[tier];
                             return (
                               <td key={tier}>
-                                <span className={`access-pill ${allowed ? "allowed" : "blocked"}`}>
-                                  {allowed ? labels.allowed : labels.blocked}
+                                <span className={`access-pill ${value.depth ? "depth" : value.enabled ? "allowed" : "blocked"}`}>
+                                  {value.text}
                                 </span>
                               </td>
                             );
@@ -4612,6 +5037,7 @@ function AdminPanel({
 
         {activeTab === "api" && (
           <section className="admin-section">
+            <ModelRuntimePanel labels={labels} value={modelChoice} onChange={onModelChoiceChange} />
             <div className="admin-section-head">
               <div>
                 <h3>{labels.apiCheck}</h3>
@@ -4715,7 +5141,7 @@ function SmartChatPanel({
 
       {activeTab === "chat" ? (
         <section className="smart-chat-layout">
-          <Panel title={labels.smartChatTitle}>
+          <Panel title={labels.smartChatTitle} className="smart-question-panel">
             <p className="muted lead-copy">{labels.smartChatIntro}</p>
             <div className="smart-chat-form">
               <label className="control wide">
@@ -4748,7 +5174,7 @@ function SmartChatPanel({
             </button>
           </Panel>
 
-          <Panel title={labels.smartAnswer}>
+          <Panel title={labels.smartAnswer} className="smart-answer-panel">
             {!response ? (
               <div className="empty-state">{labels.noSmartAnswer}</div>
             ) : (

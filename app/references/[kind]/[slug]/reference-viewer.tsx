@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { LLM_MODEL_HEADER, MODEL_CHOICE_STORAGE_KEY, normalizeModelChoice } from "@/lib/model-options";
 
 export type ReferenceViewerProps = {
   initialQuery: string;
@@ -22,6 +23,14 @@ function buildPdfSrc(pdfUrl: string, query: string) {
   hash.set("navpanes", "0");
   if (cleanQuery) hash.set("search", cleanQuery);
   return `${pdfUrl}#${hash.toString()}`;
+}
+
+function currentModelHeader() {
+  try {
+    return { [LLM_MODEL_HEADER]: normalizeModelChoice(window.localStorage.getItem(MODEL_CHOICE_STORAGE_KEY)) };
+  } catch {
+    return { [LLM_MODEL_HEADER]: normalizeModelChoice("") };
+  }
 }
 
 function TextPreview({ text, query }: { text: string; query: string }) {
@@ -119,7 +128,7 @@ export function ReferenceViewer({ initialQuery, kind, pdfUrl, sourceUrl, sourceT
     try {
       const response = await fetch("/api/reference-chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...currentModelHeader() },
         body: JSON.stringify({
           question: trimmed,
           language: "id",

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { extractionToAnalyzeInput, extractPdfWithLlm } from "@/lib/extraction";
-import { hasOpenAIKey } from "@/lib/openai";
+import { modelChoiceFromRequest } from "@/lib/model-options";
+import { canUsePdfModel, configuredModel } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -9,9 +10,18 @@ export const maxDuration = 60;
 export async function POST(request: Request) {
   const auth = requireAuth(request);
   if ("response" in auth) return auth.response;
+  const modelChoice = modelChoiceFromRequest(request);
   try {
-    if (!hasOpenAIKey()) {
-      return NextResponse.json({ error: "OPENAI_API_KEY is not configured in the server environment." }, { status: 500 });
+    if (!canUsePdfModel(modelChoice)) {
+      return NextResponse.json(
+        {
+          error:
+            modelChoice === "local-rules"
+              ? "Local rules cannot extract PDF files. Choose Mini/Nano or configure an on-prem PDF-capable endpoint."
+              : `PDF extraction model is not configured for ${configuredModel(modelChoice)}.`
+        },
+        { status: 500 }
+      );
     }
 
     const formData = await request.formData();
@@ -24,7 +34,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: language === "id" ? "File harus PDF." : "File must be a PDF." }, { status: 400 });
     }
 
-    const extraction = await extractPdfWithLlm(file, language);
+    const extraction = await extractPdfWithLlm(file, language, modelChoice);
     return NextResponse.json({
       extraction,
       analyzeInput: extractionToAnalyzeInput(extraction, language)

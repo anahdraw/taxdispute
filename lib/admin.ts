@@ -81,7 +81,14 @@ export type SystemCheck = {
   metric?: string;
 };
 
-export const seedUsers: ManagedUser[] = [
+function demoUsersEnabled() {
+  const flag = process.env.TDP_DEMO_USERS_ENABLED;
+  if (flag === "true") return true;
+  if (flag === "false") return false;
+  return process.env.NODE_ENV !== "production";
+}
+
+const baseSeedUsers: ManagedUser[] = [
   {
     id: "user-admin-rsm",
     username: "admin",
@@ -105,6 +112,44 @@ export const seedUsers: ManagedUser[] = [
     updatedAt: "2026-01-01T00:00:00.000Z"
   }
 ];
+
+const demoTierUsers: ManagedUser[] = [
+  {
+    id: "user-demo-silver",
+    username: "demo-silver",
+    password: "Silver@RSM2026",
+    name: "Demo Silver Advisor",
+    role: "user",
+    tier: "silver",
+    status: "active",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z"
+  },
+  {
+    id: "user-demo-gold",
+    username: "demo-gold",
+    password: "Gold@RSM2026",
+    name: "Demo Gold Advisor",
+    role: "user",
+    tier: "gold",
+    status: "active",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z"
+  },
+  {
+    id: "user-demo-platinum",
+    username: "demo-platinum",
+    password: "Platinum@RSM2026",
+    name: "Demo Platinum Advisor",
+    role: "user",
+    tier: "platinum",
+    status: "active",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z"
+  }
+];
+
+export const seedUsers: ManagedUser[] = demoUsersEnabled() ? [...baseSeedUsers, ...demoTierUsers] : baseSeedUsers;
 
 export function normalizeUsername(value: string) {
   return String(value || "").trim().toLowerCase();

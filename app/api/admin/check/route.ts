@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { SystemCheck } from "@/lib/admin";
 import { countLegacyPlaintextUsers, getAdminTableCounts, hasDatabase } from "@/lib/db";
-import { configuredModel, hasOpenAIKey } from "@/lib/openai";
+import { modelChoiceFromRequest } from "@/lib/model-options";
+import { configuredModel, hasOpenAIKey, resolveLlmRuntime } from "@/lib/openai";
 import { hasExplicitAuthSecret, requireAuth } from "@/lib/auth";
 import { PASSWORD_HASH_ALGORITHM } from "@/lib/password";
 
@@ -14,13 +15,27 @@ function check(name: string, status: SystemCheck["status"], detail: string, metr
 export async function GET(request: Request) {
   const auth = requireAuth(request, ["admin"]);
   if ("response" in auth) return auth.response;
+  const modelChoice = modelChoiceFromRequest(request);
+  const runtime = resolveLlmRuntime(modelChoice);
+  const llmConfigured =
+    runtime.provider === "local-rules" ? true : runtime.provider === "local-onprem" ? Boolean(runtime.endpoint) : hasOpenAIKey();
+  const llmDetail =
+    runtime.provider === "local-rules"
+      ? "Local rule-based runtime is selected; analysis and chat stay offline."
+      : runtime.provider === "local-onprem"
+        ? runtime.endpoint
+          ? "On-prem OpenAI-compatible endpoint is configured."
+          : "TDP_LOCAL_LLM_URL is missing for on-prem runtime."
+        : hasOpenAIKey()
+          ? "OPENAI_API_KEY is configured for extraction, analysis, and chat."
+          : "OPENAI_API_KEY is missing.";
   const checks: SystemCheck[] = [
     check("Next.js API", "ok", "Server route is responding normally.", "online"),
     check(
-      "OpenAI",
-      hasOpenAIKey() ? "ok" : "warning",
-      hasOpenAIKey() ? "OPENAI_API_KEY is configured for extraction, analysis, and chat." : "OPENAI_API_KEY is missing.",
-      configuredModel()
+      "AI runtime",
+      llmConfigured ? "ok" : "warning",
+      llmDetail,
+      configuredModel(modelChoice)
     ),
     check(
       "Auth session secret",
@@ -79,7 +94,8 @@ export async function GET(request: Request) {
     generatedAt: new Date().toISOString(),
     service: "tax-dispute-agentic-advisor",
     runtime: "nextjs",
-    model: configuredModel(),
+    model: configuredModel(modelChoice),
+    modelChoice,
     checks,
     counts
   });
