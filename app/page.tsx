@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { upload } from "@vercel/blob/client";
 import { buildAnalysis, type AnalysisResult as AnalysisResultType, type AnalyzeInput } from "@/lib/analyze";
 import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } from "@/lib/case-search";
@@ -20,7 +20,6 @@ import {
   DEFAULT_LLM_MODEL_CHOICE,
   LLM_MODEL_HEADER,
   MODEL_CHOICE_STORAGE_KEY,
-  modelChoices,
   normalizeModelChoice,
   type LlmModelChoice
 } from "@/lib/model-options";
@@ -46,6 +45,7 @@ const APP_SESSION_KEY = "tax-dispute-session";
 const ADMIN_USERS_KEY = "tax-dispute-admin-users";
 const ACTIVITY_LOGS_KEY = "tax-dispute-activity-logs";
 const THEME_MODE_KEY = "tax-dispute-theme-mode";
+const SIDEBAR_COLLAPSED_KEY = "tax-dispute-sidebar-collapsed";
 const APP_NAME = "Tax Dispute Agentic Advisor";
 const APP_SHORT_NAME = "Tax Dispute Agentic Advisor";
 const DEFAULT_USER_BY_ROLE = {
@@ -351,7 +351,7 @@ const copy = {
     adminLogs: "Log aktivitas",
     adminUsers: "User management",
     adminPrivacy: "Privasi & akses",
-    adminCheckApi: "Check API",
+    adminCheckApi: "Pengaturan",
     privacyTitle: "Kontrol akses & privasi",
     privacyIntro: "Role mengatur izin. Paket akses mengatur fitur dan limit bulanan.",
     subscriptionTier: "Paket akses",
@@ -680,7 +680,7 @@ const copy = {
     adminLogs: "Activity logs",
     adminUsers: "User management",
     adminPrivacy: "Privacy & access",
-    adminCheckApi: "API check",
+    adminCheckApi: "Settings",
     privacyTitle: "Access & privacy controls",
     privacyIntro: "Roles set permissions. Access plans set features and monthly limits.",
     subscriptionTier: "Access plan",
@@ -804,24 +804,71 @@ function QuickActionIcon({ type }: { type: "document" | "chatbot" | "database" }
   );
 }
 
+type AppIconName =
+  | "admin"
+  | "collapse"
+  | "dashboard"
+  | "database"
+  | "expand"
+  | "guided"
+  | "logout"
+  | "moon"
+  | "regulations"
+  | "reports"
+  | "smartchat"
+  | "sun"
+  | "user";
+
+function AppIcon({ name }: { name: AppIconName }) {
+  const paths: Record<AppIconName, ReactNode> = {
+    admin: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.1 2.1-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V20h-3v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.1-2.1.1-.1A1.7 1.7 0 0 0 7 14.6a1.7 1.7 0 0 0-1.5-1H5v-3h.5A1.7 1.7 0 0 0 7 9.6a1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.1-2.1.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V4h3v.4a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.1 2.1-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1v3h-.1a1.7 1.7 0 0 0-1.5 1.4Z" /></>,
+    collapse: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16m8-5-3-3 3-3" /></>,
+    dashboard: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
+    database: <><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" /></>,
+    expand: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16m5-5 3-3-3-3" /></>,
+    guided: <><path d="M9 5h11M9 12h11M9 19h11" /><path d="m3.5 5 1.2 1.2L7 3.8m-3.5 8.1 1.2 1.2L7 10.7m-3.5 8.1L4.7 20 7 17.6" /></>,
+    logout: <><path d="M10 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5" /><path d="m15 16 4-4-4-4m4 4H9" /></>,
+    moon: <path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z" />,
+    regulations: <><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H20v17H7.5A3.5 3.5 0 0 0 4 22V5.5Z" /><path d="M4 18.5A3.5 3.5 0 0 1 7.5 15H20M8 6h8M8 10h7" /></>,
+    reports: <><path d="M6 2h9l4 4v16H6z" /><path d="M14 2v5h5M9 12h6M9 16h6" /></>,
+    smartchat: <><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.4-4.2A8 8 0 1 1 21 12Z" /><path d="M8 12h8M10 8h4" /></>,
+    sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
+    user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>
+  };
+
+  return <svg className="app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+}
+
+const pageIcons: Record<PageKey, AppIconName> = {
+  dashboard: "dashboard",
+  guided: "guided",
+  database: "database",
+  smartchat: "smartchat",
+  regulations: "regulations",
+  reports: "reports",
+  admin: "admin"
+};
+
 function ThemeToggle({
   labels,
   value,
   onChange,
-  compact = false
+  compact = false,
+  iconOnly = false
 }: {
   labels: (typeof copy)["en"];
   value: ThemeMode;
   onChange: (mode: ThemeMode) => void;
   compact?: boolean;
+  iconOnly?: boolean;
 }) {
   return (
-    <div className={`theme-toggle ${compact ? "compact" : ""}`} role="group" aria-label={labels.theme}>
-      <button type="button" className={value === "light" ? "active" : ""} onClick={() => onChange("light")}>
-        {labels.lightMode}
+    <div className={`theme-toggle ${compact ? "compact" : ""} ${iconOnly ? "icon-only" : ""}`} role="group" aria-label={labels.theme}>
+      <button type="button" className={value === "light" ? "active" : ""} onClick={() => onChange("light")} aria-label={labels.lightMode} title={labels.lightMode}>
+        {iconOnly ? <AppIcon name="sun" /> : labels.lightMode}
       </button>
-      <button type="button" className={value === "dark" ? "active" : ""} onClick={() => onChange("dark")}>
-        {labels.darkMode}
+      <button type="button" className={value === "dark" ? "active" : ""} onClick={() => onChange("dark")} aria-label={labels.darkMode} title={labels.darkMode}>
+        {iconOnly ? <AppIcon name="moon" /> : labels.darkMode}
       </button>
     </div>
   );
@@ -832,38 +879,6 @@ function modelRuntimeCopy(labels: (typeof copy)["en"], choice: LlmModelChoice) {
   if (choice === "local-rules") return { label: labels.modelLocal, hint: labels.modelLocalHint };
   if (choice === "local-onprem") return { label: labels.modelOnPrem, hint: labels.modelOnPremHint };
   return { label: labels.modelMini, hint: labels.modelMiniHint };
-}
-
-function ModelRuntimeMenu({
-  labels,
-  value,
-  onChange
-}: {
-  labels: (typeof copy)["en"];
-  value: LlmModelChoice;
-  onChange: (value: LlmModelChoice) => void;
-}) {
-  const active = modelRuntimeCopy(labels, value);
-  return (
-    <section className="model-runtime-menu" aria-label={labels.aiRuntime}>
-      <div className="model-runtime-head">
-        <span>{labels.aiRuntime}</span>
-        <b>{active.label}</b>
-      </div>
-      <div className="model-runtime-grid" role="group" aria-label={labels.aiRuntime}>
-        {modelChoices.map((choice) => {
-          const item = modelRuntimeCopy(labels, choice.id);
-          return (
-            <button key={choice.id} className={value === choice.id ? "active" : ""} onClick={() => onChange(choice.id)} type="button">
-              <span>{item.label}</span>
-              <small>{item.hint}</small>
-            </button>
-          );
-        })}
-      </div>
-      <p>{labels.aiRuntimeHint}</p>
-    </section>
-  );
 }
 
 type AiProviderChoice = "openai" | "ollama" | "rules";
@@ -1638,7 +1653,7 @@ export default function Home() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [page, setPage] = useState<PageKey>("smartchat");
-  const [sidebarHidden, setSidebarHidden] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [form, setForm] = useState<AnalyzeInput>({ ...initialInput, language });
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [uploadedName, setUploadedName] = useState("");
@@ -1734,8 +1749,7 @@ export default function Home() {
     ["database", labels.database],
     ["smartchat", labels.smartchat],
     ["regulations", labels.regulations],
-    ["reports", labels.reports],
-    ["admin", labels.admin]
+    ["reports", labels.reports]
   ];
   const visiblePages = pages.filter(([key]) => (session ? canAccessPage(session.role, session.tier, key) : false));
 
@@ -1747,6 +1761,14 @@ export default function Home() {
       }
     } catch {
       // Theme persistence is optional; the UI still works with the default mode.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      setSidebarCollapsed(window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true");
+    } catch {
+      // Sidebar persistence is optional.
     }
   }, []);
 
@@ -2149,6 +2171,18 @@ export default function Home() {
     } catch {
       // Model preference is optional; the active request headers still update immediately.
     }
+  }
+
+  function toggleSidebar() {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      } catch {
+        // Sidebar persistence is optional.
+      }
+      return next;
+    });
   }
 
   function changeLoginRole(nextRole: UserRole) {
@@ -3095,51 +3129,60 @@ export default function Home() {
   }
 
   return (
-    <main className={`app-shell theme-${themeMode} ${sidebarHidden ? "sidebar-hidden" : ""}`}>
+    <main className={`app-shell theme-${themeMode} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <aside className="sidebar">
-        <RsmMark />
-        <p className="caption">{APP_SHORT_NAME}</p>
-        <div className="session-card">
-          <span>{labels.signedInAs}</span>
-          <b>{session.name}</b>
-          <i>{session.role === "admin" ? labels.roleAdmin : labels.roleUser} · {tierLabel(session.tier)}</i>
-          <button className="table-button compact" onClick={logout}>
-            {labels.logout}
-          </button>
+        <div className="sidebar-brand-full">
+          <RsmMark />
+          <p className="caption">{APP_SHORT_NAME}</p>
         </div>
-        <label className="field-label" htmlFor="language">
-          Language
-        </label>
-        <select id="language" value={language} onChange={(event) => changeLanguage(event.target.value as Language)}>
-          <option value="en">English</option>
-          <option value="id">Bahasa Indonesia</option>
-        </select>
-        <ModelRuntimeMenu labels={labels} value={modelChoice} onChange={changeModelChoice} />
+        <div className="sidebar-brand-compact" aria-label="RSM">R</div>
+        <div className="sidebar-language">
+          <label className="field-label" htmlFor="language">Language</label>
+          <select id="language" value={language} onChange={(event) => changeLanguage(event.target.value as Language)}>
+            <option value="en">English</option>
+            <option value="id">Bahasa Indonesia</option>
+          </select>
+        </div>
         <nav>
           {visiblePages.map(([key, title]) => (
-            <button key={key} className={page === key ? "active" : ""} onClick={() => setPage(key)}>
-              {title}
+            <button key={key} className={page === key ? "active" : ""} onClick={() => setPage(key)} aria-label={title} title={sidebarCollapsed ? title : undefined}>
+              <AppIcon name={pageIcons[key]} />
+              <span>{title}</span>
             </button>
           ))}
         </nav>
-        {session.role === "admin" && (
-          <button
-            className="health-link"
-            onClick={() => {
-              setAdminTab("api");
-              setPage("admin");
-            }}
-          >
-            {labels.health}
-          </button>
-        )}
       </aside>
 
       <section className="content">
         <div className="content-toolbar">
-          <ThemeToggle labels={labels} value={themeMode} onChange={changeTheme} compact />
-          <button className="table-button compact sidebar-visibility-button" onClick={() => setSidebarHidden((current) => !current)}>
-            {sidebarHidden ? (language === "en" ? "Show menu" : "Tampilkan menu") : language === "en" ? "Hide menu" : "Sembunyikan menu"}
+          <button
+            className="toolbar-icon-button sidebar-visibility-button"
+            onClick={toggleSidebar}
+            aria-label={sidebarCollapsed ? (language === "en" ? "Expand sidebar" : "Perluas sidebar") : language === "en" ? "Collapse sidebar" : "Ringkas sidebar"}
+            title={sidebarCollapsed ? (language === "en" ? "Expand sidebar" : "Perluas sidebar") : language === "en" ? "Collapse sidebar" : "Ringkas sidebar"}
+          >
+            <AppIcon name={sidebarCollapsed ? "expand" : "collapse"} />
+          </button>
+          <ThemeToggle labels={labels} value={themeMode} onChange={changeTheme} compact iconOnly />
+          {session.role === "admin" ? (
+            <button className={`toolbar-user ${page === "admin" ? "active" : ""}`} onClick={() => setPage("admin")} aria-label={labels.admin} title={labels.admin}>
+              <span className="toolbar-avatar"><AppIcon name="user" /></span>
+              <span className="toolbar-user-copy">
+                <b>{session.name}</b>
+                <small>{labels.roleAdmin} · {tierLabel(session.tier)}</small>
+              </span>
+            </button>
+          ) : (
+            <div className="toolbar-user">
+              <span className="toolbar-avatar"><AppIcon name="user" /></span>
+              <span className="toolbar-user-copy">
+                <b>{session.name}</b>
+                <small>{labels.roleUser} · {tierLabel(session.tier)}</small>
+              </span>
+            </div>
+          )}
+          <button className="toolbar-icon-button toolbar-logout" onClick={logout} aria-label={labels.logout} title={labels.logout}>
+            <AppIcon name="logout" />
           </button>
         </div>
         <header className="hero">
