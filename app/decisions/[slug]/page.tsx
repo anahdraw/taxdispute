@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { DetailThemeShell } from "@/app/detail-theme-shell";
 import { DecisionDetailActions } from "./actions";
 import { decodeDecisionSlug } from "@/lib/decision-links";
 import { getDecisionDocumentById, hasDatabase } from "@/lib/db";
@@ -388,25 +389,25 @@ export default async function DecisionDetailPage({ params }: PageProps) {
   if (!document) notFound();
 
   return (
-    <main className="decision-detail-page">
+    <DetailThemeShell className="decision-detail-page">
       <aside className="detail-sidebar">
         <RsmMark />
         <p className="caption">Tax Dispute Agentic Advisor</p>
         <div className="session-card">
-          <span>Linked decision page</span>
+          <span>Detail putusan</span>
           <b>{document.extraction?.putusanNumber || document.filename}</b>
           <i>{document.status}</i>
         </div>
-        <DecisionDetailActions document={document} backLabel="Back to database" printLabel="Print / save PDF" canManage={session.role === "admin"} />
+        <DecisionDetailActions document={document} backLabel="Kembali ke database" printLabel="Cetak / simpan PDF" canManage={session.role === "admin"} />
         {(document.downloadUrl || document.url).startsWith("https://") && (
           <a className="table-button detail-open-pdf" href={referenceDetailPath("decision", document.id)}>
-            Open PDF viewer
+            Buka penampil PDF
           </a>
         )}
       </aside>
       <section className="detail-main">
         <CaseDetailSheet document={document} />
       </section>
-    </main>
+    </DetailThemeShell>
   );
 }

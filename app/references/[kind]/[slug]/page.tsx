@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { DetailThemeShell } from "@/app/detail-theme-shell";
 import { getDecisionDocumentById, hasDatabase, listTaxRegulations } from "@/lib/db";
 import { decodeReferenceSlug, type ReferenceKind } from "@/lib/reference-links";
 import { regulations, type Regulation } from "@/lib/mock-data";
@@ -192,14 +193,14 @@ export default async function ReferencePage({ params, searchParams }: PageProps)
   const initialQuery = String(resolvedSearchParams.q || "").trim();
 
   return (
-    <main className="reference-page">
+    <DetailThemeShell className="reference-page">
       <aside className="detail-sidebar reference-sidebar">
         <RsmMark />
         <p className="caption">Tax Dispute Agentic Advisor</p>
         <div className="session-card">
-          <span>Reference viewer</span>
+          <span>Penampil referensi</span>
           <b>{record.kind === "decision" ? "Putusan" : "Peraturan"}</b>
-          <i>{record.pdfUrl ? "PDF available" : "text/source only"}</i>
+          <i>{record.pdfUrl ? "PDF tersedia" : "Teks dan sumber"}</i>
         </div>
         <a className="table-button" href="/?page=smartchat">
           Kembali ke chatbot
@@ -225,7 +226,7 @@ export default async function ReferencePage({ params, searchParams }: PageProps)
             </div>
             <div className="case-detail-meter">
               <span>PDF</span>
-              <strong>{record.pdfUrl ? "Ready" : "N/A"}</strong>
+              <strong>{record.pdfUrl ? "Tersedia" : "Belum"}</strong>
             </div>
           </div>
           <div className="case-detail-badges">
@@ -247,6 +248,6 @@ export default async function ReferencePage({ params, searchParams }: PageProps)
           />
         </article>
       </section>
-    </main>
+    </DetailThemeShell>
   );
 }

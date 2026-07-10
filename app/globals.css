@@ -5850,3 +5850,264 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* Detail and reference pages share the dashboard theme stored by the main app. */
+.theme-light .theme-toggle button.active,
+.theme-dark .theme-toggle button.active {
+  color: #ffffff;
+}
+
+.reference-page,
+.decision-detail-page {
+  color: var(--ink);
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.reference-page.theme-dark,
+.decision-detail-page.theme-dark {
+  --ink: #f3f7f9;
+  --muted: #a7b4bb;
+  --line: #2a3439;
+  --line-soft: #263137;
+  --surface: #12181b;
+  --surface-solid: #151c20;
+  --soft: #0c1012;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(0, 156, 222, 0.1), transparent 28%),
+    linear-gradient(180deg, #101517 0%, #0b0f11 100%);
+}
+
+.reference-page.theme-light,
+.decision-detail-page.theme-light {
+  --ink: #26323b;
+  --muted: #66737c;
+  --line: #d9e2e8;
+  --line-soft: #e5ebf0;
+  --surface: #ffffff;
+  --surface-solid: #ffffff;
+  --soft: #f3f7fa;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(0, 156, 222, 0.08), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f4f8fb 100%);
+}
+
+.theme-dark .detail-sidebar {
+  border-right-color: #273238;
+  background: rgba(12, 16, 18, 0.96);
+  box-shadow: 12px 0 30px rgba(0, 0, 0, 0.2);
+}
+
+.theme-light .detail-sidebar {
+  border-right-color: #dbe4ea;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 12px 0 30px rgba(31, 41, 55, 0.05);
+}
+
+.theme-dark .detail-sidebar .rsm-mark strong,
+.theme-dark .detail-sidebar .session-card b {
+  color: #f2f7f9;
+}
+
+.theme-light .detail-sidebar .rsm-mark strong,
+.theme-light .detail-sidebar .session-card b {
+  color: #26323b;
+}
+
+.theme-dark .detail-sidebar .caption,
+.theme-dark .detail-sidebar .session-card span,
+.theme-dark .detail-sidebar .session-card i {
+  color: #a8b5bc;
+}
+
+.theme-light .detail-sidebar .caption,
+.theme-light .detail-sidebar .session-card span,
+.theme-light .detail-sidebar .session-card i {
+  color: #66737c;
+}
+
+.reference-sidebar > .table-button,
+.detail-action-menu .table-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.reference-header h3 {
+  max-width: 980px;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.3rem, 1.75vw, 1.72rem);
+}
+
+.reference-header .case-detail-meter strong {
+  max-width: 110px;
+  overflow-wrap: anywhere;
+  font-size: 1.12rem;
+  text-align: right;
+}
+
+.theme-dark .case-detail-sheet,
+.theme-dark .case-detail-card,
+.theme-dark .case-file-stats div,
+.theme-dark .reference-search-card,
+.theme-dark .reference-chat-card,
+.theme-dark .reference-text-card,
+.theme-dark .detail-edit-panel {
+  border-color: #29353b;
+  background: #12181b;
+  color: #edf4f7;
+}
+
+.theme-dark .case-detail-sheet {
+  background:
+    linear-gradient(135deg, rgba(0, 156, 222, 0.04), transparent 34%),
+    #12181b;
+}
+
+.theme-light .case-detail-sheet,
+.theme-light .case-detail-card,
+.theme-light .case-file-stats div,
+.theme-light .reference-search-card,
+.theme-light .reference-chat-card,
+.theme-light .reference-text-card,
+.theme-light .detail-edit-panel {
+  border-color: #dce5eb;
+  background: #ffffff;
+  color: #26323b;
+}
+
+.theme-dark .case-detail-header,
+.theme-dark .case-detail-card h3,
+.theme-dark .case-detail-rows div {
+  border-color: #29353b;
+}
+
+.theme-light .case-detail-header,
+.theme-light .case-detail-card h3,
+.theme-light .case-detail-rows div {
+  border-color: #e4ebf0;
+}
+
+.theme-dark .case-detail-card h3 {
+  background: #0f1518;
+  color: #f3f7f9;
+}
+
+.theme-light .case-detail-card h3 {
+  background: #f7fafc;
+  color: #26323b;
+}
+
+.theme-dark .case-detail-header h3,
+.theme-dark .case-detail-meter strong,
+.theme-dark .case-detail-rows dd,
+.theme-dark .case-detail-card p,
+.theme-dark .case-file-stats b,
+.theme-dark .reference-chat-card h3,
+.theme-dark .reference-text-preview,
+.theme-dark .reference-answer-text {
+  color: #edf4f7;
+}
+
+.theme-light .case-detail-header h3,
+.theme-light .case-detail-meter strong,
+.theme-light .case-detail-rows dd,
+.theme-light .case-detail-card p,
+.theme-light .case-file-stats b,
+.theme-light .reference-chat-card h3,
+.theme-light .reference-text-preview,
+.theme-light .reference-answer-text {
+  color: #26323b;
+}
+
+.theme-dark .case-detail-header p,
+.theme-dark .case-detail-meter span,
+.theme-dark .case-detail-rows dt,
+.theme-dark .reference-search-card p,
+.theme-dark .reference-chat-card p,
+.theme-dark .reference-search-card label,
+.theme-dark .reference-chat-card label {
+  color: #a7b4bb;
+}
+
+.theme-light .case-detail-header p,
+.theme-light .case-detail-meter span,
+.theme-light .case-detail-rows dt,
+.theme-light .reference-search-card p,
+.theme-light .reference-chat-card p,
+.theme-light .reference-search-card label,
+.theme-light .reference-chat-card label {
+  color: #66737c;
+}
+
+.theme-dark .reference-search-card input,
+.theme-dark .reference-chat-card textarea,
+.theme-dark .detail-edit-panel textarea {
+  border-color: #2d3a40;
+  background: #0d1316;
+  color: #f2f7f9;
+}
+
+.theme-light .reference-search-card input,
+.theme-light .reference-chat-card textarea,
+.theme-light .detail-edit-panel textarea {
+  border-color: #d7e1e8;
+  background: #ffffff;
+  color: #26323b;
+}
+
+.theme-dark .reference-answer-text,
+.theme-dark .reference-text-preview {
+  background: #0e1417;
+}
+
+.theme-light .reference-answer-text,
+.theme-light .reference-text-preview {
+  background: #f7fafc;
+}
+
+.theme-dark .reference-pdf-frame {
+  border-color: #29353b;
+  background: #0d1215;
+}
+
+.theme-light .reference-pdf-frame {
+  border-color: #dce5eb;
+  background: #ffffff;
+}
+
+.theme-dark .case-detail-badges span {
+  background: rgba(0, 156, 222, 0.14);
+  color: #9ee4ff;
+}
+
+.theme-dark .case-detail-badges span:nth-child(2n) {
+  background: rgba(67, 160, 71, 0.15);
+  color: #bce9c0;
+}
+
+@media (max-width: 620px) {
+  .detail-main {
+    padding: 16px 10px 36px;
+  }
+
+  .case-detail-sheet {
+    padding: 12px;
+  }
+
+  .reference-header {
+    grid-template-columns: 1fr;
+  }
+
+  .reference-header .case-detail-meter {
+    justify-items: start;
+  }
+
+  .reference-header .case-detail-meter strong {
+    max-width: none;
+    text-align: left;
+  }
+
+  .case-detail-rows div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}
