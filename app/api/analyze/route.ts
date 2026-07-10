@@ -7,6 +7,7 @@ import { buildLlmAnalysis } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
 import { getActiveTierWorkProfile } from "@/lib/tier-profiles";
 import { modelChoiceFromRequest } from "@/lib/model-options";
+import { resolveRequestTier, TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 
 export const runtime = "nodejs";
 
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
         localAnalysis,
         extraction,
         mergeRegulationRecords(storedRegulations),
-        getActiveTierWorkProfile(auth.session.tier),
+        getActiveTierWorkProfile(resolveRequestTier(auth.session, request.headers.get(TIER_PREVIEW_HEADER))),
         modelChoice
       )
     );

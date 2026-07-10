@@ -5,6 +5,7 @@ import { mergeRegulationRecords, chooseRegulationContext } from "@/lib/regulatio
 import { requireAuth } from "@/lib/auth";
 import { getActiveTierWorkProfile } from "@/lib/tier-profiles";
 import { modelChoiceFromRequest } from "@/lib/model-options";
+import { resolveRequestTier, TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 
 export const runtime = "nodejs";
 
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
         question,
         language,
         chooseRegulationContext(records, question, body.topic),
-        getActiveTierWorkProfile(auth.session.tier),
+        getActiveTierWorkProfile(resolveRequestTier(auth.session, request.headers.get(TIER_PREVIEW_HEADER))),
         modelChoice
       )
     );

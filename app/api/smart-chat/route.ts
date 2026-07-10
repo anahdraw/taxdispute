@@ -6,6 +6,7 @@ import { answerSmartChat, type SmartChatSourceMode } from "@/lib/smart-chat";
 import { requireAuth } from "@/lib/auth";
 import { getActiveTierWorkProfile } from "@/lib/tier-profiles";
 import { modelChoiceFromRequest } from "@/lib/model-options";
+import { resolveRequestTier, TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 
 export const runtime = "nodejs";
 
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
         documents,
         regulations: regulationRecords,
         mode,
-        tierProfile: getActiveTierWorkProfile(auth.session.tier),
+        tierProfile: getActiveTierWorkProfile(resolveRequestTier(auth.session, request.headers.get(TIER_PREVIEW_HEADER))),
         modelChoice
       })
     );

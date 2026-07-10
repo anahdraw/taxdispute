@@ -1,5 +1,6 @@
 import type { AnalysisResult, AnalyzeInput } from "./analyze";
 import type { ExtractionResult } from "./extraction";
+import type { SubscriptionTier } from "./admin";
 
 export type StoredReport = {
   id: string;
@@ -14,6 +15,7 @@ export type StoredReport = {
   extraction?: ExtractionResult | null;
   analysis: AnalysisResult;
   modelChoice?: string;
+  tier?: SubscriptionTier;
   createdAt: string;
   updatedAt: string;
 };
@@ -34,7 +36,7 @@ function hashString(value: string) {
   return Math.abs(hash).toString(36);
 }
 
-export function buildReportKey(input: AnalyzeInput, extraction?: ExtractionResult | null, modelChoice?: string) {
+export function buildReportKey(input: AnalyzeInput, extraction?: ExtractionResult | null, modelChoice?: string, tier?: SubscriptionTier) {
   const decisionNumber = extraction?.putusanNumber || extraction?.skpNumber || extraction?.djpDecisionNumber || "";
   return [
     normalizePart(decisionNumber),
@@ -43,7 +45,8 @@ export function buildReportKey(input: AnalyzeInput, extraction?: ExtractionResul
     normalizePart(input.issueType || extraction?.issueType),
     normalizePart(input.stage),
     normalizePart(input.correctionAmount || extraction?.correctionAmount),
-    modelChoice ? `model:${normalizePart(modelChoice)}` : ""
+    modelChoice ? `model:${normalizePart(modelChoice)}` : "",
+    tier ? `tier:${tier}` : ""
   ]
     .filter(Boolean)
     .join("|");
@@ -54,15 +57,17 @@ export function buildStoredReport({
   extraction,
   analysis,
   language,
-  modelChoice
+  modelChoice,
+  tier
 }: {
   input: AnalyzeInput;
   extraction?: ExtractionResult | null;
   analysis: AnalysisResult;
   language: "id" | "en";
   modelChoice?: string;
+  tier?: SubscriptionTier;
 }): StoredReport {
-  const reportKey = buildReportKey(input, extraction, modelChoice);
+  const reportKey = buildReportKey(input, extraction, modelChoice, tier);
   const caseNumber = extraction?.putusanNumber || extraction?.skpNumber || extraction?.djpDecisionNumber || input.issueType || "case";
   const taxpayerName = input.taxpayerName || extraction?.taxpayerName || "Taxpayer";
   const title = `${taxpayerName} - ${caseNumber}`;
@@ -80,6 +85,7 @@ export function buildStoredReport({
     extraction: extraction || null,
     analysis,
     modelChoice,
+    tier,
     createdAt: now,
     updatedAt: now
   };

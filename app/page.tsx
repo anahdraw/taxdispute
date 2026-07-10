@@ -24,6 +24,7 @@ import {
   type LlmModelChoice
 } from "@/lib/model-options";
 import { tierWorkProfiles } from "@/lib/tier-profiles";
+import { TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 
 type Language = "id" | "en";
 type ThemeMode = "dark" | "light";
@@ -64,12 +65,15 @@ function canAccessPage(role: UserRole, tier: SubscriptionTier, key: PageKey) {
   return false;
 }
 
-function modelRequestHeaders(modelChoice: LlmModelChoice) {
-  return { [LLM_MODEL_HEADER]: modelChoice };
+function modelRequestHeaders(modelChoice: LlmModelChoice, previewTier?: SubscriptionTier) {
+  return {
+    [LLM_MODEL_HEADER]: modelChoice,
+    ...(previewTier ? { [TIER_PREVIEW_HEADER]: previewTier } : {})
+  };
 }
 
-function jsonRequestHeaders(modelChoice: LlmModelChoice) {
-  return { "Content-Type": "application/json", ...modelRequestHeaders(modelChoice) };
+function jsonRequestHeaders(modelChoice: LlmModelChoice, previewTier?: SubscriptionTier) {
+  return { "Content-Type": "application/json", ...modelRequestHeaders(modelChoice, previewTier) };
 }
 
 const evidenceOptions = {
@@ -1637,6 +1641,7 @@ export default function Home() {
   const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
   const [modelChoice, setModelChoice] = useState<LlmModelChoice>(DEFAULT_LLM_MODEL_CHOICE);
   const [session, setSession] = useState<AppSession | null>(null);
+  const [adminPreviewTier, setAdminPreviewTier] = useState<SubscriptionTier>("platinum");
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => loadManagedUsers());
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => loadActivityLogs());
   const [adminTab, setAdminTab] = useState<AdminTabKey>("logs");
@@ -1724,9 +1729,15 @@ export default function Home() {
   const [regulationBotError, setRegulationBotError] = useState("");
   const [regulationBotLoading, setRegulationBotLoading] = useState(false);
   const labels = copy[language];
+  const effectiveTier = session?.role === "admin" ? adminPreviewTier : (session?.tier || "silver");
+  const effectiveAccessRole: UserRole = session?.role === "admin" ? "user" : (session?.role || "user");
+  const requestPreviewTier = session?.role === "admin" ? adminPreviewTier : undefined;
   const localAnalysis = useMemo(() => buildAnalysis({ ...form, language }, extraction), [form, language, extraction]);
   const analysis = serverAnalysis ?? localAnalysis;
-  const currentReportKey = useMemo(() => buildReportKey({ ...form, language }, extraction, modelChoice), [form, language, extraction, modelChoice]);
+  const currentReportKey = useMemo(
+    () => buildReportKey({ ...form, language }, extraction, modelChoice, effectiveTier),
+    [effectiveTier, form, language, extraction, modelChoice]
+  );
   const reusableReport = useMemo(
     () => storedReports.find((report) => report.language === language && report.reportKey === currentReportKey) || null,
     [storedReports, language, currentReportKey]
@@ -1751,7 +1762,7 @@ export default function Home() {
     ["regulations", labels.regulations],
     ["reports", labels.reports]
   ];
-  const visiblePages = pages.filter(([key]) => (session ? canAccessPage(session.role, session.tier, key) : false));
+  const visiblePages = pages.filter(([key]) => (session ? canAccessPage(effectiveAccessRole, effectiveTier, key) : false));
 
   useEffect(() => {
     try {
@@ -1858,19 +1869,19 @@ export default function Home() {
   }, [session?.username, session?.role, session?.tier]);
 
   useEffect(() => {
-    if (session && !canAccessPage(session.role, session.tier, page)) {
+    if (session && page !== "admin" && !canAccessPage(effectiveAccessRole, effectiveTier, page)) {
       setPage("smartchat");
     }
-  }, [page, session]);
+  }, [effectiveAccessRole, effectiveTier, page, session]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !session) return;
     const targetPage = new URLSearchParams(window.location.search).get("page") as PageKey | null;
-    if (targetPage && pages.some(([key]) => key === targetPage) && canAccessPage(session.role, session.tier, targetPage)) {
+    if (targetPage && pages.some(([key]) => key === targetPage) && canAccessPage(effectiveAccessRole, effectiveTier, targetPage)) {
       setPage(targetPage);
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [session]);
+  }, [effectiveAccessRole, effectiveTier, session]);
 
   useEffect(() => {
     setRegulationPage((current) => Math.min(Math.max(1, current), regulationTotalPages));
@@ -2171,6 +2182,19 @@ export default function Home() {
     } catch {
       // Model preference is optional; the active request headers still update immediately.
     }
+  }
+
+  function changeAdminPreviewTier(nextTier: SubscriptionTier) {
+    const tier = normalizeSubscriptionTier(nextTier, "user");
+    setAdminPreviewTier(tier);
+    setServerAnalysis(null);
+    setSmartResponse(null);
+    setSmartStatus("");
+    setSmartError("");
+    setRegulationBotResponse(null);
+    setRegulationBotStatus("");
+    setRegulationBotError("");
+    if (page !== "admin" && !canAccessPage("user", tier, page)) setPage("smartchat");
   }
 
   function toggleSidebar() {
@@ -2688,7 +2712,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
-        headers: jsonRequestHeaders(modelChoice),
+        headers: jsonRequestHeaders(modelChoice, requestPreviewTier),
         body: JSON.stringify({ input: currentInput, extraction })
       });
       const data = await response.json();
@@ -2697,7 +2721,7 @@ export default function Home() {
       }
       const nextAnalysis = data as AnalysisResultType;
       setServerAnalysis(nextAnalysis);
-      const report = buildStoredReport({ input: currentInput, extraction, analysis: nextAnalysis, language, modelChoice });
+      const report = buildStoredReport({ input: currentInput, extraction, analysis: nextAnalysis, language, modelChoice, tier: effectiveTier });
       await persistReport(report);
       setActiveReportId(report.id);
       setSelectedReportId(report.id);
@@ -2839,7 +2863,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/smart-chat", {
         method: "POST",
-        headers: jsonRequestHeaders(modelChoice),
+        headers: jsonRequestHeaders(modelChoice, requestPreviewTier),
         body: JSON.stringify({ question: smartQuestion, language, mode: smartMode })
       });
       const data = await response.json();
@@ -2866,7 +2890,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/smart-chat", {
         method: "POST",
-        headers: jsonRequestHeaders(modelChoice),
+        headers: jsonRequestHeaders(modelChoice, requestPreviewTier),
         body: JSON.stringify({ question: regulationQuestion, language, mode: "regulations" })
       });
       const data = await response.json();
@@ -3176,12 +3200,26 @@ export default function Home() {
             <AppIcon name={sidebarCollapsed ? "expand" : "collapse"} />
           </button>
           <ThemeToggle labels={labels} value={themeMode} onChange={changeTheme} compact iconOnly />
+          {session.role === "admin" && (
+            <label className="toolbar-tier-preview">
+              <span>{language === "en" ? "Preview" : "Pratinjau"}</span>
+              <select
+                value={adminPreviewTier}
+                onChange={(event) => changeAdminPreviewTier(event.target.value as SubscriptionTier)}
+                aria-label={language === "en" ? "Preview subscription tier" : "Pratinjau tier langganan"}
+              >
+                <option value="silver">Silver</option>
+                <option value="gold">Gold</option>
+                <option value="platinum">Platinum</option>
+              </select>
+            </label>
+          )}
           {session.role === "admin" ? (
             <button className={`toolbar-user ${page === "admin" ? "active" : ""}`} onClick={() => setPage("admin")} aria-label={labels.admin} title={labels.admin}>
               <span className="toolbar-avatar"><AppIcon name="user" /></span>
               <span className="toolbar-user-copy">
                 <b>{session.name}</b>
-                <small>{labels.roleAdmin} · {tierLabel(session.tier)}</small>
+                <small>{labels.roleAdmin} · {language === "en" ? "Preview" : "Pratinjau"} {tierLabel(effectiveTier)}</small>
               </span>
             </button>
           ) : (
@@ -3214,7 +3252,7 @@ export default function Home() {
               </div>
               <div className="workspace-strip-item">
                 <span>{labels.activeRole}</span>
-                <b>{session.role === "admin" ? labels.roleAdmin : labels.roleUser} · {tierLabel(session.tier)}</b>
+                <b>{session.role === "admin" ? labels.roleAdmin : labels.roleUser} · {tierLabel(effectiveTier)}</b>
               </div>
               <div className="workspace-strip-item">
                 <span>{labels.dataMode}</span>
@@ -3437,7 +3475,7 @@ export default function Home() {
         {page === "smartchat" && (
           <SmartChatPanel
             labels={labels}
-            tier={session.tier}
+            tier={effectiveTier}
             question={smartQuestion}
             mode={smartMode}
             response={smartResponse}
@@ -3489,8 +3527,8 @@ export default function Home() {
               <div className="regulation-tab-panels">
                 {regulationTab === "bot" && (
                   <section className="regulation-tab-panel">
-                    <div className="regulation-bot-box compact">
-                      <div>
+                    <div className={`regulation-bot-box compact tier-preview-${effectiveTier}`}>
+                      <div className="regulation-bot-intro">
                         <h3>{labels.regulationBotTitle}</h3>
                         <p className="muted">{labels.regulationBotIntro}</p>
                       </div>
@@ -3501,23 +3539,43 @@ export default function Home() {
                             <textarea
                               value={regulationQuestion}
                               onChange={(event) => setRegulationQuestion(event.target.value)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                                  event.preventDefault();
+                                  if (!regulationBotLoading && regulationQuestion.trim()) void askRegulationBot();
+                                }
+                              }}
                               placeholder={labels.regulationQuestionPlaceholder}
-                              rows={6}
+                              rows={4}
                             />
                           </label>
-                          <button className="primary-button" onClick={askRegulationBot} disabled={regulationBotLoading || !regulationQuestion.trim()}>
-                            {regulationBotLoading ? labels.askingRegulationBot : labels.askRegulationBot}
+                          <button className="primary-button regulation-ask-button" onClick={askRegulationBot} disabled={regulationBotLoading || !regulationQuestion.trim()}>
+                            <AppIcon name="regulations" />
+                            <span>{regulationBotLoading ? labels.askingRegulationBot : labels.askRegulationBot}</span>
                           </button>
                           {regulationBotError && <div className="status-banner error">{regulationBotError}</div>}
                         </div>
                         <div className="regulation-bot-answer">
-                          <h3>{labels.regulationBotAnswer}</h3>
+                          <div className="regulation-answer-heading">
+                            <div>
+                              <span>{language === "en" ? "Structured regulation review" : "Telaah peraturan terstruktur"}</span>
+                              <h3>{labels.regulationBotAnswer}</h3>
+                            </div>
+                            <span className={`tier-answer-badge ${effectiveTier}`}>{tierLabel(effectiveTier)}</span>
+                          </div>
                           {!regulationBotResponse ? (
                             <div className="empty-state">{labels.noRegulationBotAnswer}</div>
                           ) : (
                             <>
                               {regulationBotStatus && <div className="status-banner success">{regulationBotStatus}</div>}
-                              <MarkdownText text={regulationBotResponse.answer} />
+                              <MarkdownText text={regulationBotResponse.answer} structured />
+                              <div className="regulation-retrieval-summary">
+                                <b>{language === "en" ? "Sources reviewed" : "Sumber ditelaah"}</b>
+                                <span>
+                                  {regulationBotResponse.retrieval.usedRegulations}/{regulationBotResponse.retrieval.totalRegulations} {language === "en" ? "regulations" : "peraturan"}
+                                </span>
+                              </div>
+                              <h4 className="regulation-source-title">{language === "en" ? "Regulation references" : "Referensi peraturan"}</h4>
                               <div className="source-list compact-source-list">
                                 {regulationBotResponse.ruleHits.slice(0, 6).map((item) => (
                                   <article key={item.id} className="source-card">
@@ -3822,12 +3880,16 @@ function StructuredMarkdownText({ text }: { text: string }) {
     .map((block) => block.trim())
     .filter(Boolean);
   const sections: Array<{ title: string; blocks: string[] }> = [];
+  const implicitSectionPattern = /^(Executive summary|Issue map|Regulatory analysis|Decision pattern|Evidence assessment|Argument strategy|Risks and counterarguments|Recommended actions|Ringkasan eksekutif|Peta isu|Analisis peraturan|Pola putusan|Penilaian bukti|Strategi argumentasi|Risiko dan kontra-argumen|Tindakan yang disarankan)\s*(?:[-–—:]|\n)\s*([\s\S]*)$/i;
 
   for (const block of blocks) {
     const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
     const heading = lines[0]?.match(/^#{1,6}\s+(.+)$/);
+    const implicitHeading = block.match(implicitSectionPattern);
     if (heading) {
       sections.push({ title: heading[1], blocks: lines.length > 1 ? [lines.slice(1).join("\n")] : [] });
+    } else if (implicitHeading) {
+      sections.push({ title: implicitHeading[1], blocks: implicitHeading[2] ? [implicitHeading[2].trim()] : [] });
     } else if (sections.length) {
       sections[sections.length - 1].blocks.push(block);
     } else {
