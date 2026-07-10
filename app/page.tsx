@@ -5230,28 +5230,28 @@ function SmartChatPanel({
   const isEnglish = labels.signIn === "Sign in";
   const tierGuide = {
     silver: {
-      title: isEnglish ? "Concise rule answer" : "Jawaban aturan ringkas",
-      description: isEnglish ? "A short answer from the closest regulations, with one clear next step." : "Jawaban singkat dari aturan terdekat dengan satu langkah lanjut yang jelas."
+      title: isEnglish ? "Concise rules" : "Aturan ringkas",
+      description: isEnglish ? "Closest regulations and one clear next step." : "Peraturan terdekat dan satu langkah lanjut."
     },
     gold: {
-      title: isEnglish ? "Rules + decision references" : "Aturan + referensi putusan",
-      description: isEnglish ? "An advisor-level answer citing relevant regulations and comparable decisions." : "Jawaban level advisor dengan sitasi aturan dan putusan pembanding."
+      title: isEnglish ? "Rules + decisions" : "Aturan + putusan",
+      description: isEnglish ? "Advisor guidance with relevant rules and comparable decisions." : "Panduan advisor dengan aturan dan putusan pembanding."
     },
     platinum: {
-      title: isEnglish ? "Deep structured analysis" : "Analisis mendalam terstruktur",
-      description: isEnglish ? "A senior-review brief covering issues, rules, decisions, evidence, risks, and strategy." : "Brief untuk review senior yang mencakup isu, aturan, putusan, bukti, risiko, dan strategi."
+      title: isEnglish ? "Deep analysis" : "Analisis mendalam",
+      description: isEnglish ? "Issues, rules, decisions, evidence, risks, and strategy." : "Isu, aturan, putusan, bukti, risiko, dan strategi."
     }
   }[tier];
   const starterQuestions = isEnglish
     ? [
-        "Which rules govern this tax issue and what should I check first?",
-        "Which decisions are most comparable and how do their outcomes differ?",
-        "What evidence gaps and argument strategy should the advisor prioritize?"
+        { label: "Rules and first checks", question: "Which rules govern this tax issue and what should I check first?" },
+        { label: "Comparable decisions", question: "Which decisions are most comparable and how do their outcomes differ?" },
+        { label: "Evidence and strategy", question: "What evidence gaps and argument strategy should the advisor prioritize?" }
       ]
     : [
-        "Aturan apa yang mengatur isu pajak ini dan apa yang perlu dicek terlebih dahulu?",
-        "Putusan mana yang paling sebanding dan bagaimana perbedaan outcome-nya?",
-        "Celah bukti dan strategi argumentasi apa yang perlu diprioritaskan advisor?"
+        { label: "Aturan dan cek awal", question: "Aturan apa yang mengatur isu pajak ini dan apa yang perlu dicek terlebih dahulu?" },
+        { label: "Putusan pembanding", question: "Putusan mana yang paling sebanding dan bagaimana perbedaan hasilnya?" },
+        { label: "Bukti dan strategi", question: "Celah bukti dan strategi argumentasi apa yang perlu diprioritaskan advisor?" }
       ];
   const scopeCopy = tier === "silver"
     ? (isEnglish ? "Regulations only for concise rule guidance" : "Khusus peraturan untuk panduan aturan ringkas")
@@ -5299,9 +5299,9 @@ function SmartChatPanel({
               <span>{isEnglish ? "Try a starter question" : "Coba pertanyaan awal"}</span>
               <div className="starter-question-list">
                 {starterQuestions.map((starter, index) => (
-                  <button key={starter} type="button" onClick={() => onQuestionChange(starter)}>
+                  <button key={starter.label} type="button" onClick={() => onQuestionChange(starter.question)} title={starter.question}>
                     <span>{index + 1}</span>
-                    {starter}
+                    {starter.label}
                   </button>
                 ))}
               </div>
