@@ -6084,6 +6084,65 @@ tbody tr:hover {
   color: #bce9c0;
 }
 
+.theme-dark .report-card {
+  border-color: #29353b;
+  background: #12181b;
+  color: #eef5f8;
+}
+
+.theme-dark .report-card:hover,
+.theme-dark .report-card:focus-visible {
+  border-color: rgba(102, 199, 238, 0.42);
+  border-left-color: var(--rsm-blue);
+  background: #17242a;
+  color: #ffffff;
+}
+
+.theme-dark .report-card.active {
+  border-color: rgba(102, 199, 238, 0.56);
+  border-left-color: var(--rsm-blue);
+  background: linear-gradient(90deg, rgba(0, 156, 222, 0.2), #132027 72%);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(0, 156, 222, 0.08);
+}
+
+.theme-dark .report-card span,
+.theme-dark .report-card small {
+  color: #aebbc2;
+}
+
+.theme-dark .report-card.active span,
+.theme-dark .report-card.active small {
+  color: #c9dce5;
+}
+
+.theme-light .report-card {
+  border-color: #dce5eb;
+  background: #ffffff;
+  color: #26323b;
+}
+
+.theme-light .report-card:hover,
+.theme-light .report-card:focus-visible {
+  border-color: #b9e2f5;
+  border-left-color: var(--rsm-blue);
+  background: #f3faff;
+  color: #26323b;
+}
+
+.theme-light .report-card.active {
+  border-color: #a8ddf4;
+  border-left-color: var(--rsm-blue);
+  background: linear-gradient(90deg, #e7f7fd, #f7fcff 72%);
+  color: #1f303a;
+  box-shadow: inset 0 0 0 1px rgba(0, 156, 222, 0.05);
+}
+
+.theme-light .report-card span,
+.theme-light .report-card small {
+  color: #68757e;
+}
+
 @media (max-width: 620px) {
   .detail-main {
     padding: 16px 10px 36px;
