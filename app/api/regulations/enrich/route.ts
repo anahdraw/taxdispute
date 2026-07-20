@@ -7,7 +7,7 @@ import { normalizeRegulationSourceScope, regulationSourceMatches } from "@/lib/r
 import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 async function storedRegulations() {
   if (!hasDatabase()) return [];
@@ -44,9 +44,10 @@ export async function POST(request: Request) {
     for (const record of targets) {
       results.push(await enrichRegulation(record));
     }
+    const processedRecords = results.map((item) => item.record);
     const enrichedRecords = results.filter((item) => item.enriched).map((item) => item.record);
-    if (hasDatabase() && enrichedRecords.length) {
-      await upsertTaxRegulations(enrichedRecords);
+    if (hasDatabase() && processedRecords.length) {
+      await upsertTaxRegulations(processedRecords);
     }
 
     const refreshed = await storedRegulations();
@@ -55,8 +56,16 @@ export async function POST(request: Request) {
       requested: targets.length,
       enriched: enrichedRecords.length,
       skipped: results.length - enrichedRecords.length,
-      results: results.map((item) => ({ id: item.record.id, title: item.record.title, enriched: item.enriched, message: item.message })),
-      records: mergeRegulationRecords([...refreshed, ...enrichedRecords])
+      results: results.map((item) => ({
+        id: item.record.id,
+        title: item.record.title,
+        enriched: item.enriched,
+        status: item.record.ingestionStatus,
+        pdfStored: Boolean(item.record.storedPdfUrl),
+        extracted: Boolean(item.record.extraction),
+        message: item.message
+      })),
+      records: mergeRegulationRecords([...refreshed, ...processedRecords])
     });
   } catch (error) {
     return NextResponse.json(

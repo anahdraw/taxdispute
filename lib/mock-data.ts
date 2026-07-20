@@ -15,6 +15,49 @@ export type ComparableDecision = {
   matchPoints: string[];
 };
 
+export type RegulationIngestionStatus =
+  | "seed"
+  | "resolving"
+  | "downloading"
+  | "downloaded"
+  | "extracting"
+  | "ready"
+  | "review_required"
+  | "failed";
+
+export type RegulationRelationType = "amends" | "amended_by" | "revokes" | "revoked_by" | "implements" | "references" | "related";
+
+export type RegulationRelation = {
+  type: RegulationRelationType;
+  citation: string;
+  title?: string;
+  effectiveDate?: string;
+  note?: string;
+  source?: "pdf" | "official_page" | "seed";
+};
+
+export type RegulationProvision = {
+  article?: string;
+  page?: number;
+  text: string;
+};
+
+export type RegulationExtraction = {
+  schemaVersion: "regulation-extraction-v1";
+  summary: string;
+  scope: string[];
+  keyProvisions: RegulationProvision[];
+  effectiveDate?: string;
+  legalStatus: "active" | "amended" | "partially_revoked" | "revoked" | "unknown";
+  statusNote?: string;
+  relations: RegulationRelation[];
+  keywords: string[];
+  verificationNotes: string[];
+  extractedAt: string;
+  model: string;
+  sourcePdfUrl: string;
+};
+
 export type Regulation = {
   id: string;
   topic?: "vat" | "transfer_pricing" | "general";
@@ -25,7 +68,16 @@ export type Regulation = {
   source?: "seed" | "ortax" | "official" | "manual";
   sourceUrl?: string;
   pdfUrl?: string;
+  officialPdfUrl?: string;
+  storedPdfUrl?: string;
+  sourceAuthority?: string;
   content?: string;
+  ingestionStatus?: RegulationIngestionStatus;
+  ingestionMessage?: string;
+  fileHash?: string;
+  extraction?: RegulationExtraction | null;
+  relations?: RegulationRelation[];
+  extractedAt?: string;
   updatedAt?: string;
 };
 

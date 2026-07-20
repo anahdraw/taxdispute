@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     const record =
       (hasDatabase() ? await getTaxRegulationById(id).catch(() => null) : null) || regulations.find((item) => item.id === id) || null;
     if (!record) return NextResponse.json({ error: "Regulation not found." }, { status: 404 });
-    return NextResponse.json({ record: mergeRegulationRecords([record])[0] });
+    return NextResponse.json({ record: mergeRegulationRecords([record]).find((item) => item.id === id) || record });
   }
 
   if (url.searchParams.get("detail") === "full") {
@@ -80,7 +80,16 @@ function normalizeRegulationRecord(body: Partial<Regulation>, index = 0): Regula
     source,
     sourceUrl: String(body.sourceUrl || "").trim(),
     pdfUrl: String(body.pdfUrl || "").trim(),
+    officialPdfUrl: String(body.officialPdfUrl || "").trim(),
+    storedPdfUrl: String(body.storedPdfUrl || "").trim(),
+    sourceAuthority: String(body.sourceAuthority || "").trim(),
     content: normalizeRegulationText(body.content),
+    ingestionStatus: body.ingestionStatus || "seed",
+    ingestionMessage: normalizeRegulationText(body.ingestionMessage),
+    fileHash: String(body.fileHash || "").trim(),
+    extraction: body.extraction || null,
+    relations: Array.isArray(body.relations) ? body.relations : [],
+    extractedAt: body.extractedAt,
     updatedAt: new Date().toISOString()
   };
 }
@@ -91,14 +100,19 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Partial<Regulation> & { records?: Partial<Regulation>[] };
     const incoming = Array.isArray(body.records) ? body.records : [body];
-    const records = incoming.map((item, index) => normalizeRegulationRecord(item, index));
+    const storedBeforeSave = await getStoredRegulations();
+    const storedById = new Map(storedBeforeSave.map((item) => [item.id, item]));
+    const records = incoming.map((item, index) => {
+      const existing = item.id ? storedById.get(String(item.id)) : undefined;
+      return normalizeRegulationRecord({ ...existing, ...item }, index);
+    });
 
     if (hasDatabase()) {
       await upsertTaxRegulations(records);
     }
 
     const stored = await getStoredRegulations();
-    const recordsForResponse = mergeRegulationRecords([...stored, ...records, ...regulations]);
+    const recordsForResponse = mergeRegulationRecords([...stored, ...records]);
     return NextResponse.json({
       ok: true,
       record: records[0],

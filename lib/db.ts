@@ -303,31 +303,63 @@ export async function ensureRegulationSchema() {
     ADD COLUMN IF NOT EXISTS pdf_url TEXT NOT NULL DEFAULT '';
   `);
   await pool.query(`
+    ALTER TABLE tax_regulations
+      ADD COLUMN IF NOT EXISTS official_pdf_url TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS stored_pdf_url TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS source_authority TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS ingestion_status TEXT NOT NULL DEFAULT 'seed',
+      ADD COLUMN IF NOT EXISTS ingestion_message TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS file_hash TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS extraction JSONB,
+      ADD COLUMN IF NOT EXISTS relations JSONB NOT NULL DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS extracted_at TIMESTAMPTZ;
+  `);
+  await pool.query(`
     CREATE INDEX IF NOT EXISTS tax_regulations_topic_idx
       ON tax_regulations (topic, updated_at DESC);
   `);
 }
 
-export async function listTaxRegulations(): Promise<Regulation[]> {
-  await ensureRegulationSchema();
-  const result = await getPool().query(`
-    SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url, content, updated_at
-    FROM tax_regulations
-    ORDER BY topic ASC, updated_at DESC, relevance DESC;
-  `);
-  return result.rows.map((row) => ({
+function regulationFromRow(row: Record<string, unknown>, includeExtraction = true): Regulation {
+  const source = String(row.source || "manual");
+  const status = String(row.ingestion_status || "seed") as Regulation["ingestionStatus"];
+  const relations = Array.isArray(row.relations) ? (row.relations as NonNullable<Regulation["relations"]>) : [];
+  const storedPdfUrl = String(row.stored_pdf_url || "");
+  const officialPdfUrl = String(row.official_pdf_url || row.pdf_url || "");
+  return {
     id: String(row.id),
-    topic: normalizeRegulationTopic(row.topic),
+    topic: normalizeRegulationTopic(String(row.topic || "general")),
     title: String(row.title),
     citation: String(row.citation),
     focus: String(row.focus),
     relevance: Number(row.relevance || 70),
-    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : row.source === "official" ? "official" : "manual",
+    source: source === "ortax" ? "ortax" : source === "seed" ? "seed" : source === "official" ? "official" : "manual",
     sourceUrl: String(row.source_url || ""),
-    pdfUrl: String(row.pdf_url || ""),
-    content: String(row.content || ""),
-    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
-  }));
+    pdfUrl: storedPdfUrl || String(row.pdf_url || "") || officialPdfUrl,
+    officialPdfUrl,
+    storedPdfUrl,
+    sourceAuthority: String(row.source_authority || ""),
+    content: includeExtraction ? String(row.content || "") : "",
+    ingestionStatus: status,
+    ingestionMessage: String(row.ingestion_message || ""),
+    fileHash: String(row.file_hash || ""),
+    extraction: includeExtraction && row.extraction ? (row.extraction as NonNullable<Regulation["extraction"]>) : null,
+    relations,
+    extractedAt: row.extracted_at ? new Date(String(row.extracted_at)).toISOString() : undefined,
+    updatedAt: row.updated_at ? new Date(String(row.updated_at)).toISOString() : undefined
+  };
+}
+
+export async function listTaxRegulations(): Promise<Regulation[]> {
+  await ensureRegulationSchema();
+  const result = await getPool().query(`
+    SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url,
+           official_pdf_url, stored_pdf_url, source_authority, content, ingestion_status,
+           ingestion_message, file_hash, extraction, relations, extracted_at, updated_at
+    FROM tax_regulations
+    ORDER BY topic ASC, updated_at DESC, relevance DESC;
+  `);
+  return result.rows.map((row) => regulationFromRow(row));
 }
 
 export async function countTaxRegulations(): Promise<number> {
@@ -340,33 +372,25 @@ export async function listTaxRegulationSummaries(params: PaginationParams): Prom
   await ensureRegulationSchema();
   const result = await getPool().query(
     `
-      SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url, updated_at
+      SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url,
+             official_pdf_url, stored_pdf_url, source_authority, ingestion_status,
+             ingestion_message, file_hash, relations, extracted_at, updated_at
       FROM tax_regulations
       ORDER BY topic ASC, updated_at DESC, relevance DESC
       LIMIT $1 OFFSET $2;
     `,
     [params.perPage, params.offset]
   );
-  return result.rows.map((row) => ({
-    id: String(row.id),
-    topic: normalizeRegulationTopic(row.topic),
-    title: String(row.title),
-    citation: String(row.citation),
-    focus: String(row.focus),
-    relevance: Number(row.relevance || 70),
-    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : row.source === "official" ? "official" : "manual",
-    sourceUrl: String(row.source_url || ""),
-    pdfUrl: String(row.pdf_url || ""),
-    content: "",
-    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
-  }));
+  return result.rows.map((row) => regulationFromRow(row, false));
 }
 
 export async function getTaxRegulationById(id: string): Promise<Regulation | null> {
   await ensureRegulationSchema();
   const result = await getPool().query(
     `
-      SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url, content, updated_at
+      SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url,
+             official_pdf_url, stored_pdf_url, source_authority, content, ingestion_status,
+             ingestion_message, file_hash, extraction, relations, extracted_at, updated_at
       FROM tax_regulations
       WHERE id = $1
       LIMIT 1;
@@ -375,19 +399,7 @@ export async function getTaxRegulationById(id: string): Promise<Regulation | nul
   );
   const row = result.rows[0];
   if (!row) return null;
-  return {
-    id: String(row.id),
-    topic: normalizeRegulationTopic(row.topic),
-    title: String(row.title),
-    citation: String(row.citation),
-    focus: String(row.focus),
-    relevance: Number(row.relevance || 70),
-    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : row.source === "official" ? "official" : "manual",
-    sourceUrl: String(row.source_url || ""),
-    pdfUrl: String(row.pdf_url || ""),
-    content: String(row.content || ""),
-    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
-  };
+  return regulationFromRow(row);
 }
 
 export async function upsertTaxRegulations(records: Regulation[]) {
@@ -398,9 +410,12 @@ export async function upsertTaxRegulations(records: Regulation[]) {
     await pool.query(
       `
         INSERT INTO tax_regulations
-          (id, topic, title, citation, focus, relevance, source, source_url, pdf_url, content, updated_at)
+          (id, topic, title, citation, focus, relevance, source, source_url, pdf_url,
+           official_pdf_url, stored_pdf_url, source_authority, content, ingestion_status,
+           ingestion_message, file_hash, extraction, relations, extracted_at, updated_at)
         VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
+           $15, $16, $17::jsonb, $18::jsonb, $19, $20)
         ON CONFLICT (id) DO UPDATE SET
           topic = EXCLUDED.topic,
           title = EXCLUDED.title,
@@ -410,7 +425,16 @@ export async function upsertTaxRegulations(records: Regulation[]) {
           source = EXCLUDED.source,
           source_url = EXCLUDED.source_url,
           pdf_url = EXCLUDED.pdf_url,
+          official_pdf_url = EXCLUDED.official_pdf_url,
+          stored_pdf_url = EXCLUDED.stored_pdf_url,
+          source_authority = EXCLUDED.source_authority,
           content = EXCLUDED.content,
+          ingestion_status = EXCLUDED.ingestion_status,
+          ingestion_message = EXCLUDED.ingestion_message,
+          file_hash = EXCLUDED.file_hash,
+          extraction = EXCLUDED.extraction,
+          relations = EXCLUDED.relations,
+          extracted_at = EXCLUDED.extracted_at,
           updated_at = EXCLUDED.updated_at;
       `,
       [
@@ -423,7 +447,16 @@ export async function upsertTaxRegulations(records: Regulation[]) {
         record.source || "manual",
         record.sourceUrl || "",
         record.pdfUrl || "",
+        record.officialPdfUrl || "",
+        record.storedPdfUrl || "",
+        record.sourceAuthority || "",
         record.content || "",
+        record.ingestionStatus || "seed",
+        record.ingestionMessage || "",
+        record.fileHash || "",
+        record.extraction ? JSON.stringify(record.extraction) : null,
+        JSON.stringify(record.relations || record.extraction?.relations || []),
+        record.extractedAt || record.extraction?.extractedAt || null,
         record.updatedAt || new Date().toISOString()
       ]
     );

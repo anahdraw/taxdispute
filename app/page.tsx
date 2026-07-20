@@ -3920,6 +3920,13 @@ export default function Home() {
                             <article key={item.id} className="reg-card">
                               <b>{item.title}</b>
                               <span>{item.citation}</span>
+                              <div className="reg-card-pipeline">
+                                <span className={`status-chip ${item.ingestionStatus === "ready" ? "success" : item.ingestionStatus === "failed" ? "error" : "warning"}`}>
+                                  {item.ingestionStatus || "seed"}
+                                </span>
+                                <small>{item.storedPdfUrl ? "PDF Blob" : item.officialPdfUrl || item.pdfUrl ? "PDF resmi" : "PDF belum"}</small>
+                                <small>{item.extraction ? "JSON terekstrak" : "Belum diekstrak"}</small>
+                              </div>
                               <p>{item.focus}</p>
                               {item.content && <p className="muted">{truncateText(item.content.replace(/\\n/g, " · "), 420)}</p>}
                               <small>

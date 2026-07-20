@@ -1,4 +1,4 @@
-import { regulations, type Regulation } from "./mock-data";
+import { regulations, type Regulation, type RegulationRelation, type RegulationRelationType } from "./mock-data";
 
 export type RegulationTopic = "vat" | "transfer_pricing" | "general";
 
@@ -36,10 +36,53 @@ export function regulationTopicLabel(topic: RegulationTopic, language: "id" | "e
   return regulationTopicOptions.find((item) => item.key === topic)?.[language] || topic;
 }
 
+function relationTypeFromSentence(sentence: string): RegulationRelationType {
+  if (/dicabut\s+oleh/i.test(sentence)) return "revoked_by";
+  if (/diubah\s+oleh/i.test(sentence)) return "amended_by";
+  if (/mencabut|menggantikan|tidak berlaku/i.test(sentence)) return "revokes";
+  if (/mengubah|perubahan atas/i.test(sentence)) return "amends";
+  if (/melaksanakan|pelaksanaan|aturan pelaksana/i.test(sentence)) return "implements";
+  if (/berdasarkan|mengingat|merujuk|rujukan/i.test(sentence)) return "references";
+  return "related";
+}
+
+export function deriveRegulationRelations(record: Regulation): RegulationRelation[] {
+  const explicit = record.relations?.length ? record.relations : record.extraction?.relations || [];
+  if (explicit.length) return explicit;
+  const text = normalizeRegulationText(`${record.focus || ""}\n${record.content || ""}`);
+  const relations: RegulationRelation[] = [];
+  const seen = new Set<string>();
+  const citationPattern = /\b(?:UU|PERPU|PP|PMK|PER|KEP|SE)\s*(?:No\.?|Nomor)?\s*[0-9A-Z][0-9A-Z./-]*(?:\s+Tahun\s+\d{4})?/gi;
+  for (const sentence of text.split(/(?<=[.!?])\s+|\n+/).filter(Boolean)) {
+    if (!/mencabut|menggantikan|mengubah|perubahan|melaksanakan|pelaksanaan|berdasarkan|mengingat|merujuk|dicabut|diubah/i.test(sentence)) continue;
+    for (const match of sentence.matchAll(citationPattern)) {
+      const citation = normalizeRegulationText(match[0]);
+      if (!citation || citation.toLowerCase() === record.citation.toLowerCase()) continue;
+      const type = relationTypeFromSentence(sentence);
+      const key = `${type}:${citation.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      relations.push({ type, citation, note: sentence, source: "seed" });
+    }
+  }
+  return relations;
+}
+
+function recordQuality(item: Regulation) {
+  let score = item.source === "official" ? 40 : item.source === "manual" ? 25 : item.source === "ortax" ? 20 : 0;
+  if (item.updatedAt) score += 10;
+  if (item.officialPdfUrl || item.pdfUrl) score += 60;
+  if (item.storedPdfUrl) score += 80;
+  if (item.extraction) score += 120;
+  if (item.ingestionStatus === "ready") score += 70;
+  if (item.ingestionStatus === "review_required") score += 30;
+  return score;
+}
+
 export function mergeRegulationRecords(records: Regulation[]) {
   const merged = new Map<string, Regulation>();
   for (const item of [...regulations, ...records]) {
-    merged.set(item.id, {
+    const normalized: Regulation = {
       ...item,
       title: normalizeRegulationText(item.title),
       citation: normalizeRegulationText(item.citation),
@@ -47,7 +90,32 @@ export function mergeRegulationRecords(records: Regulation[]) {
       content: normalizeRegulationText(item.content),
       topic: item.topic || normalizeRegulationTopic(item.topic),
       source: item.source || "seed",
-      relevance: item.relevance || 70
+      relevance: item.relevance || 70,
+      ingestionStatus: item.ingestionStatus || (item.extraction ? "ready" : "seed")
+    };
+    normalized.relations = deriveRegulationRelations(normalized);
+    const previous = merged.get(item.id);
+    if (!previous) {
+      merged.set(item.id, normalized);
+      continue;
+    }
+    const preferred = recordQuality(normalized) >= recordQuality(previous) ? normalized : previous;
+    const fallback = preferred === normalized ? previous : normalized;
+    merged.set(item.id, {
+      ...fallback,
+      ...preferred,
+      sourceUrl: preferred.sourceUrl || fallback.sourceUrl,
+      pdfUrl: preferred.pdfUrl || fallback.pdfUrl,
+      officialPdfUrl: preferred.officialPdfUrl || fallback.officialPdfUrl,
+      storedPdfUrl: preferred.storedPdfUrl || fallback.storedPdfUrl,
+      sourceAuthority: preferred.sourceAuthority || fallback.sourceAuthority,
+      content: preferred.content || fallback.content,
+      ingestionMessage: preferred.ingestionMessage || fallback.ingestionMessage,
+      fileHash: preferred.fileHash || fallback.fileHash,
+      extraction: preferred.extraction || fallback.extraction || null,
+      relations: preferred.relations?.length ? preferred.relations : fallback.relations || [],
+      extractedAt: preferred.extractedAt || fallback.extractedAt,
+      updatedAt: preferred.updatedAt || fallback.updatedAt
     });
   }
   return Array.from(merged.values()).sort((a, b) => {
@@ -89,6 +157,9 @@ function regulationSearchScore(item: Regulation, question: string, inferredTopic
   if ((item.topic || "general") === inferredTopic) score += 18;
   if (/[0-9]{2,4}/.test(question) && queryTokens.some((token) => /[0-9]/.test(token) && title.includes(token))) score += 18;
   if (/berlaku|status|dicabut|diubah|amend|effective|revoked/i.test(question) && /status|berlaku|dicabut|diubah|amend|effective/i.test(item.content || "")) score += 8;
+  if (item.ingestionStatus === "ready") score += 14;
+  if (item.extraction) score += 12;
+  if (item.storedPdfUrl) score += 6;
   return score;
 }
 
