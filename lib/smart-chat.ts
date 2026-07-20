@@ -257,6 +257,58 @@ function tokenHits(text: string, tokens: string[]) {
   return tokens.filter((token) => normalized.includes(token)).length;
 }
 
+function regulationTopicIntent(query: string) {
+  const text = normalize(query);
+  if (/transferpricing|relatedparty|armslength|afiliasi|benchmark|p3b|treaty|map|apa/.test(text)) return "transfer_pricing";
+  if (/vat|inputvat|taxbase|taxinvoice|bkp|jkp|ppnbm/.test(text)) return "vat";
+  return "";
+}
+
+function regulationAuthorityBoost(item: Regulation) {
+  const text = normalize([item.title, item.citation, item.content].filter(Boolean).join(" "));
+  if (/undang undang|law|uu no|perpu/.test(text)) return 10;
+  if (/government regulation|peraturan pemerintah|pp no/.test(text)) return 8;
+  if (/minister|menteri keuangan|pmk/.test(text)) return 7;
+  if (/direktur jenderal pajak|dgt|per pj|se pj/.test(text)) return 5;
+  return 2;
+}
+
+function hybridRegulationScore(query: string, item: Regulation, text: string) {
+  const queryVector = tokenFrequency(query);
+  const cosineScore = cosineSimilarity(queryVector, tokenFrequency(text)) * 100;
+  const focusTokens = queryFocusTokens(query);
+  const fullTextHits = tokenHits(text, focusTokens);
+  const titleHits = tokenHits([item.title, item.citation].filter(Boolean).join(" "), focusTokens);
+  const focusCoverage = focusTokens.length ? fullTextHits / focusTokens.length : 0;
+  const topicIntent = regulationTopicIntent(query);
+  const normalizedQuery = normalize(query);
+  const normalizedTitle = normalize([item.title, item.citation].filter(Boolean).join(" "));
+
+  let score = cosineScore * 0.38;
+  if (focusTokens.length) {
+    score += focusCoverage * 26;
+    if (titleHits) score += Math.min(28, 12 + titleHits * 5);
+    if (!fullTextHits) score *= 0.4;
+  }
+
+  if (topicIntent && item.topic === topicIntent) score += 14;
+  if (normalizedTitle.includes(normalizedQuery) || normalizedQuery.includes(normalizedTitle.slice(0, 24))) score += 18;
+  if (/[0-9]{2,4}/.test(query) && tokenHits([item.title, item.citation].join(" "), queryTokens(query).filter((token) => /[0-9]/.test(token)))) {
+    score += 16;
+  }
+
+  score += regulationAuthorityBoost(item) * 0.65;
+  score += Math.min(8, Math.max(0, Number(item.relevance || 0) - 70) / 4);
+  if (/berlaku|status|dicabut|diubah|amend|effective|revoked|current/i.test(query) && /status|berlaku|dicabut|diubah|amend|effective/i.test(item.content || "")) {
+    score += 8;
+  }
+  if (/source|sumber|where|di mana|unduh|download|official/i.test(query) && item.sourceUrl) {
+    score += 6;
+  }
+
+  return Math.max(0, Math.min(100, score));
+}
+
 function outcomeIntent(query: string) {
   const text = normalize(query);
   if (/\b(partial|sebagian)\b/.test(text)) return "partial";
@@ -348,11 +400,10 @@ export function rankDecisionDocuments(query: string, documents: StoredDecisionFi
 }
 
 export function rankRegulations(query: string, records: Regulation[], limit = 8) {
-  const queryVector = tokenFrequency(query);
   return records
     .map((item) => {
       const text = ruleText(item);
-      return { item, score: cosineSimilarity(queryVector, tokenFrequency(text)), text };
+      return { item, score: hybridRegulationScore(query, item, text), text };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
@@ -363,7 +414,7 @@ export function rankRegulations(query: string, records: Regulation[], limit = 8)
       topic: item.topic || "general",
       source: item.source || "seed",
       sourceUrl: item.sourceUrl || "",
-      score: Math.round(score * 1000) / 10,
+      score: Math.round(score * 10) / 10,
       snippet: focusedSnippet(text, query)
     }));
 }

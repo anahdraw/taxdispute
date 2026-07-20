@@ -1,3 +1,5 @@
+import { essentialRegulationSeeds } from "./essential-regulations";
+
 export type OutcomeKey = "WP_FULL_WIN" | "WP_PARTIAL_WIN" | "DJP_WIN" | "FORMAL_REJECTED" | "UNKNOWN";
 
 export type ComparableDecision = {
@@ -158,7 +160,7 @@ export const comparableDecisions: ComparableDecision[] = [
   }
 ];
 
-export const regulations: Regulation[] = [
+const coreRegulations: Regulation[] = [
   {
     id: "uu-ppn",
     topic: "vat",
@@ -245,6 +247,8 @@ export const regulations: Regulation[] = [
     sourceUrl: "https://datacenter.ortax.org/"
   }
 ];
+
+export const regulations: Regulation[] = [...coreRegulations, ...essentialRegulationSeeds];
 
 export const recentDocuments = [
   { decision: "PUT-012093.16.2023.PP.M.XIIIA", documentType: "Tax Court decision", taxpayer: "PT SARI LEMBAH SUBUR", tax: "VAT", issue: "Input VAT", outcome: "Taxpayer fully prevailed" },

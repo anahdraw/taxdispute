@@ -211,7 +211,7 @@ const copy = {
     uploadManualRule: "Upload file teks aturan",
     saveManualRule: "Simpan aturan manual",
     savingManualRule: "Menyimpan aturan...",
-    regulationHelp: "Kelola bot, import, dan daftar aturan per topik.",
+    regulationHelp: "Kelola chatbot RAG, update sumber, import daftar peraturan, dan daftar aturan tersimpan.",
     allTopics: "Semua topik",
     totalRecords: "Total data",
     itemsPerPage: "Per halaman",
@@ -222,14 +222,14 @@ const copy = {
     storedRuleList: "List aturan tersimpan",
     jumpToStoredRules: "Lihat list aturan tersimpan",
     noRegulations: "Belum ada aturan untuk topik ini.",
-    regulationBotTitle: "Smart Regulation Bot",
-    regulationBotIntro: "Tanya aturan tersimpan dengan jawaban berbasis sumber.",
+    regulationBotTitle: "Regulatory RAG Bot",
+    regulationBotIntro: "Tanya peraturan dengan konteks sumber, status, dan batasan penggunaan yang terlihat.",
     regulationQuestion: "Pertanyaan aturan",
     regulationQuestionPlaceholder: "Contoh: aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?",
-    askRegulationBot: "Tanya Bot Aturan",
+    askRegulationBot: "Kirim pertanyaan",
     askingRegulationBot: "Menelaah aturan...",
-    regulationBotAnswer: "Jawaban bot aturan",
-    noRegulationBotAnswer: "Ajukan pertanyaan untuk menelaah seluruh aturan tersimpan.",
+    regulationBotAnswer: "Jawaban berbasis sumber",
+    noRegulationBotAnswer: "Mulai dari pertanyaan spesifik. Bot akan menampilkan ringkasan, sumber, dan batasan konteks.",
     bulkRegulationUpload: "Upload list aturan Excel/CSV",
     bulkRegulationHint: "Kolom: title, citation, topic, focus, sourceUrl, content, relevance.",
     importingRegulations: "Mengimpor aturan...",
@@ -239,12 +239,12 @@ const copy = {
     enrichRuleSource: "Enrich sumber",
     sourceEnriched: "aturan berhasil dienrich dari link sumber.",
     noRulesWithSource: "Tidak ada aturan dengan link sumber yang bisa dienrich.",
-    regulationTabBot: "Smart Bot",
+    regulationTabBot: "RAG Chatbot",
     regulationTabUpdate: "Update & Import",
     regulationTabList: "Aturan tersimpan",
     regulationTabManual: "Input manual",
     regulationUpdateTitle: "Update knowledge aturan",
-    regulationUpdateIntro: "Tarik Ortax, import daftar, atau enrich dari link sumber.",
+    regulationUpdateIntro: "Tarik Ortax, import daftar, enrich dari link sumber, dan siapkan pengecekan aturan terbaru.",
     editRule: "Edit",
     deleteRule: "Hapus",
     updateRule: "Update aturan",
@@ -540,7 +540,7 @@ const copy = {
     uploadManualRule: "Upload rule text file",
     saveManualRule: "Save manual rule",
     savingManualRule: "Saving rule...",
-    regulationHelp: "Manage the bot, imports, and stored rules by topic.",
+    regulationHelp: "Manage the regulation RAG chatbot, source refresh, list import, and stored rule cards.",
     allTopics: "All topics",
     totalRecords: "Total records",
     itemsPerPage: "Per page",
@@ -551,14 +551,14 @@ const copy = {
     storedRuleList: "Stored regulation list",
     jumpToStoredRules: "View stored regulation list",
     noRegulations: "No regulations yet for this topic.",
-    regulationBotTitle: "Smart Regulation Bot",
-    regulationBotIntro: "Ask stored rules and get source-based answers.",
+    regulationBotTitle: "Regulatory RAG Bot",
+    regulationBotIntro: "Ask regulations with visible source context, status notes, and usage limits.",
     regulationQuestion: "Regulation question",
     regulationQuestionPlaceholder: "Example: which rules govern transfer pricing documentation and the arm's length principle?",
-    askRegulationBot: "Ask Regulation Bot",
+    askRegulationBot: "Send question",
     askingRegulationBot: "Reviewing regulations...",
-    regulationBotAnswer: "Regulation bot answer",
-    noRegulationBotAnswer: "Ask a question to review all stored regulation cards.",
+    regulationBotAnswer: "Source-grounded answer",
+    noRegulationBotAnswer: "Start with a specific question. The bot will show an answer, sources, and context limits.",
     bulkRegulationUpload: "Upload regulation list Excel/CSV",
     bulkRegulationHint: "Columns: title, citation, topic, focus, sourceUrl, content, relevance.",
     importingRegulations: "Importing regulations...",
@@ -568,12 +568,12 @@ const copy = {
     enrichRuleSource: "Enrich source",
     sourceEnriched: "regulation(s) enriched from source links.",
     noRulesWithSource: "No regulations with source links are available for enrichment.",
-    regulationTabBot: "Smart Bot",
+    regulationTabBot: "RAG Chatbot",
     regulationTabUpdate: "Update & Import",
     regulationTabList: "Stored rules",
     regulationTabManual: "Manual input",
     regulationUpdateTitle: "Update regulation knowledge",
-    regulationUpdateIntro: "Pull Ortax, import lists, or enrich from source links.",
+    regulationUpdateIntro: "Pull Ortax, import lists, enrich source links, and prepare latest-rule checks.",
     editRule: "Edit",
     deleteRule: "Delete",
     updateRule: "Update rule",
@@ -3528,67 +3528,127 @@ export default function Home() {
                 {regulationTab === "bot" && (
                   <section className="regulation-tab-panel">
                     <div className={`regulation-bot-box compact tier-preview-${effectiveTier}`}>
-                      <div className="regulation-bot-intro">
-                        <h3>{labels.regulationBotTitle}</h3>
-                        <p className="muted">{labels.regulationBotIntro}</p>
-                      </div>
-                      <div className="regulation-bot-layout">
-                        <div className="regulation-question-card">
-                          <label className="control wide">
-                            <span>{labels.regulationQuestion}</span>
-                            <textarea
-                              value={regulationQuestion}
-                              onChange={(event) => setRegulationQuestion(event.target.value)}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
-                                  event.preventDefault();
-                                  if (!regulationBotLoading && regulationQuestion.trim()) void askRegulationBot();
-                                }
-                              }}
-                              placeholder={labels.regulationQuestionPlaceholder}
-                              rows={4}
-                            />
-                          </label>
-                          <button className="primary-button regulation-ask-button" onClick={askRegulationBot} disabled={regulationBotLoading || !regulationQuestion.trim()}>
-                            <AppIcon name="regulations" />
-                            <span>{regulationBotLoading ? labels.askingRegulationBot : labels.askRegulationBot}</span>
-                          </button>
-                          {regulationBotError && <div className="status-banner error">{regulationBotError}</div>}
-                        </div>
-                        <div className="regulation-bot-answer">
-                          <div className="regulation-answer-heading">
-                            <div>
-                              <span>{language === "en" ? "Structured regulation review" : "Telaah peraturan terstruktur"}</span>
-                              <h3>{labels.regulationBotAnswer}</h3>
-                            </div>
-                            <span className={`tier-answer-badge ${effectiveTier}`}>{tierLabel(effectiveTier)}</span>
+                      <div className="regulation-bot-layout cotax-reg-layout">
+                        <aside className="reg-rag-side">
+                          <div className="reg-rag-brand">
+                            <span>RSM</span>
+                            <b>{labels.regulationBotTitle}</b>
+                            <small>{language === "en" ? "Official-source first regulatory assistant" : "Asisten peraturan berbasis sumber resmi"}</small>
                           </div>
-                          {!regulationBotResponse ? (
-                            <div className="empty-state">{labels.noRegulationBotAnswer}</div>
-                          ) : (
-                            <>
-                              {regulationBotStatus && <div className="status-banner success">{regulationBotStatus}</div>}
-                              <MarkdownText text={regulationBotResponse.answer} structured />
-                              <div className="regulation-retrieval-summary">
-                                <b>{language === "en" ? "Sources reviewed" : "Sumber ditelaah"}</b>
+                          <button className="reg-new-chat" type="button" onClick={() => setRegulationBotResponse(null)}>
+                            {language === "en" ? "New question" : "Pertanyaan baru"}
+                          </button>
+                          <div className="reg-rag-pack">
+                            <b>{language === "en" ? "Knowledge pack" : "Paket knowledge"}</b>
+                            <span>{regulationRecords.length} {language === "en" ? "stored regulation cards" : "kartu aturan tersimpan"}</span>
+                            <span>{language === "en" ? "Hybrid retrieval: exact citation + topic + semantic match" : "Hybrid retrieval: sitasi + topik + kemiripan semantik"}</span>
+                          </div>
+                          <div className="reg-rag-rules">
+                            <b>{language === "en" ? "Answer controls" : "Kontrol jawaban"}</b>
+                            <span>{language === "en" ? "Shows source and relevance." : "Menampilkan sumber dan relevansi."}</span>
+                            <span>{language === "en" ? "Flags incomplete context." : "Memberi tanda bila konteks belum cukup."}</span>
+                            <span>{language === "en" ? "Professional review still required." : "Tetap perlu review profesional."}</span>
+                          </div>
+                        </aside>
+
+                        <div className="reg-rag-chat">
+                          <div className="reg-rag-chat-header">
+                            <div>
+                              <span>{language === "en" ? "Indonesian tax regulatory knowledge" : "Knowledge peraturan perpajakan Indonesia"}</span>
+                              <h3>{language === "en" ? "Ask with context, check the source." : "Tanya dengan konteks, cek sumbernya."}</h3>
+                              <p>{labels.regulationBotIntro}</p>
+                            </div>
+                            <button className="table-button compact" type="button" onClick={() => setRegulationTab("update")}>
+                              {language === "en" ? "Update sources" : "Update sumber"}
+                            </button>
+                          </div>
+
+                          <div className="reg-prompt-grid">
+                            {(language === "en"
+                              ? [
+                                  "Which regulations govern transfer pricing documentation and the arm's length principle?",
+                                  "What should be checked before crediting input VAT?",
+                                  "Where is a tax objection and appeal procedure regulated?",
+                                  "Which source should be updated first for current VAT rules?"
+                                ]
+                              : [
+                                  "Aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?",
+                                  "Apa yang harus dicek sebelum mengkreditkan Pajak Masukan?",
+                                  "Di mana prosedur keberatan dan banding pajak diatur?",
+                                  "Sumber mana yang perlu diupdate dulu untuk aturan PPN terbaru?"
+                                ]).map((prompt) => (
+                              <button key={prompt} type="button" onClick={() => setRegulationQuestion(prompt)}>
+                                {prompt}
+                                <span>→</span>
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="regulation-bot-answer">
+                            <div className="regulation-answer-heading">
+                              <div>
+                                <span>{language === "en" ? "Structured regulation review" : "Telaah peraturan terstruktur"}</span>
+                                <h3>{labels.regulationBotAnswer}</h3>
+                              </div>
+                              <span className={`tier-answer-badge ${effectiveTier}`}>{tierLabel(effectiveTier)}</span>
+                            </div>
+                            {!regulationBotResponse ? (
+                              <div className="reg-empty-chat">
+                                <b>{labels.noRegulationBotAnswer}</b>
                                 <span>
-                                  {regulationBotResponse.retrieval.usedRegulations}/{regulationBotResponse.retrieval.totalRegulations} {language === "en" ? "regulations" : "peraturan"}
+                                  {language === "en"
+                                    ? "Use one of the starter questions or ask about a rule, article, tax type, effective period, or source location."
+                                    : "Gunakan pertanyaan awal atau tanyakan aturan, pasal, jenis pajak, masa berlaku, atau lokasi sumber."}
                                 </span>
                               </div>
-                              <h4 className="regulation-source-title">{language === "en" ? "Regulation references" : "Referensi peraturan"}</h4>
-                              <div className="source-list compact-source-list">
-                                {regulationBotResponse.ruleHits.slice(0, 6).map((item) => (
-                                  <article key={item.id} className="source-card">
-                                    <b>{item.title}</b>
-                                    <span>{item.citation} · {item.topic}</span>
-                                    <p>{item.snippet}</p>
-                                    <small>Relevance {item.score}% · {item.source}</small>
-                                    <a href={referenceDetailPath("regulation", item.id, regulationQuestion)}>{labels.openReference}</a>
-                                  </article>
-                                ))}
-                              </div>
-                            </>
-                          )}
+                            ) : (
+                              <>
+                                {regulationBotStatus && <div className="status-banner success">{regulationBotStatus}</div>}
+                                <MarkdownText text={regulationBotResponse.answer} structured />
+                                <div className="regulation-retrieval-summary">
+                                  <b>{language === "en" ? "Sources reviewed" : "Sumber ditelaah"}</b>
+                                  <span>
+                                    {regulationBotResponse.retrieval.usedRegulations}/{regulationBotResponse.retrieval.totalRegulations} {language === "en" ? "regulations" : "peraturan"}
+                                  </span>
+                                </div>
+                                <h4 className="regulation-source-title">{language === "en" ? "Regulation references" : "Referensi peraturan"}</h4>
+                                <div className="source-list compact-source-list">
+                                  {regulationBotResponse.ruleHits.slice(0, 6).map((item) => (
+                                    <article key={item.id} className="source-card">
+                                      <b>{item.title}</b>
+                                      <span>{item.citation} · {item.topic}</span>
+                                      <p>{item.snippet}</p>
+                                      <small>Relevance {item.score}% · {item.source}</small>
+                                      <a href={referenceDetailPath("regulation", item.id, regulationQuestion)}>{labels.openReference}</a>
+                                    </article>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          <div className="regulation-question-card">
+                            <label className="control wide">
+                              <span>{labels.regulationQuestion}</span>
+                              <textarea
+                                value={regulationQuestion}
+                                onChange={(event) => setRegulationQuestion(event.target.value)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                                    event.preventDefault();
+                                    if (!regulationBotLoading && regulationQuestion.trim()) void askRegulationBot();
+                                  }
+                                }}
+                                placeholder={labels.regulationQuestionPlaceholder}
+                                rows={3}
+                              />
+                            </label>
+                            <button className="primary-button regulation-ask-button" onClick={askRegulationBot} disabled={regulationBotLoading || !regulationQuestion.trim()}>
+                              <AppIcon name="regulations" />
+                              <span>{regulationBotLoading ? labels.askingRegulationBot : labels.askRegulationBot}</span>
+                            </button>
+                            {regulationBotError && <div className="status-banner error">{regulationBotError}</div>}
+                          </div>
                         </div>
                       </div>
                     </div>

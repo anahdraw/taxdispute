@@ -44,6 +44,37 @@ export function filterRegulationsByTopic(records: Regulation[], topic: Regulatio
   return records.filter((item) => (item.topic || "general") === topic);
 }
 
+function normalizeSearch(text: string) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/transfer pricing|harga transfer|penentuan harga transfer/g, "transferpricing")
+    .replace(/hubungan istimewa|pihak afiliasi|afiliasi/g, "relatedparty")
+    .replace(/arm'?s length|kewajaran dan kelaziman|prinsip kewajaran/g, "armslength")
+    .replace(/ppn|pajak pertambahan nilai/g, "vat")
+    .replace(/pajak masukan/g, "inputvat")
+    .replace(/dpp|dasar pengenaan pajak/g, "taxbase")
+    .replace(/faktur pajak/g, "taxinvoice")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function regulationSearchScore(item: Regulation, question: string, inferredTopic: RegulationTopic) {
+  const queryTokens = normalizeSearch(question)
+    .split(" ")
+    .filter((token) => token.length > 2);
+  const text = normalizeSearch([item.title, item.citation, item.focus, item.content].filter(Boolean).join(" "));
+  const title = normalizeSearch([item.title, item.citation].filter(Boolean).join(" "));
+  const hits = queryTokens.filter((token) => text.includes(token)).length;
+  const titleHits = queryTokens.filter((token) => title.includes(token)).length;
+  const coverage = queryTokens.length ? hits / queryTokens.length : 0;
+  let score = coverage * 56 + titleHits * 8 + Number(item.relevance || 0) * 0.16;
+  if ((item.topic || "general") === inferredTopic) score += 18;
+  if (/[0-9]{2,4}/.test(question) && queryTokens.some((token) => /[0-9]/.test(token) && title.includes(token))) score += 18;
+  if (/berlaku|status|dicabut|diubah|amend|effective|revoked/i.test(question) && /status|berlaku|dicabut|diubah|amend|effective/i.test(item.content || "")) score += 8;
+  return score;
+}
+
 export function buildOrtaxRegulationSeeds(topicValue: string): Regulation[] {
   const topic = normalizeRegulationTopic(topicValue);
   const now = new Date().toISOString();
@@ -196,5 +227,9 @@ export function chooseRegulationContext(records: Regulation[], question: string,
         : normalizedTopic;
   const topicMatches = records.filter((item) => (item.topic || "general") === inferredTopic);
   const selected = topicMatches.length ? topicMatches : records;
-  return selected.slice(0, 8);
+  return selected
+    .map((item) => ({ item, score: regulationSearchScore(item, question, inferredTopic) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+    .map(({ item }) => item);
 }
