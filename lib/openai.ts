@@ -427,7 +427,8 @@ export async function buildLlmAnalysis(
   extraction?: ExtractionResult | null,
   regulationContext: Regulation[] = regulations,
   tierProfile: TierWorkProfile = tierWorkProfiles.platinum,
-  modelChoice: LlmModelChoice = DEFAULT_LLM_MODEL_CHOICE
+  modelChoice: LlmModelChoice = DEFAULT_LLM_MODEL_CHOICE,
+  managedPrompt?: { system?: string; instruction?: string }
 ): Promise<AnalysisResult> {
   const runtime = resolveLlmRuntime(modelChoice);
   const matchedRegulations = chooseRegulationContext(
@@ -453,16 +454,17 @@ export async function buildLlmAnalysis(
   }
 
   const model = runtime.model;
-  const system =
+  const defaultSystem =
     input.language === "en"
       ? "You are a senior Indonesian tax dispute advisor. Produce cautious, practical analysis for Indonesian tax disputes, including VAT and transfer pricing where relevant. Do not invent case facts. Return JSON only."
       : "Anda adalah senior advisor sengketa pajak Indonesia. Buat analisis praktis dan hati-hati untuk sengketa pajak Indonesia, termasuk PPN dan transfer pricing jika relevan. Jangan mengarang fakta. Kembalikan JSON saja.";
+  const system = managedPrompt?.system?.trim() || defaultSystem;
   const prompt = JSON.stringify(
     {
       instruction:
         input.language === "en"
-          ? `${tierProfile.prompts.en.analysisInstruction} Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Use the regulation context that best matches the case topic. Use clear headings in plain text. Do not use Markdown tables.`
-          : `${tierProfile.prompts.id.analysisInstruction} Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Gunakan konteks peraturan yang paling cocok dengan topik kasus. Gunakan heading teks biasa. Jangan gunakan tabel Markdown.`,
+          ? `${tierProfile.prompts.en.analysisInstruction} Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Use the regulation context that best matches the case topic. Use clear headings in plain text. Do not use Markdown tables.${managedPrompt?.instruction ? ` Managed instruction: ${managedPrompt.instruction}` : ""}`
+          : `${tierProfile.prompts.id.analysisInstruction} Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Gunakan konteks peraturan yang paling cocok dengan topik kasus. Gunakan heading teks biasa. Jangan gunakan tabel Markdown.${managedPrompt?.instruction ? ` Instruksi terkelola: ${managedPrompt.instruction}` : ""}`,
       tierProfile: {
         tier: tierProfile.tier,
         analysisDepth: tierProfile.analysisDepth,
@@ -526,7 +528,8 @@ export async function answerRegulationQuestion(
   language: "id" | "en",
   regulationContext: Regulation[] = regulations,
   tierProfile: TierWorkProfile = tierWorkProfiles.platinum,
-  modelChoice: LlmModelChoice = DEFAULT_LLM_MODEL_CHOICE
+  modelChoice: LlmModelChoice = DEFAULT_LLM_MODEL_CHOICE,
+  managedPrompt?: { system?: string; instruction?: string }
 ) {
   const runtime = resolveLlmRuntime(modelChoice);
   const model = runtime.model;
@@ -556,10 +559,11 @@ export async function answerRegulationQuestion(
     };
   }
 
-  const system =
+  const defaultSystem =
     language === "en"
       ? `You are an Indonesian tax regulation chatbot for tax disputes. Answer from the provided regulation context only. Cover VAT and transfer pricing when relevant. Name where each rule is located. If context is insufficient, say so and identify what regulation should be added. ${tierProfile.prompts.en.regulationInstruction}`
       : `Anda adalah chatbot peraturan pajak Indonesia untuk sengketa pajak. Jawab hanya dari konteks peraturan yang diberikan. Bahas PPN dan transfer pricing jika relevan. Sebutkan lokasi setiap aturan. Jika konteks belum cukup, katakan dan sebutkan aturan apa yang perlu ditambahkan. ${tierProfile.prompts.id.regulationInstruction}`;
+  const system = managedPrompt?.system?.trim() || defaultSystem;
   const prompt = JSON.stringify(
     {
       question,
@@ -570,7 +574,8 @@ export async function answerRegulationQuestion(
         ruleIntakeStrategy: tierProfile.labels[language].ruleIntake
       },
       regulationContext: context,
-      responseLanguage: language
+      responseLanguage: language,
+      managedInstruction: managedPrompt?.instruction || ""
     },
     null,
     2

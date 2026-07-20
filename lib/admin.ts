@@ -24,13 +24,13 @@ export const subscriptionTierConfigs: Record<SubscriptionTier, SubscriptionTierC
     tier: "silver",
     monthlyDocumentLimit: 25,
     monthlyChatLimit: 75,
-    features: ["dashboard", "guided", "disputeBot", "reports"]
+    features: ["dashboard", "disputeBot", "reports"]
   },
   gold: {
     tier: "gold",
     monthlyDocumentLimit: 250,
     monthlyChatLimit: 750,
-    features: ["dashboard", "guided", "databaseRead", "disputeBot", "regulationRead", "reports"]
+    features: ["dashboard", "databaseRead", "disputeBot", "regulationRead", "reports"]
   },
   platinum: {
     tier: "platinum",

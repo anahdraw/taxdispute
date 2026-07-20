@@ -4,15 +4,16 @@ import { hasDatabase, listDecisionDocuments, listTaxRegulations } from "@/lib/db
 import type { ExtractionResult } from "@/lib/extraction";
 import { mergeRegulationRecords } from "@/lib/regulation-knowledge";
 import { buildLlmAnalysis } from "@/lib/openai";
-import { requireAuth } from "@/lib/auth";
+import { requireFeature } from "@/lib/auth";
 import { getActiveTierWorkProfile } from "@/lib/tier-profiles";
 import { modelChoiceFromRequest } from "@/lib/model-options";
 import { resolveRequestTier, TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
+import { getManagedPrompt } from "@/lib/server-settings";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const auth = requireAuth(request);
+  const auth = await requireFeature(request, "guided");
   if ("response" in auth) return auth.response;
   const modelChoice = modelChoiceFromRequest(request);
   try {
@@ -30,7 +31,8 @@ export async function POST(request: Request) {
         extraction,
         mergeRegulationRecords(storedRegulations),
         getActiveTierWorkProfile(resolveRequestTier(auth.session, request.headers.get(TIER_PREVIEW_HEADER))),
-        modelChoice
+        modelChoice,
+        await getManagedPrompt("advancedAnalysis", input.language === "id" ? "id" : "en")
       )
     );
   } catch (error) {

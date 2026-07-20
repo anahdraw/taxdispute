@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { extractionToAnalyzeInput, extractPdfWithLlm } from "@/lib/extraction";
 import { modelChoiceFromRequest } from "@/lib/model-options";
+import { getManagedPrompt } from "@/lib/server-settings";
 import { canUsePdfModel, configuredModel } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
 
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: language === "id" ? "File harus PDF." : "File must be a PDF." }, { status: 400 });
     }
 
-    const extraction = await extractPdfWithLlm(file, language, modelChoice);
+    const extraction = await extractPdfWithLlm(file, language, modelChoice, await getManagedPrompt("extraction", language));
     return NextResponse.json({
       extraction,
       analyzeInput: extractionToAnalyzeInput(extraction, language)

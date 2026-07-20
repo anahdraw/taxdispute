@@ -3238,6 +3238,317 @@ pre {
   }
 }
 
+/* Compact administration settings */
+.settings-subtabs {
+  display: inline-flex;
+  max-width: 100%;
+  gap: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+  padding: 4px;
+}
+
+.settings-subtabs button,
+.plan-selector button,
+.prompt-feature-tabs button,
+.prompt-language-toggle button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  padding: 7px 13px;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.settings-subtabs button:hover,
+.plan-selector button:hover,
+.prompt-feature-tabs button:hover,
+.prompt-language-toggle button:hover {
+  color: var(--rsm-blue-dark);
+  background: #eef9fd;
+}
+
+.settings-subtabs button.active,
+.plan-selector button.active,
+.prompt-feature-tabs button.active,
+.prompt-language-toggle button.active {
+  border-color: #9edcf3;
+  background: #e9f8fe;
+  color: #006f9f;
+  box-shadow: inset 0 2px 0 var(--rsm-blue);
+}
+
+.settings-workspace {
+  display: grid;
+  gap: 18px;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  padding: 20px;
+}
+
+.settings-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e7edf1;
+}
+
+.settings-heading-row h3,
+.settings-health-head h3 {
+  margin: 0 0 3px;
+  color: var(--ink);
+  font-size: var(--text-lg);
+}
+
+.settings-heading-row p,
+.settings-health-head p {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.plan-selector,
+.prompt-language-toggle {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7f9fb;
+  padding: 3px;
+}
+
+.settings-limit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 0.55fr)) minmax(260px, 1.2fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.settings-limit-grid .control {
+  margin: 0;
+}
+
+.settings-plan-note {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-height: 76px;
+  border-left: 4px solid var(--rsm-green);
+  background: #f2faf3;
+  padding: 12px 14px;
+}
+
+.settings-plan-note b {
+  color: var(--rsm-green-dark);
+}
+
+.settings-plan-note span {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.feature-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.feature-toggle-grid button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.feature-toggle-grid button:hover {
+  border-color: #abdff2;
+  background: #f7fcfe;
+}
+
+.feature-toggle-grid button b {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #f0f2f4;
+  color: #68727a;
+  padding: 3px 8px;
+  font-size: var(--text-xs);
+}
+
+.feature-toggle-grid button.enabled {
+  border-color: #b8ddba;
+  background: #f5fbf6;
+}
+
+.feature-toggle-grid button.enabled b {
+  background: #e5f4e7;
+  color: var(--rsm-green-dark);
+}
+
+.prompt-settings {
+  gap: 15px;
+}
+
+.prompt-feature-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.prompt-feature-tabs button {
+  border-color: var(--line);
+  background: #fff;
+}
+
+.prompt-editor-field {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.prompt-editor-field textarea {
+  min-height: 150px;
+  resize: vertical;
+  border-color: #cfd9e0;
+  background: #fbfcfd;
+  line-height: 1.5;
+}
+
+.prompt-editor-field small {
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.settings-health-head {
+  margin-top: 2px;
+  border-top: 1px solid #e7edf1;
+  padding-top: 17px;
+}
+
+.compact-check-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sidebar nav button span,
+.sidebar .health-link span {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.theme-dark .settings-subtabs,
+.theme-dark .plan-selector,
+.theme-dark .prompt-language-toggle {
+  border-color: #2b3940;
+  background: #11191d;
+}
+
+.theme-dark .settings-workspace,
+.theme-dark .feature-toggle-grid button,
+.theme-dark .prompt-feature-tabs button {
+  border-color: #2b3940;
+  background: #121a1e;
+}
+
+.theme-dark .settings-heading-row,
+.theme-dark .settings-health-head {
+  border-color: #2b3940;
+}
+
+.theme-dark .settings-heading-row h3,
+.theme-dark .settings-health-head h3,
+.theme-dark .feature-toggle-grid button {
+  color: #eef5f8;
+}
+
+.theme-dark .settings-subtabs button.active,
+.theme-dark .plan-selector button.active,
+.theme-dark .prompt-feature-tabs button.active,
+.theme-dark .prompt-language-toggle button.active {
+  border-color: #276c87;
+  background: #15313c;
+  color: #a7e5fb;
+}
+
+.theme-dark .settings-plan-note {
+  background: #14261b;
+}
+
+.theme-dark .feature-toggle-grid button.enabled {
+  border-color: #315c39;
+  background: #14251a;
+}
+
+.theme-dark .prompt-editor-field textarea {
+  border-color: #334148;
+  background: #0f1619;
+  color: #f2f6f8;
+}
+
+@media (max-width: 1050px) {
+  .settings-limit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settings-plan-note {
+    grid-column: 1 / -1;
+  }
+
+  .feature-toggle-grid,
+  .compact-check-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .settings-workspace {
+    padding: 15px;
+  }
+
+  .settings-heading-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .settings-heading-row .primary-button {
+    width: 100%;
+  }
+
+  .settings-limit-grid,
+  .feature-toggle-grid,
+  .compact-check-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-selector {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .plan-selector button {
+    padding-inline: 7px;
+  }
+}
+
 /* Compact dispute composer keeps the primary action visible without scrolling. */
 .smart-question-panel .panel-body {
   gap: 0;

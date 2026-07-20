@@ -145,7 +145,7 @@ Access behavior:
 | Capability | Silver | Gold | Platinum |
 | --- | --- | --- | --- |
 | Dashboard | Yes | Yes | Yes |
-| Guided Flow | Yes | Yes | Yes |
+| Advanced Dispute Analysis | No | No | Yes |
 | Dispute Analysis chatbot | Yes | Yes | Yes |
 | Reports | Yes | Yes | Yes |
 | Read Decision Database | No | Yes | Yes |
@@ -160,6 +160,8 @@ For production SaaS, add:
 - SSO/MFA.
 - Billing and usage metering.
 - Admin approval workflow for destructive actions.
+
+Admin dapat mengubah limit dan feature access setiap paket melalui **Admin Center -> Settings -> Access plans**. Perubahan disimpan di database dan dipakai oleh guard API server-side. Prompt setiap workflow dikelola di **Prompt management**; endpoint user biasa hanya menerima konfigurasi akses dan tidak mengembalikan isi prompt.
 
 ## 7. Post-Deployment Verification
 
@@ -191,12 +193,12 @@ https://taxdispute.vercel.app/api/health?format=json
 ```
 
 4. Login as admin.
-5. Go to **Admin -> API check**.
+5. Go to **Admin Center -> Settings -> AI & system**.
 6. Confirm database table counts are visible.
 7. Upload a small PDF in **Decision Database**.
 8. Click **Upload + Extract**.
 9. Open the linked decision page.
-10. Create a report in **Guided Flow** and verify it appears in **Reports**.
+10. Create a report in **Advanced Dispute Analysis** with a Platinum account and verify it appears in the central **Reports** repository.
 
 ## 8. Git Workflow
 

@@ -22,13 +22,13 @@ Catatan lokal: jika `.env` belum diisi, health JSON akan menandai OpenAI, Blob, 
 
 ## Fitur Utama
 
-- **Guided Flow**: upload PDF, ekstraksi LLM, analisis risiko, scoring, dan report draft.
+- **Analisis Putusan Tingkat Lanjut / Advanced Dispute Analysis**: ruang kerja Platinum untuk upload PDF, ekstraksi LLM, analisis risiko, scoring, dan pembuatan report draft.
 - **Decision Database**: penyimpanan metadata putusan, hasil ekstraksi JSON, confidence extraction, pagination, detail page per putusan, re-extract/edit/delete untuk admin.
 - **Dispute Analysis**: RAG chatbot untuk bertanya atas database putusan dan peraturan, termasuk visualisasi sederhana untuk distribusi outcome.
-- **Regulations**: import/update peraturan dari input manual, Ortax reference, dan Excel/CSV list; smart regulation bot untuk menelaah aturan.
-- **Reports**: database report yang pernah dibuat agar user bisa membuka dan mengunduh ulang tanpa analisis ulang.
+- **Regulations**: import/update peraturan dari input manual, daftar Excel/CSV, serta PDF sumber resmi; smart regulation bot untuk menelaah aturan.
+- **Reports**: satu repository terpusat untuk report yang pernah dibuat agar user bisa membuka, memperbarui, dan mengunduh ulang tanpa analisis ulang.
 - **Reference Viewer**: halaman referensi untuk PDF putusan/peraturan dengan pencarian dan smartbot context.
-- **Admin Center**: activity logs, user management, privacy & access control, dan API/integration check.
+- **Admin Center**: activity logs, user management, privacy & access control, pengaturan paket, prompt management per fitur, serta API/integration check.
 - **Bilingual UI**: Bahasa Indonesia dan English.
 - **Export**: dokumen Word/PDF dengan identitas RSM dan struktur report yang lebih rapi.
 
@@ -70,9 +70,9 @@ Tier saat ini:
 
 | Tier | Cocok untuk | Akses utama |
 | --- | --- | --- |
-| Silver | User awal / reviewer ringan | Dashboard, Guided Flow, Dispute Analysis, Reports |
+| Silver | User awal / reviewer ringan | Dashboard, Dispute Analysis, Reports |
 | Gold | Tim advisor | Silver + read-only Decision Database dan Regulations |
-| Platinum | Organisasi/admin | Full access, admin center, database/regulation write controls |
+| Platinum | Organisasi/advisor senior | Gold + Advanced Dispute Analysis dan seluruh workflow lanjutan |
 
 Kontrol yang sudah ada:
 
@@ -82,6 +82,8 @@ Kontrol yang sudah ada:
 - API database putusan dan peraturan memakai tier guard.
 - Activity log untuk login, upload, ekstraksi, export, update aturan, dan admin action.
 - API list memakai pagination dan summary payload; detail lengkap dimuat saat dibutuhkan.
+- Konfigurasi akses/limit Silver, Gold, dan Platinum dapat diubah admin dan diberlakukan kembali oleh server-side feature guard.
+- Prompt ekstraksi, analisis lanjutan, Dispute Analysis, Regulation RAG, dan Reference Assistant dikelola per fitur dan per bahasa melalui Admin Center.
 
 Untuk SaaS production, tambahkan tenant isolation, object-level RBAC, SSO/MFA, billing metering, data retention policy, dan audit export.
 

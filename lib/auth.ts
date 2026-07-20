@@ -1,7 +1,9 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
-import { defaultTierForRole, normalizeSubscriptionTier, tierHasFeature } from "./admin";
+import { defaultTierForRole, normalizeSubscriptionTier } from "./admin";
 import type { ManagedUser, SubscriptionTier, TierFeatureKey, UserRole } from "./admin";
+import { getRuntimeAdminSettings } from "./server-settings";
+import { planHasFeature } from "./settings-schema";
 
 export const AUTH_COOKIE_NAME = "tdp_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
@@ -154,10 +156,11 @@ export function requireAuth(request: Request, roles?: UserRole[]) {
   return { session };
 }
 
-export function requireFeature(request: Request, feature: TierFeatureKey) {
+export async function requireFeature(request: Request, feature: TierFeatureKey) {
   const auth = requireAuth(request);
   if ("response" in auth) return auth;
-  if (auth.session.role !== "admin" && !tierHasFeature(auth.session.tier, feature)) {
+  const settings = await getRuntimeAdminSettings();
+  if (auth.session.role !== "admin" && !planHasFeature(settings.plans, auth.session.tier, feature)) {
     return {
       response: NextResponse.json({ error: "This subscription tier does not include this feature." }, { status: 403 })
     };

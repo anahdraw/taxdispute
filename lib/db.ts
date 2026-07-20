@@ -645,6 +645,13 @@ export async function ensureAdminSchema() {
     CREATE INDEX IF NOT EXISTS activity_logs_created_at_idx
       ON activity_logs (created_at DESC);
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
   for (const user of seedUsers) {
     await pool.query(
       `
@@ -658,6 +665,24 @@ export async function ensureAdminSchema() {
     );
   }
   await migratePlaintextUserPasswords();
+}
+
+export async function getAppSetting<T>(key: string): Promise<T | null> {
+  await ensureAdminSchema();
+  const result = await getPool().query(`SELECT value FROM app_settings WHERE key = $1 LIMIT 1`, [key]);
+  return result.rows[0]?.value ? (result.rows[0].value as T) : null;
+}
+
+export async function upsertAppSetting(key: string, value: unknown) {
+  await ensureAdminSchema();
+  await getPool().query(
+    `
+      INSERT INTO app_settings (key, value, updated_at)
+      VALUES ($1, $2::jsonb, NOW())
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+    `,
+    [key, JSON.stringify(value)]
+  );
 }
 
 async function migratePlaintextUserPasswords() {

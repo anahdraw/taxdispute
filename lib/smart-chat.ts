@@ -598,7 +598,8 @@ export async function answerSmartChat({
   regulations,
   mode,
   tierProfile = tierWorkProfiles.platinum,
-  modelChoice = DEFAULT_LLM_MODEL_CHOICE
+  modelChoice = DEFAULT_LLM_MODEL_CHOICE,
+  managedPrompt
 }: {
   question: string;
   language: "id" | "en";
@@ -607,6 +608,7 @@ export async function answerSmartChat({
   mode: SmartChatSourceMode;
   tierProfile?: TierWorkProfile;
   modelChoice?: LlmModelChoice;
+  managedPrompt?: { system?: string; instruction?: string };
 }): Promise<SmartChatResponse> {
   const effectiveMode: SmartChatSourceMode = tierProfile.tier === "silver" ? "regulations" : tierProfile.tier === "gold" ? "all" : mode;
   const wantsDecisions = effectiveMode === "all" || effectiveMode === "decisions";
@@ -650,10 +652,11 @@ export async function answerSmartChat({
     };
   }
 
-  const system =
+  const defaultSystem =
     language === "en"
       ? `You are Smart Dispute Bot, an Indonesian tax dispute RAG assistant. Answer using only the retrieved decision and regulation context. Prioritize exact taxpayer/company matches, decision numbers, and issue matches over generic outcome matches. Cite decision numbers and rule citations, and say when context is insufficient. ${tierProfile.prompts.en.smartChatInstruction}`
       : `Anda adalah Smart Dispute Bot, asisten RAG sengketa pajak Indonesia. Jawab hanya dari konteks putusan dan peraturan yang diambil melalui retrieval. Prioritaskan kecocokan nama WP/perusahaan, nomor putusan, dan isu dibanding kecocokan outcome yang generik. Sebutkan nomor putusan dan sitasi aturan, dan katakan bila konteks belum cukup. ${tierProfile.prompts.id.smartChatInstruction}`;
+  const system = managedPrompt?.system?.trim() || defaultSystem;
   const prompt = JSON.stringify(
     {
       question,
@@ -684,7 +687,8 @@ export async function answerSmartChat({
         snippet: item.snippet
       })),
       computedCharts: charts,
-      responseLanguage: language
+      responseLanguage: language,
+      managedInstruction: managedPrompt?.instruction || ""
     },
     null,
     2

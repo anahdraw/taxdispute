@@ -16,7 +16,15 @@ import { buildReportKey, buildStoredReport, type StoredReport } from "@/lib/stor
 import { decisionDetailPath } from "@/lib/decision-links";
 import { referenceDetailPath } from "@/lib/reference-links";
 import type { ActivityLog, ManagedUser, SubscriptionTier, SystemCheck, TierFeatureKey, UserRole } from "@/lib/admin";
-import { defaultTierForRole, normalizeSubscriptionTier, normalizeUsername, seedUsers, subscriptionTierConfigs, tierHasFeature, userIdFromUsername } from "@/lib/admin";
+import { defaultTierForRole, normalizeSubscriptionTier, normalizeUsername, seedUsers, userIdFromUsername } from "@/lib/admin";
+import {
+  defaultAdminRuntimeSettings,
+  planHasFeature,
+  promptFeatureKeys,
+  type AdminRuntimeSettings,
+  type PromptFeatureKey,
+  type PromptLanguage
+} from "@/lib/settings-schema";
 import {
   DEFAULT_LLM_MODEL_CHOICE,
   LLM_MODEL_HEADER,
@@ -24,7 +32,6 @@ import {
   normalizeModelChoice,
   type LlmModelChoice
 } from "@/lib/model-options";
-import { tierWorkProfiles } from "@/lib/tier-profiles";
 import { TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 
 type Language = "id" | "en";
@@ -32,7 +39,6 @@ type ThemeMode = "dark" | "light";
 type PageKey = "dashboard" | "guided" | "database" | "smartchat" | "regulations" | "reports" | "admin";
 type RegulationTabKey = "bot" | "update" | "list" | "manual";
 type RegulationTopicFilter = RegulationTopic | "all";
-type GuidedTabKey = "analysis" | "reports";
 type DisputeTabKey = "chat" | "similar";
 type AdminTabKey = "logs" | "users" | "privacy" | "api";
 type AppSession = {
@@ -56,14 +62,16 @@ const DEFAULT_USER_BY_ROLE = {
   user: seedUsers.find((user) => user.role === "user") || seedUsers[1]
 };
 
-function canAccessPage(role: UserRole, tier: SubscriptionTier, key: PageKey) {
+const DEFAULT_RUNTIME_SETTINGS = defaultAdminRuntimeSettings();
+
+function canAccessPage(role: UserRole, tier: SubscriptionTier, key: PageKey, plans = DEFAULT_RUNTIME_SETTINGS.plans) {
   if (role === "admin") return true;
-  if (key === "dashboard") return tierHasFeature(tier, "dashboard");
-  if (key === "guided") return tierHasFeature(tier, "guided");
-  if (key === "database") return tierHasFeature(tier, "databaseRead");
-  if (key === "smartchat") return tierHasFeature(tier, "disputeBot");
-  if (key === "regulations") return tierHasFeature(tier, "regulationRead");
-  if (key === "reports") return tierHasFeature(tier, "reports");
+  if (key === "dashboard") return planHasFeature(plans, tier, "dashboard");
+  if (key === "guided") return planHasFeature(plans, tier, "guided");
+  if (key === "database") return planHasFeature(plans, tier, "databaseRead");
+  if (key === "smartchat") return planHasFeature(plans, tier, "disputeBot");
+  if (key === "regulations") return planHasFeature(plans, tier, "regulationRead");
+  if (key === "reports") return planHasFeature(plans, tier, "reports");
   return false;
 }
 
@@ -88,7 +96,7 @@ const copy = {
     subtitle: "Upload putusan, ekstrak data, cari pembanding, tanya aturan, lalu ekspor draft.",
     appGuidance: "Upload putusan, ekstrak data, cari pembanding, tanya aturan, lalu ekspor draft.",
     dashboard: "Dashboard",
-    guided: "Alur Terpandu",
+    guided: "Analisis Putusan Tingkat Lanjut",
     database: "Database Putusan",
     smartchat: "Dispute Analysis",
     regulations: "Peraturan",
@@ -149,8 +157,6 @@ const copy = {
     useInArgument: "Cara pakai dalam argumentasi",
     noCaseQuery: "Isi narasi/kata kunci atau upload PDF terlebih dahulu.",
     extractedForSearch: "Dokumen berhasil diekstrak untuk pencarian.",
-    guidedTabAnalysis: "Analisis baru",
-    guidedTabReports: "Database report",
     reportDatabaseTitle: "Database Report",
     reportDatabaseIntro: "Buka dan unduh ulang report tersimpan.",
     savedReports: "Report tersimpan",
@@ -284,7 +290,6 @@ const copy = {
     roleAdmin: "Admin",
     roleUser: "User",
     quickStart: "Mulai Cepat",
-    quickGuided: "Upload dan analisis dokumen",
     quickChat: "Buka Dispute Analysis",
     quickAdmin: "Kelola database dan peraturan",
     openAction: "Buka",
@@ -417,7 +422,7 @@ const copy = {
     subtitle: "Upload decisions, extract data, find comparators, ask rules, then export drafts.",
     appGuidance: "Upload decisions, extract data, find comparators, ask rules, then export drafts.",
     dashboard: "Dashboard",
-    guided: "Guided Flow",
+    guided: "Advanced Dispute Analysis",
     database: "Decision Database",
     smartchat: "Dispute Analysis",
     regulations: "Regulations",
@@ -478,8 +483,6 @@ const copy = {
     useInArgument: "How to use in argument",
     noCaseQuery: "Enter a narrative/keyword or upload a PDF first.",
     extractedForSearch: "Document extracted for search.",
-    guidedTabAnalysis: "New analysis",
-    guidedTabReports: "Report database",
     reportDatabaseTitle: "Report Database",
     reportDatabaseIntro: "Open and redownload saved reports.",
     savedReports: "Saved reports",
@@ -613,7 +616,6 @@ const copy = {
     roleAdmin: "Admin",
     roleUser: "User",
     quickStart: "Quick Start",
-    quickGuided: "Upload and analyze a document",
     quickChat: "Open Dispute Analysis",
     quickAdmin: "Manage database and regulations",
     openAction: "Open",
@@ -1718,6 +1720,7 @@ export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [modelChoice, setModelChoice] = useState<LlmModelChoice>(DEFAULT_LLM_MODEL_CHOICE);
+  const [runtimeSettings, setRuntimeSettings] = useState<AdminRuntimeSettings>(() => defaultAdminRuntimeSettings());
   const [session, setSession] = useState<AppSession | null>(null);
   const [adminPreviewTier, setAdminPreviewTier] = useState<SubscriptionTier>("platinum");
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => loadManagedUsers());
@@ -1752,7 +1755,6 @@ export default function Home() {
   const [hydratingReportId, setHydratingReportId] = useState("");
   const [selectedReportId, setSelectedReportId] = useState("");
   const [activeReportId, setActiveReportId] = useState("");
-  const [guidedTab, setGuidedTab] = useState<GuidedTabKey>("analysis");
   const [exportLoading, setExportLoading] = useState<"docx" | "pdf" | "">("");
   const [exportError, setExportError] = useState("");
   const [smartQuestion, setSmartQuestion] = useState("For transfer pricing disputes, how many matched decisions were won or lost and what rules are relevant?");
@@ -1844,7 +1846,7 @@ export default function Home() {
     ["regulations", labels.regulations],
     ["reports", labels.reports]
   ];
-  const visiblePages = pages.filter(([key]) => (session ? canAccessPage(effectiveAccessRole, effectiveTier, key) : false));
+  const visiblePages = pages.filter(([key]) => (session ? canAccessPage(effectiveAccessRole, effectiveTier, key, runtimeSettings.plans) : false));
 
   useEffect(() => {
     try {
@@ -1902,7 +1904,32 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!session || !canAccessPage(session.role, session.tier, "database")) return;
+    if (!session) return;
+    let cancelled = false;
+    async function loadRuntimeSettings() {
+      try {
+        const endpoint = session?.role === "admin" ? "/api/admin/settings" : "/api/settings";
+        const response = await fetch(endpoint, { cache: "no-store" });
+        const data = (await response.json().catch(() => ({}))) as {
+          settings?: AdminRuntimeSettings;
+          plans?: AdminRuntimeSettings["plans"];
+          updatedAt?: string;
+        };
+        if (!response.ok || cancelled) return;
+        if (data.settings) setRuntimeSettings(data.settings);
+        else if (data.plans) setRuntimeSettings((current) => ({ ...current, plans: data.plans!, updatedAt: data.updatedAt || current.updatedAt }));
+      } catch {
+        // Built-in access and prompt defaults remain active when settings cannot be loaded.
+      }
+    }
+    void loadRuntimeSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.role, session?.username]);
+
+  useEffect(() => {
+    if (!session || !canAccessPage(session.role, session.tier, "database", runtimeSettings.plans)) return;
     let cancelled = false;
     async function loadDatabaseDocuments() {
       try {
@@ -1921,10 +1948,10 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [session?.username, session?.role, session?.tier]);
+  }, [runtimeSettings.plans, session?.username, session?.role, session?.tier]);
 
   useEffect(() => {
-    if (!session || !canAccessPage(session.role, session.tier, "regulations")) return;
+    if (!session || !canAccessPage(session.role, session.tier, "reports", runtimeSettings.plans)) return;
     let cancelled = false;
     async function loadReportDatabase() {
       try {
@@ -1948,13 +1975,13 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [session?.username, session?.role, session?.tier]);
+  }, [runtimeSettings.plans, session?.username, session?.role, session?.tier]);
 
   useEffect(() => {
-    if (session && page !== "admin" && !canAccessPage(effectiveAccessRole, effectiveTier, page)) {
+    if (session && page !== "admin" && !canAccessPage(effectiveAccessRole, effectiveTier, page, runtimeSettings.plans)) {
       setPage("smartchat");
     }
-  }, [effectiveAccessRole, effectiveTier, page, session]);
+  }, [effectiveAccessRole, effectiveTier, page, runtimeSettings.plans, session]);
 
   useEffect(() => {
     if (session?.role !== "admin" && (regulationTab === "update" || regulationTab === "manual")) {
@@ -1965,11 +1992,11 @@ export default function Home() {
   useEffect(() => {
     if (typeof window === "undefined" || !session) return;
     const targetPage = new URLSearchParams(window.location.search).get("page") as PageKey | null;
-    if (targetPage && pages.some(([key]) => key === targetPage) && canAccessPage(effectiveAccessRole, effectiveTier, targetPage)) {
+    if (targetPage && pages.some(([key]) => key === targetPage) && canAccessPage(effectiveAccessRole, effectiveTier, targetPage, runtimeSettings.plans)) {
       setPage(targetPage);
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [effectiveAccessRole, effectiveTier, session]);
+  }, [effectiveAccessRole, effectiveTier, runtimeSettings.plans, session]);
 
   useEffect(() => {
     setRegulationPage((current) => Math.min(Math.max(1, current), regulationTotalPages));
@@ -2272,6 +2299,27 @@ export default function Home() {
     }
   }
 
+  async function saveRuntimeSettings(nextSettings: AdminRuntimeSettings) {
+    setAdminLoading(true);
+    setAdminStatus("");
+    setAdminError("");
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: nextSettings })
+      });
+      const data = (await response.json().catch(() => ({}))) as { settings?: AdminRuntimeSettings; error?: string };
+      if (!response.ok || !data.settings) throw new Error(data.error || "Could not save application settings.");
+      setRuntimeSettings(data.settings);
+      setAdminStatus(language === "en" ? "Application settings saved." : "Pengaturan aplikasi tersimpan.");
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : "Could not save application settings.");
+    } finally {
+      setAdminLoading(false);
+    }
+  }
+
   function changeAdminPreviewTier(nextTier: SubscriptionTier) {
     const tier = normalizeSubscriptionTier(nextTier, "user");
     setAdminPreviewTier(tier);
@@ -2282,7 +2330,7 @@ export default function Home() {
     setRegulationBotResponse(null);
     setRegulationBotStatus("");
     setRegulationBotError("");
-    if (page !== "admin" && !canAccessPage("user", tier, page)) setPage("smartchat");
+    if (page !== "admin" && !canAccessPage("user", tier, page, runtimeSettings.plans)) setPage("smartchat");
   }
 
   function toggleSidebar() {
@@ -2786,7 +2834,6 @@ export default function Home() {
       setActiveReportId(reusableReport.id);
       setSelectedReportId(reusableReport.id);
       setReportStatus(labels.reportLoaded);
-      setGuidedTab("analysis");
       return;
     }
     await runAnalysisRequest(currentInput);
@@ -2882,6 +2929,10 @@ export default function Home() {
   }
 
   async function loadReportIntoGuided(report: StoredReport) {
+    if (!canAccessPage(effectiveAccessRole, effectiveTier, "guided", runtimeSettings.plans)) {
+      setExportError(language === "en" ? "Advanced Dispute Analysis is available on Platinum." : "Analisis Putusan Tingkat Lanjut tersedia pada paket Platinum.");
+      return;
+    }
     const fullReport = (await hydrateStoredReport(report.id)) || report;
     if (!reportIsHydrated(fullReport)) {
       setExportError("Report detail is not available yet.");
@@ -2894,7 +2945,6 @@ export default function Home() {
     setSelectedReportId(fullReport.id);
     setLanguage(fullReport.language);
     setReportStatus(labels.reportLoaded);
-    setGuidedTab("analysis");
     setPage("guided");
   }
 
@@ -3354,14 +3404,25 @@ export default function Home() {
                     </div>
                     <QuickActionIcon type="chatbot" />
                   </article>
-                  <article className="quick-action-card quick-action-blue">
-                    <div>
-                      <span>{labels.quickStart}</span>
-                      <b>{labels.quickGuided}</b>
-                      <button className="table-button" onClick={() => setPage("guided")}>{labels.openAction}</button>
-                    </div>
-                    <QuickActionIcon type="document" />
-                  </article>
+                  {canAccessPage(effectiveAccessRole, effectiveTier, "guided", runtimeSettings.plans) ? (
+                    <article className="quick-action-card quick-action-blue">
+                      <div>
+                        <span>{labels.quickStart}</span>
+                        <b>{labels.guided}</b>
+                        <button className="table-button" onClick={() => setPage("guided")}>{labels.openAction}</button>
+                      </div>
+                      <QuickActionIcon type="document" />
+                    </article>
+                  ) : (
+                    <article className="quick-action-card quick-action-blue">
+                      <div>
+                        <span>{labels.quickStart}</span>
+                        <b>{labels.reports}</b>
+                        <button className="table-button" onClick={() => setPage("reports")}>{labels.openAction}</button>
+                      </div>
+                      <QuickActionIcon type="document" />
+                    </article>
+                  )}
                   {session.role === "admin" && (
                     <article className="quick-action-card quick-action-gray">
                       <div>
@@ -3448,17 +3509,7 @@ export default function Home() {
 
         {page === "guided" && (
           <section className="guided-page">
-            <div className="regulation-tab-list guided-tab-list" role="tablist" aria-label={labels.guided}>
-              <button className={guidedTab === "analysis" ? "active" : ""} onClick={() => setGuidedTab("analysis")}>
-                {labels.guidedTabAnalysis}
-              </button>
-              <button className={guidedTab === "reports" ? "active" : ""} onClick={() => setGuidedTab("reports")}>
-                {labels.guidedTabReports}
-              </button>
-            </div>
-
-            {guidedTab === "analysis" ? (
-              <section className="workbench">
+            <section className="workbench">
                 <Panel title={labels.guided}>
                   <div className="upload-box">
                     <label>
@@ -3514,20 +3565,7 @@ export default function Home() {
                   exportError={exportError}
                   onDownload={downloadReport}
                 />
-              </section>
-            ) : (
-              <ReportDatabasePanel
-                labels={labels}
-                reports={storedReports}
-                selectedReport={selectedReport}
-                loadingReportId={hydratingReportId}
-                exportLoading={exportLoading}
-                exportError={exportError}
-                onSelect={selectStoredReport}
-                onLoad={loadReportIntoGuided}
-                onDownload={downloadReport}
-              />
-            )}
+            </section>
           </section>
         )}
 
@@ -3973,6 +4011,7 @@ export default function Home() {
             loadingReportId={hydratingReportId}
             exportLoading={exportLoading}
             exportError={exportError}
+            canReuse={canAccessPage(effectiveAccessRole, effectiveTier, "guided", runtimeSettings.plans)}
             onSelect={selectStoredReport}
             onLoad={loadReportIntoGuided}
             onDownload={downloadReport}
@@ -3995,11 +4034,14 @@ export default function Home() {
             loading={adminLoading}
             currentSession={session}
             modelChoice={modelChoice}
+            runtimeSettings={runtimeSettings}
             onTabChange={setAdminTab}
             onRefreshLogs={refreshActivityLogs}
             onRefreshUsers={refreshManagedUsers}
             onRunCheck={() => runSystemCheck(true)}
             onModelChoiceChange={changeModelChoice}
+            onRuntimeSettingsChange={setRuntimeSettings}
+            onSaveRuntimeSettings={saveRuntimeSettings}
             onUserFormChange={setUserForm}
             onSaveUser={saveUser}
             onResetUser={resetUserForm}
@@ -4893,6 +4935,7 @@ function ReportDatabasePanel({
   loadingReportId,
   exportLoading,
   exportError,
+  canReuse,
   onSelect,
   onLoad,
   onDownload
@@ -4903,6 +4946,7 @@ function ReportDatabasePanel({
   loadingReportId: string;
   exportLoading: "docx" | "pdf" | "";
   exportError: string;
+  canReuse: boolean;
   onSelect: (id: string) => void;
   onLoad: (report: StoredReport) => void;
   onDownload: (format: "docx" | "pdf", report?: StoredReport) => void;
@@ -4948,9 +4992,11 @@ function ReportDatabasePanel({
                       </p>
                     </div>
                     <div className="report-detail-actions">
-                      <button className="table-button" onClick={() => onLoad(selectedReport)}>
-                        {labels.useSavedReport}
-                      </button>
+                      {canReuse && (
+                        <button className="table-button" onClick={() => onLoad(selectedReport)}>
+                          {labels.updateAnalysis}
+                        </button>
+                      )}
                       <button className="table-button" onClick={() => onDownload("docx", selectedReport)} disabled={Boolean(exportLoading)}>
                         {exportLoading === "docx" ? labels.exporting : labels.exportWord}
                       </button>
@@ -4997,11 +5043,14 @@ function AdminPanel({
   loading,
   currentSession,
   modelChoice,
+  runtimeSettings,
   onTabChange,
   onRefreshLogs,
   onRefreshUsers,
   onRunCheck,
   onModelChoiceChange,
+  onRuntimeSettingsChange,
+  onSaveRuntimeSettings,
   onUserFormChange,
   onSaveUser,
   onResetUser,
@@ -5022,17 +5071,24 @@ function AdminPanel({
   loading: boolean;
   currentSession: AppSession;
   modelChoice: LlmModelChoice;
+  runtimeSettings: AdminRuntimeSettings;
   onTabChange: (tab: AdminTabKey) => void;
   onRefreshLogs: () => void;
   onRefreshUsers: () => void;
   onRunCheck: () => void;
   onModelChoiceChange: (value: LlmModelChoice) => void;
+  onRuntimeSettingsChange: (value: AdminRuntimeSettings) => void;
+  onSaveRuntimeSettings: (value: AdminRuntimeSettings) => void;
   onUserFormChange: (user: ManagedUser) => void;
   onSaveUser: () => void;
   onResetUser: () => void;
   onEditUser: (user: ManagedUser) => void;
   onDeleteUser: (user: ManagedUser) => void;
 }) {
+  const [settingsTab, setSettingsTab] = useState<"access" | "ai" | "prompts">("access");
+  const [selectedPlanTier, setSelectedPlanTier] = useState<SubscriptionTier>("platinum");
+  const [selectedPromptFeature, setSelectedPromptFeature] = useState<PromptFeatureKey>("extraction");
+  const [selectedPromptLanguage, setSelectedPromptLanguage] = useState<PromptLanguage>("id");
   const tabs: Array<[AdminTabKey, string]> = [
     ["logs", labels.adminLogs],
     ["users", labels.adminUsers],
@@ -5063,61 +5119,6 @@ function AdminPanel({
     { key: "regulationWrite", label: isEnglish ? "Update regulation knowledge" : "Update knowledge peraturan" },
     { key: "reports", label: labels.reports },
     { key: "admin", label: `${labels.adminTitle} ${isEnglish ? "(admin role)" : "(role admin)"}` }
-  ];
-  const accessRows: Array<{
-    key: string;
-    label: string;
-    values: Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>;
-  }> = [
-    ...featureRows.map((row) => ({
-      key: row.key,
-      label: row.label,
-      values: tierList.reduce((acc, tier) => {
-        const enabled = tierHasFeature(tier, row.key);
-        acc[tier] = { text: enabled ? labels.allowed : labels.blocked, enabled };
-        return acc;
-      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
-    })),
-    {
-      key: "analysis-depth",
-      label: labels.analysisDepth,
-      values: tierList.reduce((acc, tier) => {
-        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].analysis, enabled: true, depth: true };
-        return acc;
-      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
-    },
-    {
-      key: "regulation-depth",
-      label: labels.regulationDepth,
-      values: tierList.reduce((acc, tier) => {
-        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].regulation, enabled: true, depth: true };
-        return acc;
-      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
-    },
-    {
-      key: "comparable-depth",
-      label: labels.comparableDepth,
-      values: tierList.reduce((acc, tier) => {
-        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].comparable, enabled: true, depth: true };
-        return acc;
-      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
-    },
-    {
-      key: "report-depth",
-      label: labels.reportDepth,
-      values: tierList.reduce((acc, tier) => {
-        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].report, enabled: true, depth: true };
-        return acc;
-      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
-    },
-    {
-      key: "rule-intake",
-      label: labels.ruleIntakeStrategy,
-      values: tierList.reduce((acc, tier) => {
-        acc[tier] = { text: tierWorkProfiles[tier].labels[isEnglish ? "en" : "id"].ruleIntake, enabled: true, depth: true };
-        return acc;
-      }, {} as Record<SubscriptionTier, { text: string; enabled: boolean; depth?: boolean }>)
-    }
   ];
   const securityControls = isEnglish
     ? [
@@ -5153,6 +5154,54 @@ function AdminPanel({
         "Metering dokumen, chat, export, storage, dan API.",
         "Tambah audit export dan approval workflow."
       ];
+
+  const promptNames: Record<PromptFeatureKey, string> = isEnglish
+    ? {
+        extraction: "Document extraction",
+        advancedAnalysis: "Advanced analysis",
+        disputeBot: "Dispute Analysis",
+        regulationBot: "Regulation RAG",
+        referenceAssistant: "Reference assistant"
+      }
+    : {
+        extraction: "Ekstraksi dokumen",
+        advancedAnalysis: "Analisis tingkat lanjut",
+        disputeBot: "Dispute Analysis",
+        regulationBot: "RAG peraturan",
+        referenceAssistant: "Asisten referensi"
+      };
+  const selectedPlan = runtimeSettings.plans[selectedPlanTier];
+  const selectedPrompt = runtimeSettings.prompts[selectedPromptFeature][selectedPromptLanguage];
+
+  function updateSelectedPlan(patch: Partial<(typeof runtimeSettings.plans)[SubscriptionTier]>) {
+    onRuntimeSettingsChange({
+      ...runtimeSettings,
+      plans: {
+        ...runtimeSettings.plans,
+        [selectedPlanTier]: { ...selectedPlan, ...patch, tier: selectedPlanTier }
+      }
+    });
+  }
+
+  function togglePlanFeature(feature: TierFeatureKey) {
+    const features = selectedPlan.features.includes(feature)
+      ? selectedPlan.features.filter((item) => item !== feature)
+      : [...selectedPlan.features, feature];
+    updateSelectedPlan({ features });
+  }
+
+  function updateSelectedPrompt(field: "system" | "instruction", value: string) {
+    onRuntimeSettingsChange({
+      ...runtimeSettings,
+      prompts: {
+        ...runtimeSettings.prompts,
+        [selectedPromptFeature]: {
+          ...runtimeSettings.prompts[selectedPromptFeature],
+          [selectedPromptLanguage]: { ...selectedPrompt, [field]: value }
+        }
+      }
+    });
+  }
 
   return (
     <section className="admin-page">
@@ -5323,63 +5372,7 @@ function AdminPanel({
               <span className="admin-edit-pill">{isEnglish ? "Access model" : "Model akses"}</span>
             </div>
 
-            <div className="tier-card-grid">
-              {(["silver", "gold", "platinum"] as SubscriptionTier[]).map((tier) => {
-                const config = subscriptionTierConfigs[tier];
-                return (
-                  <article key={tier} className={`tier-card ${tier}`}>
-                    <span>{labels.subscriptionTier}</span>
-                    <h3>{tierNames[tier]}</h3>
-                    <p>{tierDescriptions[tier]}</p>
-                    <div className="tier-metrics">
-                      <div>
-                        <small>{labels.tierDocuments}: </small>
-                        <b>{config.monthlyDocumentLimit === null ? labels.unlimited : config.monthlyDocumentLimit.toLocaleString()}</b>
-                      </div>
-                      <div>
-                        <small>{labels.tierChats}: </small>
-                        <b>{config.monthlyChatLimit === null ? labels.unlimited : config.monthlyChatLimit.toLocaleString()}</b>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
             <div className="privacy-grid">
-              <section className="privacy-card">
-                <h3>{labels.accessMatrix}</h3>
-                <div className="table-wrap access-matrix">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{labels.featureLabel}</th>
-                        <th>{labels.tierSilver}</th>
-                        <th>{labels.tierGold}</th>
-                        <th>{labels.tierPlatinum}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {accessRows.map((row) => (
-                        <tr key={row.key}>
-                          <td>{row.label}</td>
-                          {tierList.map((tier) => {
-                            const value = row.values[tier];
-                            return (
-                              <td key={tier}>
-                                <span className={`access-pill ${value.depth ? "depth" : value.enabled ? "allowed" : "blocked"}`}>
-                                  {value.text}
-                                </span>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
               <section className="privacy-card">
                 <h3>{labels.securityControls}</h3>
                 <ul className="privacy-check-list">
@@ -5406,44 +5399,151 @@ function AdminPanel({
 
         {activeTab === "api" && (
           <section className="admin-section">
-            <ModelRuntimePanel labels={labels} value={modelChoice} onChange={onModelChoiceChange} />
-            <div className="admin-section-head">
-              <div>
-                <h3>{labels.apiCheck}</h3>
-                <p className="muted">
-                  {labels.apiCheckIntro}
-                  {checkedAt ? ` ${labels.lastChecked}: ${new Date(checkedAt).toLocaleString()}` : ""}
-                </p>
-              </div>
-              <div className="admin-actions">
-                <button className="primary-button secondary-button" onClick={onRunCheck} disabled={loading}>
-                  {loading ? labels.updatingRules : labels.runApiCheck}
-                </button>
-                <a className="table-button" href="/api/health" target="_blank" rel="noreferrer">
-                  {labels.openHealthPage}
-                </a>
-              </div>
+            <div className="settings-subtabs" role="tablist" aria-label={isEnglish ? "Application settings" : "Pengaturan aplikasi"}>
+              <button className={settingsTab === "access" ? "active" : ""} onClick={() => setSettingsTab("access")}>
+                {isEnglish ? "Access plans" : "Paket akses"}
+              </button>
+              <button className={settingsTab === "ai" ? "active" : ""} onClick={() => setSettingsTab("ai")}>
+                {isEnglish ? "AI & system" : "AI & sistem"}
+              </button>
+              <button className={settingsTab === "prompts" ? "active" : ""} onClick={() => setSettingsTab("prompts")}>
+                {isEnglish ? "Prompt management" : "Prompt management"}
+              </button>
             </div>
-            <div className="admin-check-grid">
-              {checks.map((item) => (
-                <article key={item.name} className={`admin-check-card ${item.status}`}>
-                  <span>{item.name}</span>
-                  <b>{item.status === "ok" ? labels.okStatus : item.status === "warning" ? labels.warningStatus : labels.errorStatus}</b>
-                  <p>{item.detail}</p>
-                  {item.metric && <small>{item.metric}</small>}
-                </article>
-              ))}
-              {!checks.length && <div className="empty-state">{labels.apiCheckIntro}</div>}
-            </div>
-            {countsEntries.length > 0 && (
-              <div className="admin-count-grid">
-                {countsEntries.map(([key, value]) => (
-                  <article key={key} className="kpi gray">
-                    <span>{key.replace(/_/g, " ")}</span>
-                    <strong>{value}</strong>
-                  </article>
-                ))}
-              </div>
+
+            {settingsTab === "access" && (
+              <section className="settings-workspace compact-settings">
+                <div className="settings-heading-row">
+                  <div>
+                    <h3>{isEnglish ? "Plan access and limits" : "Akses dan limit paket"}</h3>
+                    <p className="muted">{isEnglish ? "Choose a plan, adjust limits and feature access, then save once." : "Pilih paket, atur limit dan akses fitur, lalu simpan sekali."}</p>
+                  </div>
+                  <button className="primary-button" onClick={() => onSaveRuntimeSettings(runtimeSettings)} disabled={loading}>
+                    {loading ? (isEnglish ? "Saving..." : "Menyimpan...") : (isEnglish ? "Save settings" : "Simpan pengaturan")}
+                  </button>
+                </div>
+                <div className="plan-selector" role="tablist">
+                  {tierList.map((tier) => (
+                    <button key={tier} className={selectedPlanTier === tier ? "active" : ""} onClick={() => setSelectedPlanTier(tier)}>
+                      {tierNames[tier]}
+                    </button>
+                  ))}
+                </div>
+                <div className="settings-limit-grid">
+                  <label className="control">
+                    <span>{labels.tierDocuments}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={labels.unlimited}
+                      value={selectedPlan.monthlyDocumentLimit ?? ""}
+                      onChange={(event) => updateSelectedPlan({ monthlyDocumentLimit: event.target.value === "" ? null : Number(event.target.value) })}
+                    />
+                  </label>
+                  <label className="control">
+                    <span>{labels.tierChats}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder={labels.unlimited}
+                      value={selectedPlan.monthlyChatLimit ?? ""}
+                      onChange={(event) => updateSelectedPlan({ monthlyChatLimit: event.target.value === "" ? null : Number(event.target.value) })}
+                    />
+                  </label>
+                  <div className="settings-plan-note">
+                    <b>{tierNames[selectedPlanTier]}</b>
+                    <span>{tierDescriptions[selectedPlanTier]}</span>
+                  </div>
+                </div>
+                <div className="feature-toggle-grid">
+                  {featureRows.map((feature) => {
+                    const enabled = selectedPlan.features.includes(feature.key);
+                    return (
+                      <button
+                        key={feature.key}
+                        type="button"
+                        className={enabled ? "enabled" : ""}
+                        onClick={() => togglePlanFeature(feature.key)}
+                        aria-pressed={enabled}
+                      >
+                        <span>{feature.label}</span>
+                        <b>{enabled ? labels.allowed : labels.blocked}</b>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {settingsTab === "prompts" && (
+              <section className="settings-workspace prompt-settings">
+                <div className="settings-heading-row">
+                  <div>
+                    <h3>{isEnglish ? "Feature prompt management" : "Prompt management per fitur"}</h3>
+                    <p className="muted">{isEnglish ? "Prompts are server-side, versioned by the settings update time, and never shown to regular users." : "Prompt tersimpan di server, mengikuti waktu update pengaturan, dan tidak ditampilkan ke user biasa."}</p>
+                  </div>
+                  <button className="primary-button" onClick={() => onSaveRuntimeSettings(runtimeSettings)} disabled={loading}>
+                    {loading ? (isEnglish ? "Saving..." : "Menyimpan...") : (isEnglish ? "Save prompts" : "Simpan prompt")}
+                  </button>
+                </div>
+                <div className="prompt-feature-tabs" role="tablist">
+                  {promptFeatureKeys.map((feature) => (
+                    <button key={feature} className={selectedPromptFeature === feature ? "active" : ""} onClick={() => setSelectedPromptFeature(feature)}>
+                      {promptNames[feature]}
+                    </button>
+                  ))}
+                </div>
+                <div className="prompt-language-toggle" role="group">
+                  <button className={selectedPromptLanguage === "id" ? "active" : ""} onClick={() => setSelectedPromptLanguage("id")}>Bahasa Indonesia</button>
+                  <button className={selectedPromptLanguage === "en" ? "active" : ""} onClick={() => setSelectedPromptLanguage("en")}>English</button>
+                </div>
+                <label className="control prompt-editor-field">
+                  <span>{isEnglish ? "System instruction" : "Instruksi sistem"}</span>
+                  <textarea value={selectedPrompt.system} onChange={(event) => updateSelectedPrompt("system", event.target.value)} />
+                  <small>{isEnglish ? "Defines the role, grounding, and non-negotiable guardrails." : "Menetapkan peran, grounding, dan guardrail utama."}</small>
+                </label>
+                <label className="control prompt-editor-field">
+                  <span>{isEnglish ? "Task instruction" : "Instruksi tugas"}</span>
+                  <textarea value={selectedPrompt.instruction} onChange={(event) => updateSelectedPrompt("instruction", event.target.value)} />
+                  <small>{isEnglish ? "Appended to the feature-specific data contract and output schema." : "Ditambahkan pada kontrak data dan skema output khusus fitur."}</small>
+                </label>
+              </section>
+            )}
+
+            {settingsTab === "ai" && (
+              <section className="settings-workspace">
+                <ModelRuntimePanel labels={labels} value={modelChoice} onChange={onModelChoiceChange} />
+                <div className="admin-section-head settings-health-head">
+                  <div>
+                    <h3>{labels.apiCheck}</h3>
+                    <p className="muted">{labels.apiCheckIntro}{checkedAt ? ` ${labels.lastChecked}: ${new Date(checkedAt).toLocaleString()}` : ""}</p>
+                  </div>
+                  <div className="admin-actions">
+                    <button className="primary-button secondary-button" onClick={onRunCheck} disabled={loading}>
+                      {loading ? labels.updatingRules : labels.runApiCheck}
+                    </button>
+                    <a className="table-button" href="/api/health" target="_blank" rel="noreferrer">{labels.openHealthPage}</a>
+                  </div>
+                </div>
+                <div className="admin-check-grid compact-check-grid">
+                  {checks.map((item) => (
+                    <article key={item.name} className={`admin-check-card ${item.status}`}>
+                      <span>{item.name}</span>
+                      <b>{item.status === "ok" ? labels.okStatus : item.status === "warning" ? labels.warningStatus : labels.errorStatus}</b>
+                      <p>{item.detail}</p>
+                      {item.metric && <small>{item.metric}</small>}
+                    </article>
+                  ))}
+                  {!checks.length && <div className="empty-state">{labels.apiCheckIntro}</div>}
+                </div>
+                {countsEntries.length > 0 && (
+                  <div className="admin-count-grid">
+                    {countsEntries.map(([key, value]) => (
+                      <article key={key} className="kpi gray"><span>{key.replace(/_/g, " ")}</span><strong>{value}</strong></article>
+                    ))}
+                  </div>
+                )}
+              </section>
             )}
           </section>
         )}

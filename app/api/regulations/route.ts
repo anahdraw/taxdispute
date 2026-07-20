@@ -24,7 +24,7 @@ async function getStoredRegulations() {
 }
 
 export async function GET(request: Request) {
-  const auth = requireFeature(request, "regulationRead");
+  const auth = await requireFeature(request, "regulationRead");
   if ("response" in auth) return auth.response;
   const url = new URL(request.url);
   const id = url.searchParams.get("id");

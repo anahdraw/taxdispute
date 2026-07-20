@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { modelChoiceFromRequest } from "@/lib/model-options";
 import { callOpenAIText, configuredModel, hasRemoteLlm, missingKeyStatus } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
+import { getManagedPrompt } from "@/lib/server-settings";
 
 export const runtime = "nodejs";
 
@@ -66,17 +67,20 @@ export async function POST(request: Request) {
       });
     }
 
-    const system =
+    const managedPrompt = await getManagedPrompt("referenceAssistant", language);
+    const defaultSystem =
       language === "en"
         ? "You answer questions about one opened Indonesian tax dispute reference. Use only the provided reference context. If the answer is not supported, say so. Be concise, practical, and cite the decision number, article, or cited rule when available."
         : "Anda menjawab pertanyaan tentang satu referensi sengketa pajak Indonesia yang sedang dibuka. Gunakan hanya konteks referensi yang diberikan. Jika jawaban tidak didukung konteks, katakan belum cukup. Jawab ringkas, praktis, dan sebutkan nomor putusan, pasal, atau aturan jika tersedia.";
+    const system = managedPrompt.system || defaultSystem;
     const prompt = JSON.stringify(
       {
         referenceType: body.kind || "reference",
         referenceTitle: body.title || "",
         question,
         referenceContext: context,
-        responseLanguage: language
+        responseLanguage: language,
+        managedInstruction: managedPrompt.instruction
       },
       null,
       2

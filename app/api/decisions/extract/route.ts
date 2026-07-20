@@ -3,6 +3,7 @@ import { PDFDocument } from "pdf-lib";
 import { hasDatabase, upsertDecisionExtraction } from "@/lib/db";
 import { emptyPpnComponents, extractPdfWithLlm, type ExtractionResult, type PpnComponents } from "@/lib/extraction";
 import { modelChoiceFromRequest } from "@/lib/model-options";
+import { getManagedPrompt } from "@/lib/server-settings";
 import { canUsePdfModel, configuredModel } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
 
@@ -224,11 +225,12 @@ export async function POST(request: Request) {
     const chunks = await splitPdfForExtraction(pdfBytes, filename);
     chunkCount = chunks.length;
     const extractedParts: ExtractionResult[] = [];
+    const managedPrompt = await getManagedPrompt("extraction", language);
     for (const chunk of chunks) {
       try {
-        extractedParts.push(await extractPdfWithLlm(chunk, language, modelChoice));
+        extractedParts.push(await extractPdfWithLlm(chunk, language, modelChoice, managedPrompt));
       } catch {
-        extractedParts.push(await extractPdfWithLlm(chunk, language, modelChoice));
+        extractedParts.push(await extractPdfWithLlm(chunk, language, modelChoice, managedPrompt));
       }
     }
     const extraction = mergeExtractions(extractedParts, filename, language);
