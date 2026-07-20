@@ -8022,3 +8022,281 @@ tbody tr:hover {
     grid-column: auto;
   }
 }
+
+/* Regulation workspace: conversation-first layout with compact, on-demand metadata. */
+.cotax-reg-layout {
+  display: block;
+}
+
+.reg-rag-chat {
+  width: 100%;
+  min-height: 620px;
+}
+
+.reg-rag-chat-header {
+  align-items: center;
+  padding: 14px 18px;
+}
+
+.reg-bot-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.reg-bot-heading > div:last-child {
+  min-width: 0;
+}
+
+.rsm-taxbot-mark {
+  position: relative;
+  display: grid;
+  align-content: center;
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  overflow: hidden;
+  border: 1px solid #c9dfe9;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(0, 84, 118, 0.09);
+  padding: 12px 9px 8px;
+}
+
+.rsm-taxbot-bars {
+  position: absolute;
+  inset: 7px 8px auto;
+  display: grid;
+  grid-template-columns: 7px 15px 1fr;
+  gap: 3px;
+  height: 4px;
+}
+
+.rsm-taxbot-bars i:nth-child(1) {
+  background: #92989d;
+}
+
+.rsm-taxbot-bars i:nth-child(2) {
+  background: var(--rsm-green);
+}
+
+.rsm-taxbot-bars i:nth-child(3) {
+  background: var(--rsm-blue);
+}
+
+.rsm-taxbot-wordmark {
+  display: grid;
+  justify-items: start;
+  line-height: 1;
+}
+
+.rsm-taxbot-wordmark strong {
+  color: #555b5f;
+  font-size: 1.14rem;
+  letter-spacing: 0;
+}
+
+.rsm-taxbot-wordmark small {
+  margin-top: 4px;
+  color: #007dac;
+  font-size: 0.59rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+.rsm-taxbot-signal {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: var(--rsm-green);
+  box-shadow: 0 0 0 1px rgba(67, 160, 71, 0.24);
+}
+
+.reg-bot-tools {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reg-bot-meta {
+  position: relative;
+}
+
+.reg-bot-meta summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  cursor: pointer;
+  list-style: none;
+  border: 1px solid #c8e5f1;
+  border-radius: 7px;
+  background: #f2faff;
+  color: #087ba9;
+  padding: 6px 10px;
+  font-size: var(--text-xs);
+  font-weight: 850;
+}
+
+.reg-bot-meta summary::-webkit-details-marker {
+  display: none;
+}
+
+.reg-bot-meta summary .app-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.reg-bot-meta-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  display: none;
+  width: min(340px, 78vw);
+  gap: 7px;
+  border: 1px solid #cddde6;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #34434c;
+  box-shadow: 0 18px 44px rgba(31, 50, 63, 0.16);
+  padding: 13px 14px;
+}
+
+.reg-bot-meta[open] .reg-bot-meta-popover,
+.reg-bot-meta:hover .reg-bot-meta-popover,
+.reg-bot-meta:focus-within .reg-bot-meta-popover {
+  display: grid;
+}
+
+.reg-bot-meta-popover b {
+  color: #26323b;
+  font-size: var(--text-sm);
+}
+
+.reg-bot-meta-popover span,
+.reg-bot-meta-popover small {
+  color: #61717c;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+
+.reg-bot-meta-popover small {
+  border-top: 1px solid #e4edf2;
+  padding-top: 7px;
+}
+
+.reg-rag-chat .regulation-bot-answer {
+  min-height: 270px;
+}
+
+.stored-rule-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 6px 0 14px;
+}
+
+.stored-rule-header h3 {
+  margin: 0 0 6px;
+}
+
+.stored-rule-header p {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-xs);
+}
+
+.stored-rule-header p strong {
+  color: var(--ink);
+}
+
+.stored-rule-filters {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.compact-control {
+  min-width: 190px;
+  gap: 5px;
+}
+
+.compact-control select {
+  min-height: 38px;
+  padding-block: 7px;
+}
+
+.theme-dark .rsm-taxbot-mark,
+.theme-dark .reg-bot-meta-popover {
+  border-color: #334850;
+  background: #111a1e;
+}
+
+.theme-dark .rsm-taxbot-wordmark strong,
+.theme-dark .reg-bot-meta-popover b {
+  color: #f2f7f9;
+}
+
+.theme-dark .reg-bot-meta summary {
+  border-color: #315564;
+  background: #13262e;
+  color: #8edcf7;
+}
+
+.theme-dark .reg-bot-meta-popover span,
+.theme-dark .reg-bot-meta-popover small {
+  color: #c2d0d6;
+}
+
+@media (max-width: 900px) {
+  .reg-rag-chat-header,
+  .stored-rule-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .reg-bot-tools {
+    justify-content: flex-start;
+  }
+
+  .stored-rule-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compact-control {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .reg-prompt-grid,
+  .stored-rule-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .rsm-taxbot-mark {
+    width: 54px;
+    height: 54px;
+    flex-basis: 54px;
+  }
+
+  .reg-bot-tools > .table-button,
+  .reg-bot-meta summary {
+    min-height: 38px;
+  }
+}

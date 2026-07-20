@@ -31,6 +31,7 @@ type Language = "id" | "en";
 type ThemeMode = "dark" | "light";
 type PageKey = "dashboard" | "guided" | "database" | "smartchat" | "regulations" | "reports" | "admin";
 type RegulationTabKey = "bot" | "update" | "list" | "manual";
+type RegulationTopicFilter = RegulationTopic | "all";
 type GuidedTabKey = "analysis" | "reports";
 type DisputeTabKey = "chat" | "similar";
 type AdminTabKey = "logs" | "users" | "privacy" | "api";
@@ -766,6 +767,23 @@ function RsmMark() {
   );
 }
 
+function RsmTaxBotMark() {
+  return (
+    <div className="rsm-taxbot-mark" aria-label="RSM TaxBot">
+      <span className="rsm-taxbot-bars" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="rsm-taxbot-wordmark">
+        <strong>RSM</strong>
+        <small>TaxBot</small>
+      </span>
+      <span className="rsm-taxbot-signal" aria-hidden="true" />
+    </div>
+  );
+}
+
 function QuickActionIcon({ type }: { type: "document" | "chatbot" | "database" }) {
   if (type === "chatbot") {
     return (
@@ -816,6 +834,7 @@ type AppIconName =
   | "database"
   | "expand"
   | "guided"
+  | "info"
   | "logout"
   | "moon"
   | "regulations"
@@ -832,6 +851,7 @@ function AppIcon({ name }: { name: AppIconName }) {
     database: <><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" /></>,
     expand: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16m5-5 3-3-3-3" /></>,
     guided: <><path d="M9 5h11M9 12h11M9 19h11" /><path d="m3.5 5 1.2 1.2L7 3.8m-3.5 8.1 1.2 1.2L7 10.7m-3.5 8.1L4.7 20 7 17.6" /></>,
+    info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6m0-10h.01" /></>,
     logout: <><path d="M10 5H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5" /><path d="m15 16 4-4-4-4m4 4H9" /></>,
     moon: <path d="M20 15.5A8.5 8.5 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z" />,
     regulations: <><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H20v17H7.5A3.5 3.5 0 0 0 4 22V5.5Z" /><path d="M4 18.5A3.5 3.5 0 0 1 7.5 15H20M8 6h8M8 10h7" /></>,
@@ -1757,7 +1777,7 @@ export default function Home() {
   const [extractingDocumentId, setExtractingDocumentId] = useState("");
   const [deletingDocumentId, setDeletingDocumentId] = useState("");
   const [regulationRecords, setRegulationRecords] = useState<Regulation[]>(regulations);
-  const [regulationTopic, setRegulationTopic] = useState<RegulationTopic>("transfer_pricing");
+  const [regulationTopic, setRegulationTopic] = useState<RegulationTopicFilter>("all");
   const [regulationSourceScope, setRegulationSourceScope] = useState<RegulationSourceScope>("all");
   const [regulationStatus, setRegulationStatus] = useState("");
   const [regulationError, setRegulationError] = useState("");
@@ -1806,7 +1826,10 @@ export default function Home() {
     [storedReports, selectedReportId]
   );
   const dynamicDashboard = useMemo(() => buildDynamicDashboard(storedDocuments, language, regulationRecords.length), [storedDocuments, language, regulationRecords.length]);
-  const visibleRegulations = useMemo(() => filterRegulationsByTopic(regulationRecords, regulationTopic), [regulationRecords, regulationTopic]);
+  const visibleRegulations = useMemo(
+    () => filterRegulationsByTopic(regulationRecords, regulationTopic).filter((record) => regulationSourceMatches(record.sourceUrl, regulationSourceScope)),
+    [regulationRecords, regulationSourceScope, regulationTopic]
+  );
   const regulationTotalPages = Math.max(1, Math.ceil(visibleRegulations.length / regulationPerPage));
   const currentRegulationPage = Math.min(regulationPage, regulationTotalPages);
   const pagedRegulations = useMemo(
@@ -1932,6 +1955,12 @@ export default function Home() {
       setPage("smartchat");
     }
   }, [effectiveAccessRole, effectiveTier, page, session]);
+
+  useEffect(() => {
+    if (session?.role !== "admin" && (regulationTab === "update" || regulationTab === "manual")) {
+      setRegulationTab("bot");
+    }
+  }, [regulationTab, session?.role]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !session) return;
@@ -3090,7 +3119,11 @@ export default function Home() {
     const ids = item
       ? [item.id]
       : regulationRecords
-          .filter((record) => (record.topic || "general") === regulationTopic && regulationSourceMatches(record.sourceUrl, regulationSourceScope))
+          .filter(
+            (record) =>
+              (regulationTopic === "all" || (record.topic || "general") === regulationTopic) &&
+              regulationSourceMatches(record.sourceUrl, regulationSourceScope)
+          )
           .sort((left, right) => Number(Boolean(left.pdfUrl)) - Number(Boolean(right.pdfUrl)))
           .map((record) => record.id);
     if (!ids.length) {
@@ -3143,7 +3176,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editingRegulationId || undefined,
-          topic: regulationTopic,
+          topic: regulationTopic === "all" ? "general" : regulationTopic,
           ...manualRule,
           relevance: 75
         })
@@ -3548,12 +3581,19 @@ export default function Home() {
             {regulationError && <div className="status-banner error">{regulationError}</div>}
             <div className="regulation-tabs">
               <div className="regulation-tab-list" role="tablist" aria-label={labels.relatedRules}>
-                {[
-                  ["bot", labels.regulationTabBot],
-                  ["update", labels.regulationTabUpdate],
-                  ["list", labels.regulationTabList],
-                  ["manual", labels.regulationTabManual]
-                ].map(([key, label]) => (
+                {(
+                  session.role === "admin"
+                    ? [
+                        ["bot", labels.regulationTabBot],
+                        ["list", labels.regulationTabList],
+                        ["update", labels.regulationTabUpdate],
+                        ["manual", labels.regulationTabManual]
+                      ]
+                    : [
+                        ["bot", labels.regulationTabBot],
+                        ["list", labels.regulationTabList]
+                      ]
+                ).map(([key, label]) => (
                   <button
                     key={key}
                     type="button"
@@ -3572,38 +3612,39 @@ export default function Home() {
                   <section className="regulation-tab-panel">
                     <div className={`regulation-bot-box compact tier-preview-${effectiveTier}`}>
                       <div className="regulation-bot-layout cotax-reg-layout">
-                        <aside className="reg-rag-side">
-                          <div className="reg-rag-brand">
-                            <span>RSM</span>
-                            <b>{labels.regulationBotTitle}</b>
-                            <small>{language === "en" ? "Official-source first regulatory assistant" : "Asisten peraturan berbasis sumber resmi"}</small>
-                          </div>
-                          <button className="reg-new-chat" type="button" onClick={() => setRegulationBotResponse(null)}>
-                            {language === "en" ? "New question" : "Pertanyaan baru"}
-                          </button>
-                          <div className="reg-rag-pack">
-                            <b>{language === "en" ? "Knowledge pack" : "Paket knowledge"}</b>
-                            <span>{regulationRecords.length} {language === "en" ? "stored regulation cards" : "kartu aturan tersimpan"}</span>
-                            <span>{language === "en" ? "Hybrid retrieval: exact citation + topic + semantic match" : "Hybrid retrieval: sitasi + topik + kemiripan semantik"}</span>
-                          </div>
-                          <div className="reg-rag-rules">
-                            <b>{language === "en" ? "Answer controls" : "Kontrol jawaban"}</b>
-                            <span>{language === "en" ? "Shows source and relevance." : "Menampilkan sumber dan relevansi."}</span>
-                            <span>{language === "en" ? "Flags incomplete context." : "Memberi tanda bila konteks belum cukup."}</span>
-                            <span>{language === "en" ? "Professional review still required." : "Tetap perlu review profesional."}</span>
-                          </div>
-                        </aside>
-
                         <div className="reg-rag-chat">
                           <div className="reg-rag-chat-header">
-                            <div>
-                              <span>{language === "en" ? "Indonesian tax regulatory knowledge" : "Knowledge peraturan perpajakan Indonesia"}</span>
-                              <h3>{language === "en" ? "Ask with context, check the source." : "Tanya dengan konteks, cek sumbernya."}</h3>
-                              <p>{labels.regulationBotIntro}</p>
+                            <div className="reg-bot-heading">
+                              <RsmTaxBotMark />
+                              <div>
+                                <span>{language === "en" ? "Indonesian tax regulatory knowledge" : "Knowledge peraturan perpajakan Indonesia"}</span>
+                                <h3>{language === "en" ? "RSM Regulatory TaxBot" : "RSM TaxBot Peraturan"}</h3>
+                                <p>{language === "en" ? "Ask with context and verify every source." : "Tanya dengan konteks dan verifikasi setiap sumber."}</p>
+                              </div>
                             </div>
-                            <button className="table-button compact" type="button" onClick={() => setRegulationTab("update")}>
-                              {language === "en" ? "Update sources" : "Update sumber"}
-                            </button>
+                            <div className="reg-bot-tools">
+                              <button className="table-button compact" type="button" onClick={() => setRegulationBotResponse(null)}>
+                                {language === "en" ? "New question" : "Pertanyaan baru"}
+                              </button>
+                              <details className="reg-bot-meta">
+                                <summary title={language === "en" ? "Knowledge and answer controls" : "Knowledge dan kontrol jawaban"}>
+                                  <AppIcon name="info" />
+                                  <span>{language === "en" ? "About" : "Info"}</span>
+                                </summary>
+                                <div className="reg-bot-meta-popover">
+                                  <b>{language === "en" ? "Knowledge coverage" : "Cakupan knowledge"}</b>
+                                  <span>{regulationRecords.length} {language === "en" ? "stored regulation cards" : "kartu aturan tersimpan"}</span>
+                                  <span>{language === "en" ? "Hybrid retrieval: citation, topic, and semantic similarity." : "Hybrid retrieval: sitasi, topik, dan kemiripan semantik."}</span>
+                                  <span>{language === "en" ? "Answers show sources, relevance, and context limits." : "Jawaban menampilkan sumber, relevansi, dan batasan konteks."}</span>
+                                  <small>{language === "en" ? "Professional review remains required." : "Review profesional tetap diperlukan."}</small>
+                                </div>
+                              </details>
+                              {session.role === "admin" && (
+                                <button className="table-button compact" type="button" onClick={() => setRegulationTab("update")}>
+                                  {language === "en" ? "Update sources" : "Update sumber"}
+                                </button>
+                              )}
+                            </div>
                           </div>
 
                           <div className="reg-prompt-grid">
@@ -3698,7 +3739,7 @@ export default function Home() {
                   </section>
                 )}
 
-                {regulationTab === "update" && (
+                {regulationTab === "update" && session.role === "admin" && (
                   <section className="regulation-tab-panel">
                     <div className="regulation-update-panel">
                       <div>
@@ -3711,10 +3752,11 @@ export default function Home() {
                           <select
                             value={regulationTopic}
                             onChange={(event) => {
-                              setRegulationTopic(event.target.value as RegulationTopic);
+                              setRegulationTopic(event.target.value as RegulationTopicFilter);
                               setRegulationPage(1);
                             }}
                           >
+                            <option value="all">{language === "en" ? "All topics" : "Semua topik"}</option>
                             {regulationTopicOptions.map((topic) => (
                               <option key={topic.key} value={topic.key}>
                                 {topic[language]}
@@ -3755,10 +3797,8 @@ export default function Home() {
                       </div>
                       <p className="muted import-hint">
                         {labels.bulkRegulationHint}
-                        {" "}
-                        {regulationRecords.filter((record) => (record.topic || "general") === regulationTopic && regulationSourceMatches(record.sourceUrl, regulationSourceScope)).length}
-                        {" "}
-                        {language === "en" ? "records match the selected topic/source. Up to 3 unindexed PDFs are processed per run." : "aturan cocok dengan topik/sumber yang dipilih. Maksimal 3 PDF yang belum terindeks diproses per proses."}
+                        {" "}{language === "en" ? "Total stored" : "Total tersimpan"}: {regulationRecords.length} · {language === "en" ? "matched filter" : "cocok dengan filter"}: {visibleRegulations.length}.
+                        {" "}{language === "en" ? "Up to 3 unindexed PDFs are processed per run." : "Maksimal 3 PDF yang belum terindeks diproses per proses."}
                       </p>
                     </div>
                   </section>
@@ -3766,7 +3806,46 @@ export default function Home() {
 
                 {regulationTab === "list" && (
                   <section id="stored-regulations" className="regulation-tab-panel stored-rule-list">
-                    <h3>{labels.storedRuleList}</h3>
+                    <div className="stored-rule-header">
+                      <div>
+                        <h3>{labels.storedRuleList}</h3>
+                        <p>
+                          <strong>{language === "en" ? "Total stored" : "Total tersimpan"}: {regulationRecords.length}</strong>
+                          <span>{language === "en" ? "Matched filter" : "Cocok dengan filter"}: {visibleRegulations.length}</span>
+                        </p>
+                      </div>
+                      <div className="stored-rule-filters">
+                        <label className="control compact-control">
+                          <span>{labels.regulationTopic}</span>
+                          <select
+                            value={regulationTopic}
+                            onChange={(event) => {
+                              setRegulationTopic(event.target.value as RegulationTopicFilter);
+                              setRegulationPage(1);
+                            }}
+                          >
+                            <option value="all">{language === "en" ? "All topics" : "Semua topik"}</option>
+                            {regulationTopicOptions.map((topic) => (
+                              <option key={topic.key} value={topic.key}>{topic[language]}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="control compact-control">
+                          <span>{language === "en" ? "Source" : "Sumber"}</span>
+                          <select
+                            value={regulationSourceScope}
+                            onChange={(event) => {
+                              setRegulationSourceScope(event.target.value as RegulationSourceScope);
+                              setRegulationPage(1);
+                            }}
+                          >
+                            {regulationSourceScopeOptions.map((source) => (
+                              <option key={source.key} value={source.key}>{source[language]}</option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                    </div>
                     {visibleRegulations.length === 0 ? (
                       <div className="empty-state">{labels.noRegulations}</div>
                     ) : (
@@ -3786,7 +3865,7 @@ export default function Home() {
                               <b>{item.title}</b>
                               <span>{item.citation}</span>
                               <p>{item.focus}</p>
-                              {item.content && <p className="muted">{truncateText(item.content, 420)}</p>}
+                              {item.content && <p className="muted">{truncateText(item.content.replace(/\\n/g, " · "), 420)}</p>}
                               <small>
                                 {labels.source}: {item.source || "seed"}
                                 {item.sourceUrl && item.sourceUrl.startsWith("https://") ? (
@@ -3810,23 +3889,27 @@ export default function Home() {
                                 <a className="table-button compact" href={referenceDetailPath("regulation", item.id)}>
                                   {labels.openReference}
                                 </a>
-                                <button className="table-button compact" onClick={() => startEditRegulation(item)}>
-                                  {labels.editRule}
-                                </button>
-                                <button
-                                  className="table-button compact"
-                                  onClick={() => enrichRegulationSources(item)}
-                                  disabled={!/^https?:\/\//i.test(item.sourceUrl || "") || Boolean(enrichingRegulationId || sourceEnrichLoading)}
-                                >
-                                  {enrichingRegulationId === item.id ? labels.enrichingSources : labels.enrichRuleSource}
-                                </button>
-                                <button
-                                  className="table-button compact danger"
-                                  onClick={() => deleteRegulation(item)}
-                                  disabled={deletingRegulationId === item.id}
-                                >
-                                  {deletingRegulationId === item.id ? labels.deletingStored : labels.deleteRule}
-                                </button>
+                                {session.role === "admin" && (
+                                  <>
+                                    <button className="table-button compact" onClick={() => startEditRegulation(item)}>
+                                      {labels.editRule}
+                                    </button>
+                                    <button
+                                      className="table-button compact"
+                                      onClick={() => enrichRegulationSources(item)}
+                                      disabled={!/^https?:\/\//i.test(item.sourceUrl || "") || Boolean(enrichingRegulationId || sourceEnrichLoading)}
+                                    >
+                                      {enrichingRegulationId === item.id ? labels.enrichingSources : labels.enrichRuleSource}
+                                    </button>
+                                    <button
+                                      className="table-button compact danger"
+                                      onClick={() => deleteRegulation(item)}
+                                      disabled={deletingRegulationId === item.id}
+                                    >
+                                      {deletingRegulationId === item.id ? labels.deletingStored : labels.deleteRule}
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </article>
                           ))}
@@ -3845,7 +3928,7 @@ export default function Home() {
                   </section>
                 )}
 
-                {regulationTab === "manual" && (
+                {regulationTab === "manual" && session.role === "admin" && (
                   <section id="manual-regulation-form" className="regulation-tab-panel manual-rule-box">
                     <h3>{labels.manualRegulation}</h3>
                     {editingRegulationId && (
