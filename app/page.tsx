@@ -5117,8 +5117,7 @@ function AdminPanel({
     { key: "disputeBot", label: labels.smartchat },
     { key: "regulationRead", label: isEnglish ? "Read regulation knowledge" : "Baca knowledge peraturan" },
     { key: "regulationWrite", label: isEnglish ? "Update regulation knowledge" : "Update knowledge peraturan" },
-    { key: "reports", label: labels.reports },
-    { key: "admin", label: `${labels.adminTitle} ${isEnglish ? "(admin role)" : "(role admin)"}` }
+    { key: "reports", label: labels.reports }
   ];
   const securityControls = isEnglish
     ? [
