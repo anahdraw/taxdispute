@@ -45,7 +45,7 @@ const STORED_REPORTS_KEY = "tax-dispute-stored-reports";
 const APP_SESSION_KEY = "tax-dispute-session";
 const ADMIN_USERS_KEY = "tax-dispute-admin-users";
 const ACTIVITY_LOGS_KEY = "tax-dispute-activity-logs";
-const THEME_MODE_KEY = "tax-dispute-theme-mode";
+const THEME_MODE_KEY = "tax-dispute-theme-mode-v2";
 const SIDEBAR_COLLAPSED_KEY = "tax-dispute-sidebar-collapsed";
 const APP_NAME = "Tax Dispute Agentic Advisor";
 const APP_SHORT_NAME = "Tax Dispute Agentic Advisor";
@@ -1638,7 +1638,7 @@ function printCaseDetail() {
 
 export default function Home() {
   const [language, setLanguage] = useState<Language>("en");
-  const [themeMode, setThemeMode] = useState<ThemeMode>("dark");
+  const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [modelChoice, setModelChoice] = useState<LlmModelChoice>(DEFAULT_LLM_MODEL_CHOICE);
   const [session, setSession] = useState<AppSession | null>(null);
   const [adminPreviewTier, setAdminPreviewTier] = useState<SubscriptionTier>("platinum");

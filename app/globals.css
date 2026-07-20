@@ -7411,6 +7411,335 @@ tbody tr:hover {
   color: #295f30;
 }
 
+/* Light-first polish: cleaner command center, safer contrast, and a more current dashboard feel. */
+.app-shell.theme-light,
+.login-shell.theme-light {
+  --app-bg: #f5f8fb;
+  --app-surface: #ffffff;
+  --app-surface-soft: #f8fbfd;
+  --app-border: #dbe6ee;
+  --app-border-strong: #c9d8e2;
+  --app-text: #27313a;
+  --app-muted: #64727e;
+  background:
+    radial-gradient(circle at 88% -8%, rgba(0, 156, 222, 0.12), transparent 28%),
+    radial-gradient(circle at 14% 0%, rgba(67, 160, 71, 0.09), transparent 24%),
+    linear-gradient(180deg, #fbfdff 0%, var(--app-bg) 44%, #eef3f7 100%);
+  color: var(--app-text);
+}
+
+.app-shell.theme-light {
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+
+.theme-light .sidebar {
+  background: rgba(255, 255, 255, 0.86);
+  border-right: 1px solid var(--app-border);
+  box-shadow: 10px 0 28px rgba(28, 44, 57, 0.05);
+  backdrop-filter: blur(16px);
+}
+
+.theme-light .rsm-mark strong {
+  color: #54585a;
+}
+
+.theme-light .caption,
+.theme-light .field-label,
+.theme-light .theme-field-label {
+  color: #66737e;
+}
+
+.theme-light nav button,
+.theme-light .health-link {
+  color: #34414b;
+}
+
+.theme-light nav button:hover {
+  background: #eef8fd;
+  color: #075f86;
+}
+
+.theme-light nav button.active {
+  background: linear-gradient(135deg, #009cde 0%, #35a859 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(0, 156, 222, 0.2);
+}
+
+.theme-light .content {
+  max-width: 1320px;
+  padding-top: 22px;
+}
+
+.theme-light .content-toolbar {
+  min-height: 42px;
+  margin-bottom: 6px;
+}
+
+.theme-light .hero {
+  max-width: 940px;
+  margin-bottom: 18px;
+  padding: 0;
+}
+
+.theme-light .eyebrow {
+  color: #0089c4;
+  letter-spacing: 0.08em;
+}
+
+.theme-light h1 {
+  color: #394146;
+  font-size: clamp(1.75rem, 2.6vw, 2.45rem);
+  line-height: 1.08;
+}
+
+.theme-light .hero p:not(.eyebrow) {
+  max-width: 740px;
+  color: #5c6872;
+  font-size: 0.94rem;
+}
+
+.theme-light .panel,
+.theme-light .case-list article,
+.theme-light .reg-card,
+.theme-light .source-card,
+.theme-light .smart-chart-card,
+.theme-light .admin-log-card,
+.theme-light .admin-check-card,
+.theme-light .admin-user-form,
+.theme-light .admin-user-table,
+.theme-light .privacy-card,
+.theme-light .tier-card,
+.theme-light .report-card {
+  border-color: var(--app-border);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 16px 34px rgba(35, 48, 59, 0.07);
+}
+
+.theme-light .panel h2,
+.theme-light .panel h3,
+.theme-light .regulation-bot-box h3,
+.theme-light .regulation-update-panel h3 {
+  color: #27313a;
+}
+
+.theme-light .workbench,
+.theme-light .panel-grid,
+.theme-light .smart-chat-layout {
+  gap: 16px;
+}
+
+.theme-light .regulation-tab-list,
+.theme-light .case-tab-list,
+.theme-light .guided-tab-list,
+.theme-light .dispute-tab-list {
+  border: 1px solid var(--app-border);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 10px 24px rgba(31, 44, 56, 0.04);
+}
+
+.theme-light .regulation-tab-list button,
+.theme-light .case-tab-list button,
+.theme-light .guided-tab-list button,
+.theme-light .dispute-tab-list button {
+  color: #52616c;
+}
+
+.theme-light .regulation-tab-list button.active,
+.theme-light .case-tab-list button.active,
+.theme-light .guided-tab-list button.active,
+.theme-light .dispute-tab-list button.active {
+  background: linear-gradient(180deg, #f2fbff, #e6f7fd);
+  color: #006f9f;
+  border-color: #aee0f4;
+  box-shadow: inset 0 2px 0 #009cde, 0 8px 20px rgba(0, 156, 222, 0.12);
+}
+
+.theme-light .upload-box {
+  border-color: #afe0f4;
+  background: linear-gradient(180deg, #f1fbff, #f8fdff);
+  color: #2d3a43;
+}
+
+.theme-light .upload-box p,
+.theme-light .control span,
+.theme-light .ask-entry-heading p,
+.theme-light .database-upload-copy span {
+  color: #66737e;
+}
+
+.theme-light input,
+.theme-light textarea,
+.theme-light select,
+.theme-light input[type="file"] {
+  border-color: #d3e0e8;
+  background: #ffffff;
+  color: #27313a;
+}
+
+.theme-light input[type="file"]::file-selector-button {
+  border: 1px solid #c6d6e0;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #26313a;
+  font-weight: 750;
+}
+
+.theme-light .primary-button,
+.theme-light .database-upload-button {
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(67, 160, 71, 0.18);
+}
+
+.theme-light .primary-button:disabled,
+.theme-light .secondary-button:disabled,
+.theme-light .table-button:disabled {
+  border-color: #d8e3eb;
+  background: #edf3f7;
+  color: #6d7b86;
+  box-shadow: none;
+}
+
+.theme-light .chips button,
+.theme-light .chips span,
+.theme-light .score-pill {
+  border-color: #d2e1e9;
+  background: #ffffff;
+  color: #3f4c55;
+}
+
+.theme-light .chips button:hover {
+  border-color: #9eddf4;
+  background: #eefaff;
+  color: #006f9f;
+}
+
+.theme-light .chips button.selected,
+.theme-light .chips.readonly span {
+  border-color: #009cde;
+  background: #009cde;
+  color: #ffffff;
+}
+
+.theme-light .kpi {
+  border-color: var(--app-border);
+  background: #ffffff;
+  box-shadow: 0 14px 30px rgba(35, 48, 59, 0.07);
+}
+
+.theme-light .kpi span,
+.theme-light th {
+  color: #64727e;
+}
+
+.theme-light .kpi strong,
+.theme-light td,
+.theme-light .mini-bar span {
+  color: #27313a;
+}
+
+.theme-light .answer-section,
+.theme-light .smart-question-panel,
+.theme-light .smart-answer-panel {
+  border-color: var(--app-border);
+  background: #ffffff;
+}
+
+.theme-light .smart-answer-panel .rich-text,
+.theme-light .answer-section p,
+.theme-light .answer-section li {
+  color: #2f3b44;
+}
+
+.theme-light .smart-answer-empty {
+  background: linear-gradient(180deg, #f8fcff, #f5faf7);
+}
+
+.theme-light .login-card {
+  overflow: hidden;
+  border-color: var(--app-border);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 26px 70px rgba(35, 48, 59, 0.12);
+}
+
+.theme-light .login-brand {
+  background:
+    radial-gradient(circle at 5% 8%, rgba(67, 160, 71, 0.12), transparent 28%),
+    linear-gradient(180deg, #ffffff, #f7fbfd);
+}
+
+.theme-light .login-card h1 {
+  color: #454b50;
+}
+
+.theme-light .login-subtitle {
+  color: #66737e;
+}
+
+.theme-light .login-panel {
+  background: #ffffff;
+}
+
+.theme-dark .upload-box {
+  background: #111a1e;
+}
+
+.theme-dark .upload-box p,
+.theme-dark .control span,
+.theme-dark .ask-entry-heading p {
+  color: #c3ced4;
+}
+
+.theme-dark input,
+.theme-dark textarea,
+.theme-dark select,
+.theme-dark input[type="file"] {
+  background: #10171b;
+  color: #f4f8fa;
+  border-color: #34434b;
+}
+
+.theme-dark input[type="file"]::file-selector-button {
+  border: 1px solid #53646d;
+  border-radius: 7px;
+  background: #f4f8fa;
+  color: #11171a;
+  font-weight: 800;
+}
+
+.theme-dark .chips button {
+  border-color: #46555e;
+  background: #172126;
+  color: #e8f1f5;
+}
+
+.theme-dark .chips button.selected {
+  border-color: #66c7ee;
+  background: #009cde;
+  color: #ffffff;
+}
+
+.theme-dark .primary-button:disabled,
+.theme-dark .secondary-button:disabled,
+.theme-dark .table-button:disabled,
+.theme-dark button:disabled {
+  border-color: #34434b;
+  background: #1a2429;
+  color: #b9c7ce;
+  opacity: 1;
+  box-shadow: none;
+}
+
+.theme-dark .status-banner,
+.theme-dark .indication {
+  color: #eef6f8;
+}
+
+.theme-dark .score-breakdown p,
+.theme-dark .score-notes,
+.theme-dark .score-components small {
+  color: #c3ced4;
+}
+
 @media (max-width: 760px) {
   .regulation-bot-answer .answer-brief,
   .compact-source-list {
