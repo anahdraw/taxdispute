@@ -8,7 +8,7 @@ import {
   upsertTaxRegulations
 } from "@/lib/db";
 import { regulations, type Regulation } from "@/lib/mock-data";
-import { mergeRegulationRecords, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
+import { mergeRegulationRecords, normalizeRegulationText, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
 import { requireAuth, requireFeature } from "@/lib/auth";
 import { buildPaginationMeta, parsePaginationParams } from "@/lib/pagination";
 
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     const record =
       (hasDatabase() ? await getTaxRegulationById(id).catch(() => null) : null) || regulations.find((item) => item.id === id) || null;
     if (!record) return NextResponse.json({ error: "Regulation not found." }, { status: 404 });
-    return NextResponse.json({ record });
+    return NextResponse.json({ record: mergeRegulationRecords([record])[0] });
   }
 
   if (url.searchParams.get("detail") === "full") {
@@ -61,9 +61,9 @@ function slugPart(value: string) {
 }
 
 function normalizeRegulationRecord(body: Partial<Regulation>, index = 0): Regulation {
-  const title = String(body.title || "").trim();
-  const citation = String(body.citation || "").trim();
-  const focus = String(body.focus || body.content || "").trim();
+  const title = normalizeRegulationText(body.title);
+  const citation = normalizeRegulationText(body.citation);
+  const focus = normalizeRegulationText(body.focus || body.content);
   if (!title || !citation || !focus) {
     throw new Error("Title, citation, and focus are required.");
   }
@@ -80,7 +80,7 @@ function normalizeRegulationRecord(body: Partial<Regulation>, index = 0): Regula
     source,
     sourceUrl: String(body.sourceUrl || "").trim(),
     pdfUrl: String(body.pdfUrl || "").trim(),
-    content: String(body.content || "").trim(),
+    content: normalizeRegulationText(body.content),
     updatedAt: new Date().toISOString()
   };
 }

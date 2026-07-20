@@ -631,13 +631,9 @@ export async function answerSmartChat({
 
   if (!hasRemoteLlm(modelChoice)) {
     const localAnswer = localSmartAnswer(question, language, decisionHits, ruleHits, charts, tierProfile);
-    const tierNote =
-      language === "en"
-        ? `\n\nTier profile: ${tierProfile.labels.en.analysis}; regulation review: ${tierProfile.labels.en.regulation}; new-rule intake: ${tierProfile.labels.en.ruleIntake}.`
-        : `\n\nProfil tier: ${tierProfile.labels.id.analysis}; review aturan: ${tierProfile.labels.id.regulation}; konsumsi aturan baru: ${tierProfile.labels.id.ruleIntake}.`;
     const status = missingKeyStatus(language, modelChoice);
     return {
-      answer: `${localAnswer}${tierNote}`,
+      answer: localAnswer,
       decisionHits,
       ruleHits,
       charts,
@@ -645,8 +641,8 @@ export async function answerSmartChat({
         ...status,
         message:
           language === "en"
-            ? `${status.message} Local ${tierProfile.labels.en.analysis} profile applied.`
-            : `${status.message} Profil lokal ${tierProfile.labels.id.analysis} diterapkan.`
+            ? `${status.message} Source-grounded local analysis applied.`
+            : `${status.message} Analisis lokal berbasis sumber digunakan.`
       },
       retrieval
     };
@@ -706,19 +702,15 @@ export async function answerSmartChat({
         model: configuredModel(modelChoice),
         message:
           language === "en"
-            ? `Smart Dispute Bot answered with hybrid RAG context (${tierProfile.labels.en.analysis})`
-            : `Smart Dispute Bot menjawab dengan konteks hybrid RAG (${tierProfile.labels.id.analysis})`
+            ? "Source-grounded hybrid RAG answer"
+            : "Jawaban hybrid RAG berbasis sumber"
       },
       retrieval
     };
   } catch (error) {
     const localAnswer = localSmartAnswer(question, language, decisionHits, ruleHits, charts, tierProfile);
-    const tierNote =
-      language === "en"
-        ? `\n\nTier profile: ${tierProfile.labels.en.analysis}; regulation review: ${tierProfile.labels.en.regulation}; new-rule intake: ${tierProfile.labels.en.ruleIntake}.`
-        : `\n\nProfil tier: ${tierProfile.labels.id.analysis}; review aturan: ${tierProfile.labels.id.regulation}; konsumsi aturan baru: ${tierProfile.labels.id.ruleIntake}.`;
     return {
-      answer: `${localAnswer}${tierNote}\n\n${
+      answer: `${localAnswer}\n\n${
         language === "en" ? "LLM note" : "Catatan LLM"
       }: ${error instanceof Error ? error.message : "Unknown error"}`,
       decisionHits,

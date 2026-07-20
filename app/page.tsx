@@ -8,7 +8,13 @@ import { extractionToSearchText, searchSimilarCases, type SimilarCaseResult } fr
 import { emptyPpnComponents, type ExtractionResult, type PpnComponents } from "@/lib/extraction";
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
-import { filterRegulationsByTopic, normalizeRegulationTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
+import {
+  filterRegulationsByTopic,
+  normalizeRegulationText,
+  normalizeRegulationTopic,
+  regulationTopicOptions,
+  type RegulationTopic
+} from "@/lib/regulation-knowledge";
 import { regulationSourceMatches, regulationSourceScopeOptions, type RegulationSourceScope } from "@/lib/regulation-sources";
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
@@ -1593,12 +1599,12 @@ function rowValue(row: RegulationImportRow, keys: string[]) {
   for (const key of keys) {
     const normalizedKey = normalizeImportHeader(key);
     const value = row[normalizedKey];
-    if (value !== undefined && value !== null && String(value).trim()) return String(value).trim();
+    if (value !== undefined && value !== null && String(value).trim()) return normalizeRegulationText(value);
   }
   for (const key of keys) {
     const normalizedKey = normalizeImportHeader(key);
     const match = entries.find(([entryKey, value]) => (entryKey.includes(normalizedKey) || normalizedKey.includes(entryKey)) && value !== undefined && value !== null && String(value).trim());
-    if (match) return String(match[1]).trim();
+    if (match) return normalizeRegulationText(match[1]);
   }
   return "";
 }
@@ -1838,13 +1844,16 @@ export default function Home() {
     () => visibleRegulations.slice((currentRegulationPage - 1) * regulationPerPage, currentRegulationPage * regulationPerPage),
     [visibleRegulations, currentRegulationPage, regulationPerPage]
   );
-  const pages: Array<[PageKey, string]> = [
-    ["dashboard", labels.dashboard],
-    ["guided", labels.guided],
-    ["database", labels.database],
-    ["smartchat", labels.smartchat],
-    ["regulations", labels.regulations],
-    ["reports", labels.reports]
+  const navigationLabels = language === "en"
+    ? { dashboard: "Dashboard", smartchat: "Dispute Analysis", reports: "Reports", database: "Decisions", regulations: "Regulations", guided: "Advanced Review" }
+    : { dashboard: "Dashboard", smartchat: "Analisis Sengketa", reports: "Laporan", database: "Putusan", regulations: "Peraturan", guided: "Telaah Lanjut" };
+  const pages: Array<[PageKey, string, SubscriptionTier]> = [
+    ["dashboard", navigationLabels.dashboard, "silver"],
+    ["smartchat", navigationLabels.smartchat, "silver"],
+    ["reports", navigationLabels.reports, "silver"],
+    ["database", navigationLabels.database, "gold"],
+    ["regulations", navigationLabels.regulations, "gold"],
+    ["guided", navigationLabels.guided, "platinum"]
   ];
   const visiblePages = pages.filter(([key]) => (session ? canAccessPage(effectiveAccessRole, effectiveTier, key, runtimeSettings.plans) : false));
 
@@ -3306,10 +3315,15 @@ export default function Home() {
           </select>
         </div>
         <nav>
-          {visiblePages.map(([key, title]) => (
+          {visiblePages.map(([key, title, minimumTier]) => (
             <button key={key} className={page === key ? "active" : ""} onClick={() => setPage(key)} aria-label={title} title={sidebarCollapsed ? title : undefined}>
               <AppIcon name={pageIcons[key]} />
-              <span>{title}</span>
+              <span className="nav-label">{title}</span>
+              {minimumTier !== "silver" && (
+                <small className={`nav-tier ${minimumTier}`} title={tierLabel(minimumTier)} aria-label={`${tierLabel(minimumTier)} tier`}>
+                  {minimumTier === "gold" ? "G" : "P"}
+                </small>
+              )}
             </button>
           ))}
         </nav>
@@ -3650,7 +3664,7 @@ export default function Home() {
                   <section className="regulation-tab-panel">
                     <div className={`regulation-bot-box compact tier-preview-${effectiveTier}`}>
                       <div className="regulation-bot-layout cotax-reg-layout">
-                        <div className="reg-rag-chat">
+                        <div className={`reg-rag-chat${regulationBotResponse ? " has-response" : ""}`}>
                           <div className="reg-rag-chat-header">
                             <div className="reg-bot-heading">
                               <RsmTaxBotMark />
@@ -3685,26 +3699,28 @@ export default function Home() {
                             </div>
                           </div>
 
-                          <div className="reg-prompt-grid">
-                            {(language === "en"
-                              ? [
-                                  "Which regulations govern transfer pricing documentation and the arm's length principle?",
-                                  "What should be checked before crediting input VAT?",
-                                  "Where is a tax objection and appeal procedure regulated?",
-                                  "Which source should be updated first for current VAT rules?"
-                                ]
-                              : [
-                                  "Aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?",
-                                  "Apa yang harus dicek sebelum mengkreditkan Pajak Masukan?",
-                                  "Di mana prosedur keberatan dan banding pajak diatur?",
-                                  "Sumber mana yang perlu diupdate dulu untuk aturan PPN terbaru?"
-                                ]).map((prompt) => (
-                              <button key={prompt} type="button" onClick={() => setRegulationQuestion(prompt)}>
-                                {prompt}
-                                <span>→</span>
-                              </button>
-                            ))}
-                          </div>
+                          {!regulationBotResponse && (
+                            <div className="reg-prompt-grid">
+                              {(language === "en"
+                                ? [
+                                    "Which regulations govern transfer pricing documentation and the arm's length principle?",
+                                    "What should be checked before crediting input VAT?",
+                                    "Where is a tax objection and appeal procedure regulated?",
+                                    "Which source should be updated first for current VAT rules?"
+                                  ]
+                                : [
+                                    "Aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?",
+                                    "Apa yang harus dicek sebelum mengkreditkan Pajak Masukan?",
+                                    "Di mana prosedur keberatan dan banding pajak diatur?",
+                                    "Sumber mana yang perlu diupdate dulu untuk aturan PPN terbaru?"
+                                  ]).map((prompt) => (
+                                <button key={prompt} type="button" onClick={() => setRegulationQuestion(prompt)}>
+                                  {prompt}
+                                  <span>→</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
                           <div className="regulation-bot-answer">
                             <div className="regulation-answer-heading">
@@ -3712,7 +3728,6 @@ export default function Home() {
                                 <span>{language === "en" ? "Structured regulation review" : "Telaah peraturan terstruktur"}</span>
                                 <h3>{labels.regulationBotAnswer}</h3>
                               </div>
-                              <span className={`tier-answer-badge ${effectiveTier}`}>{tierLabel(effectiveTier)}</span>
                             </div>
                             {!regulationBotResponse ? (
                               <div className="reg-empty-chat">
@@ -3725,7 +3740,6 @@ export default function Home() {
                               </div>
                             ) : (
                               <>
-                                {regulationBotStatus && <div className="status-banner success">{regulationBotStatus}</div>}
                                 <MarkdownText text={regulationBotResponse.answer} structured />
                                 <div className="regulation-retrieval-summary">
                                   <b>{language === "en" ? "Sources reviewed" : "Sumber ditelaah"}</b>
@@ -3736,13 +3750,17 @@ export default function Home() {
                                 <h4 className="regulation-source-title">{language === "en" ? "Regulation references" : "Referensi peraturan"}</h4>
                                 <div className="source-list compact-source-list">
                                   {regulationBotResponse.ruleHits.slice(0, 6).map((item) => (
-                                    <article key={item.id} className="source-card">
-                                      <b>{item.title}</b>
-                                      <span>{item.citation} · {item.topic}</span>
-                                      <p>{item.snippet}</p>
-                                      <small>Relevance {item.score}% · {item.source}</small>
-                                      <a href={referenceDetailPath("regulation", item.id, regulationQuestion)}>{labels.openReference}</a>
-                                    </article>
+                                    <ExpandableSourceCard
+                                      key={item.id}
+                                      title={item.title}
+                                      meta={`${item.citation} · ${item.topic}`}
+                                      excerpt={item.snippet}
+                                      score={item.score}
+                                      source={item.source}
+                                      href={referenceDetailPath("regulation", item.id, regulationQuestion)}
+                                      openLabel={labels.openReference}
+                                      detailsLabel={language === "en" ? "Retrieved regulation context" : "Konteks aturan hasil retrieval"}
+                                    />
                                   ))}
                                 </div>
                               </>
@@ -4126,8 +4144,7 @@ function MarkdownBlock({ block, blockKey }: { block: string; blockKey: string })
 }
 
 function StructuredMarkdownText({ text }: { text: string }) {
-  const blocks = String(text || "")
-    .replace(/\r\n/g, "\n")
+  const blocks = normalizeRegulationText(text)
     .split(/\n{2,}/)
     .map((block) => block.trim())
     .filter(Boolean);
@@ -4165,8 +4182,7 @@ function StructuredMarkdownText({ text }: { text: string }) {
 
 function MarkdownText({ text, structured = false }: { text: string; structured?: boolean }) {
   if (structured) return <StructuredMarkdownText text={text} />;
-  const blocks = String(text || "")
-    .replace(/\r\n/g, "\n")
+  const blocks = normalizeRegulationText(text)
     .split(/\n{2,}/)
     .map((block) => block.trim())
     .filter(Boolean);
@@ -4178,6 +4194,65 @@ function MarkdownText({ text, structured = false }: { text: string; structured?:
       })}
     </div>
   );
+}
+
+function ExpandableSourceCard({
+  title,
+  meta,
+  excerpt,
+  score,
+  source,
+  href,
+  openLabel,
+  detailsLabel
+}: {
+  title: string;
+  meta: string;
+  excerpt: string;
+  score: number;
+  source?: string;
+  href: string;
+  openLabel: string;
+  detailsLabel: string;
+}) {
+  const cleanExcerpt = compactSourceExcerpt(excerpt, title, meta, source);
+
+  return (
+    <details className="source-card source-card-collapsible">
+      <summary>
+        <span>
+          <b>{normalizeRegulationText(title)}</b>
+          <small>{normalizeRegulationText(meta)}</small>
+        </span>
+        <span className="source-score">{Math.round(score)}%</span>
+      </summary>
+      <div className="source-card-details">
+        <p>{cleanExcerpt}</p>
+        <small>{detailsLabel}{source ? ` · ${normalizeRegulationText(source)}` : ""}</small>
+        <a href={href}>{openLabel}</a>
+      </div>
+    </details>
+  );
+}
+
+function compactSourceExcerpt(excerpt: string, title: string, meta: string, source?: string) {
+  let text = normalizeRegulationText(excerpt);
+  const prefixes = [title, ...meta.split("·").reverse()]
+    .map(normalizeRegulationText)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+
+  for (let pass = 0; pass < prefixes.length + 1; pass += 1) {
+    const prefix = prefixes.find((value) => text.toLocaleLowerCase().startsWith(value.toLocaleLowerCase()));
+    if (!prefix) break;
+    text = text.slice(prefix.length).replace(/^[\s·:|–—-]+/, "").trim();
+  }
+
+  const normalizedSource = normalizeRegulationText(source);
+  if (normalizedSource && text.toLocaleLowerCase().endsWith(normalizedSource.toLocaleLowerCase())) {
+    text = text.slice(0, -normalizedSource.length).replace(/[\s·:|–—-]+$/, "").trim();
+  }
+  return text || normalizeRegulationText(excerpt);
 }
 
 function PaginationControls({
@@ -5599,20 +5674,6 @@ function SmartChatPanel({
   const [activeTab, setActiveTab] = useState<DisputeTabKey>("chat");
   const [captureMode, setCaptureMode] = useState(false);
   const isEnglish = labels.signIn === "Sign in";
-  const tierGuide = {
-    silver: {
-      title: isEnglish ? "Concise rules" : "Aturan ringkas",
-      description: isEnglish ? "Closest regulations and one clear next step." : "Peraturan terdekat dan satu langkah lanjut."
-    },
-    gold: {
-      title: isEnglish ? "Rules + decisions" : "Aturan + putusan",
-      description: isEnglish ? "Advisor guidance with relevant rules and comparable decisions." : "Panduan advisor dengan aturan dan putusan pembanding."
-    },
-    platinum: {
-      title: isEnglish ? "Deep analysis" : "Analisis mendalam",
-      description: isEnglish ? "Issues, rules, decisions, evidence, risks, and strategy." : "Isu, aturan, putusan, bukti, risiko, dan strategi."
-    }
-  }[tier];
   const starterQuestions = isEnglish
     ? [
         { label: "Rules and first checks", question: "Which rules govern this tax issue and what should I check first?" },
@@ -5657,13 +5718,6 @@ function SmartChatPanel({
               <div>
                 <b>{isEnglish ? "Ask your tax dispute question" : "Tanyakan sengketa pajak Anda"}</b>
                 <p>{isEnglish ? "Write naturally. The assistant will retrieve the most relevant sources." : "Tulis dengan bahasa biasa. Asisten akan mengambil sumber yang paling relevan."}</p>
-              </div>
-            </div>
-            <div className={`tier-answer-guide ${tier}`}>
-              <span className="tier-answer-badge">{tierLabel(tier)}</span>
-              <div>
-                <b>{tierGuide.title}</b>
-                <p>{tierGuide.description}</p>
               </div>
             </div>
             <div className="starter-question-block">
@@ -5737,21 +5791,20 @@ function SmartChatPanel({
               <div className="smart-answer-empty">
                 <span><AppIcon name="smartchat" /></span>
                 <b>{isEnglish ? "Your structured answer will appear here" : "Jawaban terstruktur akan tampil di sini"}</b>
-                <p>{tierGuide.description}</p>
+                <p>{isEnglish ? "Ask a specific question to retrieve the closest decisions and regulations." : "Ajukan pertanyaan spesifik untuk mengambil putusan dan peraturan terdekat."}</p>
               </div>
             ) : (
               <>
                 <div className="answer-brief-header">
                   <div>
-                    <span>{isEnglish ? "Tiered advisory answer" : "Jawaban advisor sesuai tier"}</span>
-                    <b>{tierLabel(response.retrieval.tier as SubscriptionTier)} · {tierGuide.title}</b>
+                    <span>{isEnglish ? "Source-grounded analysis" : "Analisis berbasis sumber"}</span>
+                    <b>{labels.smartAnswer}</b>
                   </div>
                   <button className="table-button answer-capture-button" type="button" onClick={() => setCaptureMode((current) => !current)}>
                     <AppIcon name={captureMode ? "collapse" : "expand"} />
                     <span>{captureMode ? (isEnglish ? "Exit screenshot view" : "Keluar tampilan screenshot") : (isEnglish ? "Screenshot view" : "Tampilan screenshot")}</span>
                   </button>
                 </div>
-                {status && <div className="status-banner success">{status}</div>}
                 <MarkdownText text={response.answer} structured />
                 <div className="retrieval-summary">
                   <b>{labels.retrievalSummary}</b>
@@ -5776,15 +5829,17 @@ function SmartChatPanel({
                     <div className="source-list">
                       {response.decisionHits.length ? (
                         response.decisionHits.slice(0, 5).map((item) => (
-                          <article key={item.id} className="source-card">
-                            <b>{item.number}</b>
-                            <span>{item.taxpayer} · {item.taxType} · {item.issue}</span>
-                            <p>{item.outcome}</p>
-                            <small>Relevance {item.score}%{item.matchReasons?.length ? ` · ${item.matchReasons.join(", ")}` : ""}</small>
-                            <a href={referenceDetailPath("decision", item.id, question)}>
-                              {labels.openReference}
-                            </a>
-                          </article>
+                          <ExpandableSourceCard
+                            key={item.id}
+                            title={item.number}
+                            meta={`${item.taxpayer} · ${item.taxType} · ${item.issue}`}
+                            excerpt={item.outcome}
+                            score={item.score}
+                            source={item.matchReasons?.join(", ")}
+                            href={referenceDetailPath("decision", item.id, question)}
+                            openLabel={labels.openReference}
+                            detailsLabel={isEnglish ? "Decision context" : "Konteks putusan"}
+                          />
                         ))
                       ) : (
                         <div className="empty-state">{labels.noDynamicDocuments}</div>
@@ -5796,15 +5851,17 @@ function SmartChatPanel({
                     <div className="source-list">
                       {response.ruleHits.length ? (
                         response.ruleHits.slice(0, 5).map((item) => (
-                          <article key={item.id} className="source-card">
-                            <b>{item.title}</b>
-                            <span>{item.citation} · {item.topic}</span>
-                            <p>{item.snippet}</p>
-                            <small>Relevance {item.score}% · {item.source}</small>
-                            <a href={referenceDetailPath("regulation", item.id, question)}>
-                              {labels.openReference}
-                            </a>
-                          </article>
+                          <ExpandableSourceCard
+                            key={item.id}
+                            title={item.title}
+                            meta={`${item.citation} · ${item.topic}`}
+                            excerpt={item.snippet}
+                            score={item.score}
+                            source={item.source}
+                            href={referenceDetailPath("regulation", item.id, question)}
+                            openLabel={labels.openReference}
+                            detailsLabel={isEnglish ? "Regulation context" : "Konteks peraturan"}
+                          />
                         ))
                       ) : (
                         <div className="empty-state">{labels.noRegulations}</div>

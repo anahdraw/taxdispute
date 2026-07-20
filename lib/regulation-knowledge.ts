@@ -8,6 +8,19 @@ export const regulationTopicOptions: Array<{ key: RegulationTopic; id: string; e
   { key: "general", id: "Umum", en: "General" }
 ];
 
+export function normalizeRegulationText(value: unknown) {
+  return String(value || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/(?:\\r\\n|\\n|\\r)+/g, "\n")
+    .replace(/&#10;|&#13;|&NewLine;/gi, "\n")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export function normalizeRegulationTopic(value: string | undefined | null): RegulationTopic {
   const topic = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
   if (["transfer_pricing", "tp", "transfer", "harga_transfer", "hubungan_istimewa"].includes(topic)) {
@@ -28,6 +41,10 @@ export function mergeRegulationRecords(records: Regulation[]) {
   for (const item of [...regulations, ...records]) {
     merged.set(item.id, {
       ...item,
+      title: normalizeRegulationText(item.title),
+      citation: normalizeRegulationText(item.citation),
+      focus: normalizeRegulationText(item.focus),
+      content: normalizeRegulationText(item.content),
       topic: item.topic || normalizeRegulationTopic(item.topic),
       source: item.source || "seed",
       relevance: item.relevance || 70
