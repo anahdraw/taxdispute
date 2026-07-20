@@ -5,8 +5,7 @@ export const regulationSourceScopeOptions: Array<{ key: RegulationSourceScope; i
   { key: "bpk", id: "JDIH BPK", en: "JDIH BPK" },
   { key: "kemenkeu", id: "JDIH Kemenkeu", en: "JDIH Kemenkeu" },
   { key: "djp", id: "DJP / Pajak.go.id", en: "DGT / Pajak.go.id" },
-  { key: "ortax", id: "Ortax", en: "Ortax" },
-  { key: "other", id: "Sumber lain", en: "Other sources" }
+  { key: "other", id: "Repository resmi lain", en: "Other official repositories" }
 ];
 
 export function normalizeRegulationSourceScope(value: string | null | undefined): RegulationSourceScope {

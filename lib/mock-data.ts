@@ -22,8 +22,9 @@ export type Regulation = {
   citation: string;
   focus: string;
   relevance: number;
-  source?: "seed" | "ortax" | "manual";
+  source?: "seed" | "ortax" | "official" | "manual";
   sourceUrl?: string;
+  pdfUrl?: string;
   content?: string;
   updatedAt?: string;
 };

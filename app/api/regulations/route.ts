@@ -68,7 +68,8 @@ function normalizeRegulationRecord(body: Partial<Regulation>, index = 0): Regula
     throw new Error("Title, citation, and focus are required.");
   }
   const topic = normalizeRegulationTopic(body.topic);
-  const source = body.source === "ortax" ? "ortax" : body.source === "seed" ? "seed" : "manual";
+  const source =
+    body.source === "ortax" ? "ortax" : body.source === "seed" ? "seed" : body.source === "official" ? "official" : "manual";
   return {
     id: String(body.id || `manual-${topic}-${slugPart(`${citation}-${title}`) || `rule-${index + 1}`}`),
     topic,
@@ -78,6 +79,7 @@ function normalizeRegulationRecord(body: Partial<Regulation>, index = 0): Regula
     relevance: Math.max(1, Math.min(100, Number(body.relevance || 75))),
     source,
     sourceUrl: String(body.sourceUrl || "").trim(),
+    pdfUrl: String(body.pdfUrl || "").trim(),
     content: String(body.content || "").trim(),
     updatedAt: new Date().toISOString()
   };

@@ -198,8 +198,7 @@ const copy = {
     decisionOutcomes: "Outcome Putusan",
     topDisputeIssues: "Top Pokok Sengketa",
     regulationTopic: "Topik peraturan",
-    updateFromOrtax: "Tambah seed Ortax",
-    updatingRules: "Mengambil aturan dari Ortax...",
+    updatingRules: "Memeriksa layanan...",
     regulationUpdated: "Knowledge peraturan diperbarui.",
     source: "Sumber",
     openSource: "Buka sumber",
@@ -208,6 +207,7 @@ const copy = {
     manualCitation: "Nomor / sitasi",
     manualFocus: "Ringkasan fungsi aturan",
     manualSourceUrl: "Link sumber",
+    manualPdfUrl: "Link PDF resmi (opsional)",
     manualContent: "Catatan atau kutipan ringkas",
     uploadManualRule: "Upload file teks aturan",
     saveManualRule: "Simpan aturan manual",
@@ -235,17 +235,17 @@ const copy = {
     bulkRegulationHint: "Kolom fleksibel: Peraturan/title, Judul/Substansi Utama/focus, Kegunaan Praktis/content, Status, Sumber Resmi/sourceUrl/link, topic, relevance.",
     importingRegulations: "Mengimpor aturan...",
     importedRegulations: "aturan berhasil diimpor/diperbarui.",
-    enrichSources: "Ambil dari link resmi",
-    enrichingSources: "Mengambil isi sumber...",
-    enrichRuleSource: "Enrich sumber",
-    sourceEnriched: "aturan berhasil diambil/dienrich dari link sumber.",
-    noRulesWithSource: "Tidak ada aturan dengan link sumber yang bisa dienrich.",
+    enrichSources: "Ambil & indeks PDF resmi",
+    enrichingSources: "Mengambil dan menelaah PDF...",
+    enrichRuleSource: "Indeks PDF resmi",
+    sourceEnriched: "aturan berhasil diambil dan diindeks dari repository resmi.",
+    noRulesWithSource: "Tidak ada aturan dengan link repository resmi yang dapat diproses.",
     regulationTabBot: "RAG Chatbot",
     regulationTabUpdate: "Update & Import",
     regulationTabList: "Aturan tersimpan",
     regulationTabManual: "Input manual",
     regulationUpdateTitle: "Update knowledge aturan",
-    regulationUpdateIntro: "Tarik seed Ortax, import daftar peraturan, atau enrich dari link resmi seperti JDIH BPK, JDIH Kemenkeu, DJP, dan Ortax.",
+    regulationUpdateIntro: "Impor daftar aturan, lalu ambil PDF dari JDIH BPK, JDIH Kemenkeu, DJP, atau repository resmi lain untuk diindeks ke RAG.",
     editRule: "Edit",
     deleteRule: "Hapus",
     updateRule: "Update aturan",
@@ -527,8 +527,7 @@ const copy = {
     decisionOutcomes: "Decision Outcomes",
     topDisputeIssues: "Top Dispute Issues",
     regulationTopic: "Regulation topic",
-    updateFromOrtax: "Add Ortax seeds",
-    updatingRules: "Fetching rules from Ortax...",
+    updatingRules: "Checking services...",
     regulationUpdated: "Regulation knowledge updated.",
     source: "Source",
     openSource: "Open source",
@@ -537,6 +536,7 @@ const copy = {
     manualCitation: "Number / citation",
     manualFocus: "Rule summary",
     manualSourceUrl: "Source link",
+    manualPdfUrl: "Official PDF link (optional)",
     manualContent: "Notes or short excerpt",
     uploadManualRule: "Upload rule text file",
     saveManualRule: "Save manual rule",
@@ -564,17 +564,17 @@ const copy = {
     bulkRegulationHint: "Flexible columns: Peraturan/title, Judul/Substansi Utama/focus, Kegunaan Praktis/content, Status, Sumber Resmi/sourceUrl/link, topic, relevance.",
     importingRegulations: "Importing regulations...",
     importedRegulations: "regulation(s) imported/updated.",
-    enrichSources: "Fetch official links",
-    enrichingSources: "Fetching source content...",
-    enrichRuleSource: "Enrich source",
-    sourceEnriched: "regulation(s) fetched/enriched from source links.",
-    noRulesWithSource: "No regulations with source links are available for enrichment.",
+    enrichSources: "Fetch & index official PDFs",
+    enrichingSources: "Fetching and reviewing PDFs...",
+    enrichRuleSource: "Index official PDF",
+    sourceEnriched: "regulation(s) fetched and indexed from official repositories.",
+    noRulesWithSource: "No regulations with official repository links are available for processing.",
     regulationTabBot: "RAG Chatbot",
     regulationTabUpdate: "Update & Import",
     regulationTabList: "Stored rules",
     regulationTabManual: "Manual input",
     regulationUpdateTitle: "Update regulation knowledge",
-    regulationUpdateIntro: "Pull Ortax starter cards, import regulation lists, or enrich from official links such as JDIH BPK, JDIH Kemenkeu, DGT, and Ortax.",
+    regulationUpdateIntro: "Import a regulation list, then fetch PDFs from JDIH BPK, JDIH Ministry of Finance, DGT, or another official repository for RAG indexing.",
     editRule: "Edit",
     deleteRule: "Delete",
     updateRule: "Update rule",
@@ -1480,12 +1480,50 @@ function safeDomId(value: unknown) {
 }
 
 type RegulationImportRow = Record<string, string | number | boolean | null | undefined>;
+type RegulationImportCell = string | number | boolean | null | undefined;
 
 function normalizeImportHeader(value: string) {
   return value
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+function regulationHeaderScore(cells: RegulationImportCell[]) {
+  const headers = cells.map((cell) => normalizeImportHeader(String(cell || ""))).filter(Boolean);
+  const includesAny = (patterns: string[]) => patterns.some((pattern) => headers.some((header) => header === pattern || header.includes(pattern)));
+  return (
+    (includesAny(["peraturan", "title", "judul", "nama_aturan"]) ? 5 : 0) +
+    (includesAny(["substansi", "focus", "summary", "ringkasan", "kegunaan_praktis"]) ? 4 : 0) +
+    (includesAny(["sumber_resmi", "source_url", "official_source", "link"]) ? 3 : 0) +
+    (includesAny(["citation", "sitasi", "nomor", "jenis_peraturan"]) ? 2 : 0) +
+    (includesAny(["status", "kelompok", "topic", "topik", "prioritas"]) ? 1 : 0)
+  );
+}
+
+function regulationRowsFromMatrix(matrix: RegulationImportCell[][]): RegulationImportRow[] {
+  if (!matrix.length) return [];
+  const candidateRows = matrix.slice(0, Math.min(40, matrix.length));
+  let headerIndex = 0;
+  let bestScore = -1;
+  candidateRows.forEach((cells, index) => {
+    const score = regulationHeaderScore(cells);
+    if (score > bestScore) {
+      bestScore = score;
+      headerIndex = index;
+    }
+  });
+  if (bestScore < 5) headerIndex = 0;
+
+  const headers = (matrix[headerIndex] || []).map((cell, index) => normalizeImportHeader(String(cell || `column_${index + 1}`)));
+  return matrix.slice(headerIndex + 1).reduce<RegulationImportRow[]>((records, cells) => {
+    const record = headers.reduce<RegulationImportRow>((row, header, index) => {
+      if (header) row[header] = cells[index] ?? "";
+      return row;
+    }, {});
+    if (Object.values(record).some((value) => String(value ?? "").trim())) records.push(record);
+    return records;
+  }, []);
 }
 
 function csvRows(text: string): RegulationImportRow[] {
@@ -1525,13 +1563,7 @@ function csvRows(text: string): RegulationImportRow[] {
 
   row.push(field.trim());
   if (row.some(Boolean)) rows.push(row);
-  const headers = (rows.shift() || []).map(normalizeImportHeader);
-  return rows.map((cells) =>
-    headers.reduce<RegulationImportRow>((record, header, index) => {
-      if (header) record[header] = cells[index] || "";
-      return record;
-    }, {})
-  );
+  return regulationRowsFromMatrix(rows);
 }
 
 function rowValue(row: RegulationImportRow, keys: string[]) {
@@ -1614,8 +1646,11 @@ function rowRegulation(row: RegulationImportRow, index: number): Regulation | nu
     citation,
     focus,
     relevance: Number.isFinite(relevance) ? Math.max(1, Math.min(100, relevance)) : 75,
-    source: "manual",
+    source: /^https?:\/\//i.test(rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber", "sumber_resmi", "official_source"]))
+      ? "official"
+      : "manual",
     sourceUrl: rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber", "sumber_resmi", "official_source"]),
+    pdfUrl: rowValue(row, ["pdf_url", "pdf", "link_pdf", "url_pdf", "download_url", "tautan_pdf"]),
     content: content || focus,
     updatedAt: new Date(Date.now() + index).toISOString()
   };
@@ -1726,13 +1761,13 @@ export default function Home() {
   const [regulationSourceScope, setRegulationSourceScope] = useState<RegulationSourceScope>("all");
   const [regulationStatus, setRegulationStatus] = useState("");
   const [regulationError, setRegulationError] = useState("");
-  const [regulationLoading, setRegulationLoading] = useState(false);
   const [regulationTab, setRegulationTab] = useState<RegulationTabKey>("bot");
   const [manualRule, setManualRule] = useState({
     title: "",
     citation: "",
     focus: "",
     sourceUrl: "",
+    pdfUrl: "",
     content: ""
   });
   const [manualRuleSaving, setManualRuleSaving] = useState(false);
@@ -2951,6 +2986,7 @@ export default function Home() {
       citation: target.citation,
       focus: target.focus,
       sourceUrl: target.sourceUrl || "",
+      pdfUrl: target.pdfUrl || "",
       content: target.content || ""
     });
     setRegulationStatus("");
@@ -2962,7 +2998,7 @@ export default function Home() {
 
   function cancelEditRegulation() {
     setEditingRegulationId("");
-    setManualRule({ title: "", citation: "", focus: "", sourceUrl: "", content: "" });
+    setManualRule({ title: "", citation: "", focus: "", sourceUrl: "", pdfUrl: "", content: "" });
   }
 
   async function deleteRegulation(item: Regulation) {
@@ -3007,8 +3043,16 @@ export default function Home() {
       if (/\.(xlsx|xls)$/i.test(file.name)) {
         const XLSX = await import("xlsx");
         const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json<RegulationImportRow>(sheet, { defval: "" });
+        const candidates = workbook.SheetNames.map((sheetName) => {
+          const matrix = XLSX.utils.sheet_to_json<RegulationImportCell[]>(workbook.Sheets[sheetName], {
+            header: 1,
+            defval: "",
+            raw: false
+          });
+          const candidateRows = regulationRowsFromMatrix(matrix);
+          return { rows: candidateRows, valid: candidateRows.map(rowRegulation).filter(Boolean).length };
+        });
+        rows = candidates.sort((left, right) => right.valid - left.valid)[0]?.rows || [];
       } else {
         rows = csvRows(await file.text());
       }
@@ -3047,6 +3091,7 @@ export default function Home() {
       ? [item.id]
       : regulationRecords
           .filter((record) => (record.topic || "general") === regulationTopic && regulationSourceMatches(record.sourceUrl, regulationSourceScope))
+          .sort((left, right) => Number(Boolean(left.pdfUrl)) - Number(Boolean(right.pdfUrl)))
           .map((record) => record.id);
     if (!ids.length) {
       setRegulationError(labels.noRulesWithSource);
@@ -3060,7 +3105,7 @@ export default function Home() {
       const response = await fetch("/api/regulations/enrich", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, sourceScope: regulationSourceScope, limit: item ? 1 : Math.min(30, ids.length) })
+        body: JSON.stringify({ ids, sourceScope: regulationSourceScope, limit: item ? 1 : Math.min(3, ids.length) })
       });
       const data = (await response.json()) as {
         records?: Regulation[];
@@ -3088,34 +3133,6 @@ export default function Home() {
     }
   }
 
-  async function updateRegulationsFromOrtax() {
-    setRegulationLoading(true);
-    setRegulationStatus("");
-    setRegulationError("");
-    try {
-      const response = await fetch("/api/regulations/ortax", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: regulationTopic })
-      });
-      const data = (await response.json()) as { records?: Regulation[]; error?: string; imported?: number };
-      if (!response.ok) {
-        throw new Error(data.error || "Could not update Ortax regulations.");
-      }
-      if (Array.isArray(data.records) && data.records.length) {
-        setRegulationRecords(data.records);
-      }
-      setRegulationStatus(`${labels.regulationUpdated} ${data.imported || 0} ${language === "en" ? "record(s)" : "data"}.`);
-      void recordActivity("Update Ortax regulations", regulationTopic, "success", `${data.imported || 0} record(s).`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not update Ortax regulations.";
-      setRegulationError(message);
-      void recordActivity("Update Ortax regulations", regulationTopic, "error", message);
-    } finally {
-      setRegulationLoading(false);
-    }
-  }
-
   async function saveManualRegulation() {
     setManualRuleSaving(true);
     setRegulationStatus("");
@@ -3138,7 +3155,7 @@ export default function Home() {
       if (Array.isArray(data.records) && data.records.length) {
         setRegulationRecords(data.records);
       }
-      setManualRule({ title: "", citation: "", focus: "", sourceUrl: "", content: "" });
+    setManualRule({ title: "", citation: "", focus: "", sourceUrl: "", pdfUrl: "", content: "" });
       setEditingRegulationId("");
       setRegulationStatus(labels.regulationUpdated);
       setRegulationTab("list");
@@ -3718,10 +3735,7 @@ export default function Home() {
                             ))}
                           </select>
                         </label>
-                        <button className="primary-button" onClick={updateRegulationsFromOrtax} disabled={regulationLoading}>
-                          {regulationLoading ? labels.updatingRules : labels.updateFromOrtax}
-                        </button>
-                        <button className="primary-button secondary-button" onClick={() => enrichRegulationSources()} disabled={sourceEnrichLoading}>
+                        <button className="primary-button" onClick={() => enrichRegulationSources()} disabled={sourceEnrichLoading}>
                           {sourceEnrichLoading ? labels.enrichingSources : labels.enrichSources}
                         </button>
                         <button className="table-button" onClick={() => setRegulationTab("list")}>
@@ -3744,7 +3758,7 @@ export default function Home() {
                         {" "}
                         {regulationRecords.filter((record) => (record.topic || "general") === regulationTopic && regulationSourceMatches(record.sourceUrl, regulationSourceScope)).length}
                         {" "}
-                        {language === "en" ? "records match the selected topic/source for enrichment." : "aturan cocok dengan topik/sumber yang dipilih untuk enrich."}
+                        {language === "en" ? "records match the selected topic/source. Up to 3 unindexed PDFs are processed per run." : "aturan cocok dengan topik/sumber yang dipilih. Maksimal 3 PDF yang belum terindeks diproses per proses."}
                       </p>
                     </div>
                   </section>
@@ -3784,6 +3798,13 @@ export default function Home() {
                                   </>
                                 ) : null}
                               </small>
+                              {item.pdfUrl ? (
+                                <small>
+                                  <a href={item.pdfUrl} target="_blank" rel="noreferrer">
+                                    {language === "en" ? "Open official PDF" : "Buka PDF resmi"}
+                                  </a>
+                                </small>
+                              ) : null}
                               <div className="score-pill">{item.relevance}% relevance</div>
                               <div className="reg-card-actions">
                                 <a className="table-button compact" href={referenceDetailPath("regulation", item.id)}>
@@ -3836,6 +3857,7 @@ export default function Home() {
                       <Input label={labels.manualTitle} value={manualRule.title} onChange={(value) => setManualRule((current) => ({ ...current, title: value }))} />
                       <Input label={labels.manualCitation} value={manualRule.citation} onChange={(value) => setManualRule((current) => ({ ...current, citation: value }))} />
                       <Input label={labels.manualSourceUrl} value={manualRule.sourceUrl} onChange={(value) => setManualRule((current) => ({ ...current, sourceUrl: value }))} />
+                      <Input label={labels.manualPdfUrl} value={manualRule.pdfUrl} onChange={(value) => setManualRule((current) => ({ ...current, pdfUrl: value }))} />
                     </div>
                     <TextArea label={labels.manualFocus} value={manualRule.focus} onChange={(value) => setManualRule((current) => ({ ...current, focus: value }))} />
                     <TextArea label={labels.manualContent} value={manualRule.content} onChange={(value) => setManualRule((current) => ({ ...current, content: value }))} />

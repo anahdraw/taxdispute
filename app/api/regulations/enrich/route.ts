@@ -16,7 +16,7 @@ async function storedRegulations() {
 
 function selectTargets(records: Regulation[], body: { id?: string; ids?: string[]; topic?: string; limit?: number; sourceScope?: string }) {
   const ids = Array.isArray(body.ids) ? body.ids.map(String) : body.id ? [String(body.id)] : [];
-  const limit = Math.max(1, Math.min(30, Number(body.limit || (ids.length ? ids.length : 12))));
+  const limit = Math.max(1, Math.min(5, Number(body.limit || (ids.length ? ids.length : 3))));
   const sourceScope = normalizeRegulationSourceScope(body.sourceScope);
   if (ids.length) {
     const idSet = new Set(ids);
@@ -40,7 +40,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "No regulation with a source URL was found.", records: allRecords }, { status: 400 });
     }
 
-    const results = await Promise.all(targets.map((record) => enrichRegulation(record)));
+    const results = [];
+    for (const record of targets) {
+      results.push(await enrichRegulation(record));
+    }
     const enrichedRecords = results.filter((item) => item.enriched).map((item) => item.record);
     if (hasDatabase() && enrichedRecords.length) {
       await upsertTaxRegulations(enrichedRecords);

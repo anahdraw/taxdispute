@@ -292,10 +292,15 @@ export async function ensureRegulationSchema() {
       relevance INTEGER NOT NULL DEFAULT 70,
       source TEXT NOT NULL DEFAULT 'manual',
       source_url TEXT NOT NULL DEFAULT '',
+      pdf_url TEXT NOT NULL DEFAULT '',
       content TEXT NOT NULL DEFAULT '',
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+  await pool.query(`
+    ALTER TABLE tax_regulations
+    ADD COLUMN IF NOT EXISTS pdf_url TEXT NOT NULL DEFAULT '';
   `);
   await pool.query(`
     CREATE INDEX IF NOT EXISTS tax_regulations_topic_idx
@@ -306,7 +311,7 @@ export async function ensureRegulationSchema() {
 export async function listTaxRegulations(): Promise<Regulation[]> {
   await ensureRegulationSchema();
   const result = await getPool().query(`
-    SELECT id, topic, title, citation, focus, relevance, source, source_url, content, updated_at
+    SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url, content, updated_at
     FROM tax_regulations
     ORDER BY topic ASC, updated_at DESC, relevance DESC;
   `);
@@ -317,8 +322,9 @@ export async function listTaxRegulations(): Promise<Regulation[]> {
     citation: String(row.citation),
     focus: String(row.focus),
     relevance: Number(row.relevance || 70),
-    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : "manual",
+    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : row.source === "official" ? "official" : "manual",
     sourceUrl: String(row.source_url || ""),
+    pdfUrl: String(row.pdf_url || ""),
     content: String(row.content || ""),
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
   }));
@@ -334,7 +340,7 @@ export async function listTaxRegulationSummaries(params: PaginationParams): Prom
   await ensureRegulationSchema();
   const result = await getPool().query(
     `
-      SELECT id, topic, title, citation, focus, relevance, source, source_url, updated_at
+      SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url, updated_at
       FROM tax_regulations
       ORDER BY topic ASC, updated_at DESC, relevance DESC
       LIMIT $1 OFFSET $2;
@@ -348,8 +354,9 @@ export async function listTaxRegulationSummaries(params: PaginationParams): Prom
     citation: String(row.citation),
     focus: String(row.focus),
     relevance: Number(row.relevance || 70),
-    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : "manual",
+    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : row.source === "official" ? "official" : "manual",
     sourceUrl: String(row.source_url || ""),
+    pdfUrl: String(row.pdf_url || ""),
     content: "",
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
   }));
@@ -359,7 +366,7 @@ export async function getTaxRegulationById(id: string): Promise<Regulation | nul
   await ensureRegulationSchema();
   const result = await getPool().query(
     `
-      SELECT id, topic, title, citation, focus, relevance, source, source_url, content, updated_at
+      SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url, content, updated_at
       FROM tax_regulations
       WHERE id = $1
       LIMIT 1;
@@ -375,8 +382,9 @@ export async function getTaxRegulationById(id: string): Promise<Regulation | nul
     citation: String(row.citation),
     focus: String(row.focus),
     relevance: Number(row.relevance || 70),
-    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : "manual",
+    source: row.source === "ortax" ? "ortax" : row.source === "seed" ? "seed" : row.source === "official" ? "official" : "manual",
     sourceUrl: String(row.source_url || ""),
+    pdfUrl: String(row.pdf_url || ""),
     content: String(row.content || ""),
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : undefined
   };
@@ -390,9 +398,9 @@ export async function upsertTaxRegulations(records: Regulation[]) {
     await pool.query(
       `
         INSERT INTO tax_regulations
-          (id, topic, title, citation, focus, relevance, source, source_url, content, updated_at)
+          (id, topic, title, citation, focus, relevance, source, source_url, pdf_url, content, updated_at)
         VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (id) DO UPDATE SET
           topic = EXCLUDED.topic,
           title = EXCLUDED.title,
@@ -401,6 +409,7 @@ export async function upsertTaxRegulations(records: Regulation[]) {
           relevance = EXCLUDED.relevance,
           source = EXCLUDED.source,
           source_url = EXCLUDED.source_url,
+          pdf_url = EXCLUDED.pdf_url,
           content = EXCLUDED.content,
           updated_at = EXCLUDED.updated_at;
       `,
@@ -413,6 +422,7 @@ export async function upsertTaxRegulations(records: Regulation[]) {
         Math.max(1, Math.min(100, Number(record.relevance || 70))),
         record.source || "manual",
         record.sourceUrl || "",
+        record.pdfUrl || "",
         record.content || "",
         record.updatedAt || new Date().toISOString()
       ]

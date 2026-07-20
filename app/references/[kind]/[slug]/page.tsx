@@ -130,7 +130,7 @@ async function regulationRecords() {
 
 function regulationReference(record: Regulation): ReferenceRecord {
   const sourceUrl = record.sourceUrl || "";
-  const pdfUrl = isPdfUrl(sourceUrl) ? sourceUrl : "";
+  const pdfUrl = record.pdfUrl || (isPdfUrl(sourceUrl) ? sourceUrl : "");
   const topic = regulationTopicLabel(record.topic || "general", "id");
   const sourceText = [
     `Judul: ${record.title}`,
