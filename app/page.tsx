@@ -9,6 +9,7 @@ import { emptyPpnComponents, type ExtractionResult, type PpnComponents } from "@
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
 import { filterRegulationsByTopic, normalizeRegulationTopic, regulationTopicOptions, type RegulationTopic } from "@/lib/regulation-knowledge";
+import { regulationSourceMatches, regulationSourceScopeOptions, type RegulationSourceScope } from "@/lib/regulation-sources";
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { buildReportKey, buildStoredReport, type StoredReport } from "@/lib/stored-reports";
@@ -197,7 +198,7 @@ const copy = {
     decisionOutcomes: "Outcome Putusan",
     topDisputeIssues: "Top Pokok Sengketa",
     regulationTopic: "Topik peraturan",
-    updateFromOrtax: "Update dari Ortax",
+    updateFromOrtax: "Tambah seed Ortax",
     updatingRules: "Mengambil aturan dari Ortax...",
     regulationUpdated: "Knowledge peraturan diperbarui.",
     source: "Sumber",
@@ -231,20 +232,20 @@ const copy = {
     regulationBotAnswer: "Jawaban berbasis sumber",
     noRegulationBotAnswer: "Mulai dari pertanyaan spesifik. Bot akan menampilkan ringkasan, sumber, dan batasan konteks.",
     bulkRegulationUpload: "Upload list aturan Excel/CSV",
-    bulkRegulationHint: "Kolom: title, citation, topic, focus, sourceUrl, content, relevance.",
+    bulkRegulationHint: "Kolom fleksibel: Peraturan/title, Judul/Substansi Utama/focus, Kegunaan Praktis/content, Status, Sumber Resmi/sourceUrl/link, topic, relevance.",
     importingRegulations: "Mengimpor aturan...",
     importedRegulations: "aturan berhasil diimpor/diperbarui.",
-    enrichSources: "Enrich dari link sumber",
+    enrichSources: "Ambil dari link resmi",
     enrichingSources: "Mengambil isi sumber...",
     enrichRuleSource: "Enrich sumber",
-    sourceEnriched: "aturan berhasil dienrich dari link sumber.",
+    sourceEnriched: "aturan berhasil diambil/dienrich dari link sumber.",
     noRulesWithSource: "Tidak ada aturan dengan link sumber yang bisa dienrich.",
     regulationTabBot: "RAG Chatbot",
     regulationTabUpdate: "Update & Import",
     regulationTabList: "Aturan tersimpan",
     regulationTabManual: "Input manual",
     regulationUpdateTitle: "Update knowledge aturan",
-    regulationUpdateIntro: "Tarik Ortax, import daftar, enrich dari link sumber, dan siapkan pengecekan aturan terbaru.",
+    regulationUpdateIntro: "Tarik seed Ortax, import daftar peraturan, atau enrich dari link resmi seperti JDIH BPK, JDIH Kemenkeu, DJP, dan Ortax.",
     editRule: "Edit",
     deleteRule: "Hapus",
     updateRule: "Update aturan",
@@ -526,7 +527,7 @@ const copy = {
     decisionOutcomes: "Decision Outcomes",
     topDisputeIssues: "Top Dispute Issues",
     regulationTopic: "Regulation topic",
-    updateFromOrtax: "Update from Ortax",
+    updateFromOrtax: "Add Ortax seeds",
     updatingRules: "Fetching rules from Ortax...",
     regulationUpdated: "Regulation knowledge updated.",
     source: "Source",
@@ -560,20 +561,20 @@ const copy = {
     regulationBotAnswer: "Source-grounded answer",
     noRegulationBotAnswer: "Start with a specific question. The bot will show an answer, sources, and context limits.",
     bulkRegulationUpload: "Upload regulation list Excel/CSV",
-    bulkRegulationHint: "Columns: title, citation, topic, focus, sourceUrl, content, relevance.",
+    bulkRegulationHint: "Flexible columns: Peraturan/title, Judul/Substansi Utama/focus, Kegunaan Praktis/content, Status, Sumber Resmi/sourceUrl/link, topic, relevance.",
     importingRegulations: "Importing regulations...",
     importedRegulations: "regulation(s) imported/updated.",
-    enrichSources: "Enrich from source links",
+    enrichSources: "Fetch official links",
     enrichingSources: "Fetching source content...",
     enrichRuleSource: "Enrich source",
-    sourceEnriched: "regulation(s) enriched from source links.",
+    sourceEnriched: "regulation(s) fetched/enriched from source links.",
     noRulesWithSource: "No regulations with source links are available for enrichment.",
     regulationTabBot: "RAG Chatbot",
     regulationTabUpdate: "Update & Import",
     regulationTabList: "Stored rules",
     regulationTabManual: "Manual input",
     regulationUpdateTitle: "Update regulation knowledge",
-    regulationUpdateIntro: "Pull Ortax, import lists, enrich source links, and prepare latest-rule checks.",
+    regulationUpdateIntro: "Pull Ortax starter cards, import regulation lists, or enrich from official links such as JDIH BPK, JDIH Kemenkeu, DGT, and Ortax.",
     editRule: "Edit",
     deleteRule: "Delete",
     updateRule: "Update rule",
@@ -1552,9 +1553,9 @@ function inferRegulationTopic(row: RegulationImportRow) {
   const explicit = rowValue(row, ["topic", "topik", "jenis", "category", "kategori"]);
   const text = [
     explicit,
-    rowValue(row, ["title", "name", "nama", "judul", "rule_name", "nama_aturan"]),
-    rowValue(row, ["focus", "summary", "ringkasan", "deskripsi_singkat", "deskripsi", "description"]),
-    rowValue(row, ["citation", "number", "nomor", "sitasi", "jenis_peraturan", "peraturan"])
+    rowValue(row, ["title", "name", "nama", "judul", "rule_name", "nama_aturan", "peraturan"]),
+    rowValue(row, ["focus", "summary", "ringkasan", "judul_substansi_utama", "substansi_utama", "kegunaan_praktis", "deskripsi_singkat", "deskripsi", "description"]),
+    rowValue(row, ["citation", "number", "nomor", "sitasi", "jenis_peraturan", "peraturan", "relasi_perubahan_penting"])
   ]
     .join(" ")
     .toLowerCase();
@@ -1569,19 +1570,41 @@ function buildRegulationCitation(row: RegulationImportRow) {
   const year = rowValue(row, ["tahun", "year"]);
   const parts = [ruleType, number ? `No. ${number}` : "", year ? `Tahun ${year}` : ""].filter(Boolean);
   if (parts.length) return parts.join(" ");
-  return rowValue(row, ["citation", "sitasi", "nomor_sitasi", "peraturan"]);
+  return rowValue(row, ["citation", "sitasi", "nomor_sitasi", "peraturan", "nama_peraturan", "aturan"]);
 }
 
 function rowRegulation(row: RegulationImportRow, index: number): Regulation | null {
-  const title = rowValue(row, ["title", "name", "nama", "judul", "rule_name", "nama_aturan"]);
+  const title = rowValue(row, ["title", "name", "nama", "judul", "rule_name", "nama_aturan", "peraturan", "nama_peraturan", "aturan"]);
   const citation = buildRegulationCitation(row);
-  const focus = rowValue(row, ["focus", "summary", "ringkasan", "fungsi", "description", "deskripsi", "deskripsi_singkat", "uraian"]);
+  const focus = rowValue(row, [
+    "focus",
+    "summary",
+    "ringkasan",
+    "fungsi",
+    "judul_substansi_utama",
+    "substansi_utama",
+    "kegunaan_praktis",
+    "description",
+    "deskripsi",
+    "deskripsi_singkat",
+    "uraian"
+  ]);
   if (!title || !citation || !focus) return null;
   const topic = inferRegulationTopic(row);
   const relevance = Number(rowValue(row, ["relevance", "relevansi", "score", "skor"]) || 75);
   const effectiveDate = rowValue(row, ["tanggal_berlaku", "berlaku", "effective_date", "tanggal"]);
-  const sourceNotes = rowValue(row, ["citations", "citation_notes", "source_notes", "catatan_sumber"]);
-  const content = [rowValue(row, ["content", "notes", "catatan", "kutipan", "excerpt"]), effectiveDate ? `Tanggal berlaku: ${effectiveDate}` : "", sourceNotes ? `Referensi: ${sourceNotes}` : ""]
+  const status = rowValue(row, ["status", "status_per_20_juli_2026", "status_terakhir", "status_berlaku"]);
+  const relation = rowValue(row, ["relasi_perubahan_penting", "relasi", "perubahan", "amendment", "relationship"]);
+  const sourceNotes = rowValue(row, ["citations", "citation_notes", "source_notes", "catatan_sumber", "catatan_database"]);
+  const practicalUse = rowValue(row, ["kegunaan_praktis", "practical_use", "use_case"]);
+  const content = [
+    rowValue(row, ["content", "notes", "catatan", "kutipan", "excerpt"]),
+    practicalUse && practicalUse !== focus ? `Kegunaan praktis: ${practicalUse}` : "",
+    status ? `Status: ${status}` : "",
+    relation ? `Relasi/perubahan penting: ${relation}` : "",
+    effectiveDate ? `Tanggal berlaku/relevansi waktu: ${effectiveDate}` : "",
+    sourceNotes ? `Referensi/catatan: ${sourceNotes}` : ""
+  ]
     .filter(Boolean)
     .join("\n");
   return {
@@ -1592,7 +1615,7 @@ function rowRegulation(row: RegulationImportRow, index: number): Regulation | nu
     focus,
     relevance: Number.isFinite(relevance) ? Math.max(1, Math.min(100, relevance)) : 75,
     source: "manual",
-    sourceUrl: rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber"]),
+    sourceUrl: rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber", "sumber_resmi", "official_source"]),
     content: content || focus,
     updatedAt: new Date(Date.now() + index).toISOString()
   };
@@ -1700,6 +1723,7 @@ export default function Home() {
   const [deletingDocumentId, setDeletingDocumentId] = useState("");
   const [regulationRecords, setRegulationRecords] = useState<Regulation[]>(regulations);
   const [regulationTopic, setRegulationTopic] = useState<RegulationTopic>("transfer_pricing");
+  const [regulationSourceScope, setRegulationSourceScope] = useState<RegulationSourceScope>("all");
   const [regulationStatus, setRegulationStatus] = useState("");
   const [regulationError, setRegulationError] = useState("");
   const [regulationLoading, setRegulationLoading] = useState(false);
@@ -3021,7 +3045,9 @@ export default function Home() {
   async function enrichRegulationSources(item?: Regulation) {
     const ids = item
       ? [item.id]
-      : regulationRecords.filter((record) => /^https?:\/\//i.test(record.sourceUrl || "")).map((record) => record.id);
+      : regulationRecords
+          .filter((record) => (record.topic || "general") === regulationTopic && regulationSourceMatches(record.sourceUrl, regulationSourceScope))
+          .map((record) => record.id);
     if (!ids.length) {
       setRegulationError(labels.noRulesWithSource);
       return;
@@ -3034,7 +3060,7 @@ export default function Home() {
       const response = await fetch("/api/regulations/enrich", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids, limit: item ? 1 : Math.min(30, ids.length) })
+        body: JSON.stringify({ ids, sourceScope: regulationSourceScope, limit: item ? 1 : Math.min(30, ids.length) })
       });
       const data = (await response.json()) as {
         records?: Regulation[];
@@ -3679,6 +3705,19 @@ export default function Home() {
                             ))}
                           </select>
                         </label>
+                        <label className="control">
+                          <span>{language === "en" ? "Official source" : "Sumber resmi"}</span>
+                          <select
+                            value={regulationSourceScope}
+                            onChange={(event) => setRegulationSourceScope(event.target.value as RegulationSourceScope)}
+                          >
+                            {regulationSourceScopeOptions.map((source) => (
+                              <option key={source.key} value={source.key}>
+                                {source[language]}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                         <button className="primary-button" onClick={updateRegulationsFromOrtax} disabled={regulationLoading}>
                           {regulationLoading ? labels.updatingRules : labels.updateFromOrtax}
                         </button>
@@ -3700,7 +3739,13 @@ export default function Home() {
                           />
                         </label>
                       </div>
-                      <p className="muted import-hint">{labels.bulkRegulationHint}</p>
+                      <p className="muted import-hint">
+                        {labels.bulkRegulationHint}
+                        {" "}
+                        {regulationRecords.filter((record) => (record.topic || "general") === regulationTopic && regulationSourceMatches(record.sourceUrl, regulationSourceScope)).length}
+                        {" "}
+                        {language === "en" ? "records match the selected topic/source for enrichment." : "aturan cocok dengan topik/sumber yang dipilih untuk enrich."}
+                      </p>
                     </div>
                   </section>
                 )}

@@ -3,6 +3,7 @@ import { hasDatabase, listTaxRegulations, upsertTaxRegulations } from "@/lib/db"
 import { enrichRegulation } from "@/lib/regulation-enrichment";
 import { regulations, type Regulation } from "@/lib/mock-data";
 import { mergeRegulationRecords, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
+import { normalizeRegulationSourceScope, regulationSourceMatches } from "@/lib/regulation-sources";
 import { requireAuth } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -13,16 +14,17 @@ async function storedRegulations() {
   return listTaxRegulations().catch(() => []);
 }
 
-function selectTargets(records: Regulation[], body: { id?: string; ids?: string[]; topic?: string; limit?: number }) {
+function selectTargets(records: Regulation[], body: { id?: string; ids?: string[]; topic?: string; limit?: number; sourceScope?: string }) {
   const ids = Array.isArray(body.ids) ? body.ids.map(String) : body.id ? [String(body.id)] : [];
   const limit = Math.max(1, Math.min(30, Number(body.limit || (ids.length ? ids.length : 12))));
+  const sourceScope = normalizeRegulationSourceScope(body.sourceScope);
   if (ids.length) {
     const idSet = new Set(ids);
     return records.filter((item) => idSet.has(item.id)).slice(0, limit);
   }
   const topic = body.topic ? normalizeRegulationTopic(body.topic) : null;
   return records
-    .filter((item) => (!topic || (item.topic || "general") === topic) && /^https?:\/\//i.test(item.sourceUrl || ""))
+    .filter((item) => (!topic || (item.topic || "general") === topic) && regulationSourceMatches(item.sourceUrl, sourceScope))
     .slice(0, limit);
 }
 
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
   const auth = requireAuth(request, ["admin"]);
   if ("response" in auth) return auth.response;
   try {
-    const body = (await request.json()) as { id?: string; ids?: string[]; topic?: string; limit?: number };
+    const body = (await request.json()) as { id?: string; ids?: string[]; topic?: string; limit?: number; sourceScope?: string };
     const stored = await storedRegulations();
     const allRecords = mergeRegulationRecords([...stored, ...regulations]);
     const targets = selectTargets(allRecords, body);
