@@ -3,6 +3,7 @@ import type { Regulation } from "./mock-data";
 import { DEFAULT_LLM_MODEL_CHOICE, type LlmModelChoice } from "./model-options";
 import { callOpenAIText, configuredModel, hasRemoteLlm, missingKeyStatus, type LlmStatus } from "./openai";
 import { tierWorkProfiles, type TierWorkProfile } from "./tier-profiles";
+import { normalizeSmartAnswerMarkdown } from "./answer-format";
 
 export type SmartChatSourceMode = "all" | "decisions" | "regulations";
 
@@ -591,6 +592,32 @@ function localSmartAnswer(
   ].join("\n\n");
 }
 
+function smartAnswerFormatContract(language: "id" | "en") {
+  return language === "en"
+    ? [
+        "Mandatory response-format contract:",
+        "- Return Markdown only; never return JSON or a Markdown table.",
+        "- Put every section heading on its own line and prefix it with ##.",
+        "- Add a blank line after every heading.",
+        "- Except for the executive/short answer, use one concise idea per bullet or numbered action; never place numbered actions inline in a paragraph.",
+        "- Keep paragraphs to at most 3 sentences and bullets to at most 45 words.",
+        "- Use bold only for the key conclusion or citation, never for a complete paragraph.",
+        "- Do not dump a chain of source identifiers in prose. Cite at most two strongest decision numbers or rule citations per section; the UI shows the complete source register below.",
+        "- Do not repeat a section heading inside its body."
+      ].join("\n")
+    : [
+        "Kontrak format jawaban wajib:",
+        "- Kembalikan Markdown saja; jangan gunakan JSON atau tabel Markdown.",
+        "- Tulis setiap heading bagian pada baris tersendiri dengan awalan ##.",
+        "- Beri satu baris kosong setelah setiap heading.",
+        "- Kecuali ringkasan/jawaban singkat, gunakan satu gagasan ringkas per bullet atau langkah bernomor; jangan menaruh langkah bernomor di dalam paragraf.",
+        "- Batasi paragraf maksimal 3 kalimat dan bullet maksimal 45 kata.",
+        "- Gunakan bold hanya untuk kesimpulan atau sitasi kunci, bukan seluruh paragraf.",
+        "- Jangan menumpuk rangkaian nomor sumber di dalam narasi. Sebutkan maksimal dua nomor putusan atau sitasi aturan terkuat per bagian; daftar sumber lengkap ditampilkan UI di bawah.",
+        "- Jangan mengulang heading bagian di dalam isi."
+      ].join("\n");
+}
+
 export async function answerSmartChat({
   question,
   language,
@@ -652,7 +679,8 @@ export async function answerSmartChat({
     language === "en"
       ? `You are Smart Dispute Bot, an Indonesian tax dispute RAG assistant. Answer using only the retrieved decision and regulation context. Prioritize exact taxpayer/company matches, decision numbers, and issue matches over generic outcome matches. Cite decision numbers and rule citations, and say when context is insufficient. ${tierProfile.prompts.en.smartChatInstruction}`
       : `Anda adalah Smart Dispute Bot, asisten RAG sengketa pajak Indonesia. Jawab hanya dari konteks putusan dan peraturan yang diambil melalui retrieval. Prioritaskan kecocokan nama WP/perusahaan, nomor putusan, dan isu dibanding kecocokan outcome yang generik. Sebutkan nomor putusan dan sitasi aturan, dan katakan bila konteks belum cukup. ${tierProfile.prompts.id.smartChatInstruction}`;
-  const system = managedPrompt?.system?.trim() || defaultSystem;
+  const systemBase = managedPrompt?.system?.trim() || defaultSystem;
+  const system = `${systemBase}\n\n${smartAnswerFormatContract(language)}`;
   const prompt = JSON.stringify(
     {
       question,
@@ -684,14 +712,18 @@ export async function answerSmartChat({
       })),
       computedCharts: charts,
       responseLanguage: language,
-      managedInstruction: managedPrompt?.instruction || ""
+      managedInstruction: managedPrompt?.instruction || "",
+      outputReminder:
+        language === "en"
+          ? "Follow the mandatory Markdown response-format contract in the system message."
+          : "Ikuti kontrak format jawaban Markdown wajib pada system message."
     },
     null,
     2
   );
 
   try {
-    const answer = await callOpenAIText(prompt, system, modelChoice);
+    const answer = normalizeSmartAnswerMarkdown(await callOpenAIText(prompt, system, modelChoice));
     return {
       answer,
       decisionHits,

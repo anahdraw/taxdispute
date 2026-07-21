@@ -40,6 +40,7 @@ import {
 } from "@/lib/model-options";
 import { TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 import { AlphaBrand, AlphaTaxBotMark } from "@/app/brand";
+import { normalizeSmartAnswerMarkdown } from "@/lib/answer-format";
 
 type Language = "id" | "en";
 type ThemeMode = "dark" | "light";
@@ -4100,29 +4101,68 @@ function InlineRichText({ text }: { text: string }) {
 
 function MarkdownBlock({ block, blockKey }: { block: string; blockKey: string }) {
   const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
-  const isList = lines.every((line) => /^[-•]\s+/.test(line));
-  const isNumberedList = lines.every((line) => /^\d+[.)]\s+/.test(line));
-  if (isList || isNumberedList) {
-    const ListTag = isNumberedList ? "ol" : "ul";
-    return (
-      <ListTag key={blockKey}>
-        {lines.map((line, lineIndex) => (
-          <li key={`${blockKey}-${lineIndex}`}>
-            <InlineRichText text={line.replace(isNumberedList ? /^\d+[.)]\s+/ : /^[-•]\s+/, "")} />
-          </li>
-        ))}
-      </ListTag>
-    );
+  type MarkdownGroup = { kind: "paragraph" | "unordered" | "ordered" | "subheading"; lines: string[] };
+  const groups: MarkdownGroup[] = [];
+
+  for (const line of lines) {
+    const kind: MarkdownGroup["kind"] = /^[-•]\s+/.test(line)
+      ? "unordered"
+      : /^\d+[.)]\s+/.test(line)
+        ? "ordered"
+        : /^#{3,6}\s+/.test(line)
+          ? "subheading"
+          : "paragraph";
+    const previous = groups[groups.length - 1];
+    if (previous && previous.kind === kind && (kind === "unordered" || kind === "ordered")) {
+      previous.lines.push(line);
+    } else {
+      groups.push({ kind, lines: [line] });
+    }
   }
+
   return (
-    <p key={blockKey}>
-      <InlineRichText text={block.replace(/^#{1,6}\s*/, "")} />
-    </p>
+    <>
+      {groups.map((group, groupIndex) => {
+        if (group.kind === "unordered" || group.kind === "ordered") {
+          const ListTag = group.kind === "ordered" ? "ol" : "ul";
+          return (
+            <ListTag key={`${blockKey}-list-${groupIndex}`}>
+              {group.lines.map((line, lineIndex) => (
+                <li key={`${blockKey}-${groupIndex}-${lineIndex}`}>
+                  <InlineRichText text={line.replace(group.kind === "ordered" ? /^\d+[.)]\s+/ : /^[-•]\s+/, "")} />
+                </li>
+              ))}
+            </ListTag>
+          );
+        }
+        if (group.kind === "subheading") {
+          return (
+            <h5 key={`${blockKey}-heading-${groupIndex}`}>
+              <InlineRichText text={group.lines[0].replace(/^#{3,6}\s+/, "")} />
+            </h5>
+          );
+        }
+        return group.lines.map((line, lineIndex) => (
+          <p key={`${blockKey}-paragraph-${groupIndex}-${lineIndex}`}>
+            <InlineRichText text={line.replace(/^#{1,6}\s*/, "")} />
+          </p>
+        ));
+      })}
+    </>
   );
 }
 
+function answerSectionTone(title: string, sectionIndex: number) {
+  if (sectionIndex === 0 || /summary|answer|ringkasan|jawaban/i.test(title)) return "summary";
+  if (/action|next|langkah|rekomendasi/i.test(title)) return "actions";
+  if (/risk|counter|risiko/i.test(title)) return "risk";
+  if (/rule|regulat|aturan|peraturan/i.test(title)) return "rules";
+  if (/decision|putusan|pola/i.test(title)) return "decisions";
+  return "standard";
+}
+
 function StructuredMarkdownText({ text }: { text: string }) {
-  const blocks = normalizeRegulationText(text)
+  const blocks = normalizeSmartAnswerMarkdown(normalizeRegulationText(text))
     .split(/\n{2,}/)
     .map((block) => block.trim())
     .filter(Boolean);
@@ -4147,8 +4187,13 @@ function StructuredMarkdownText({ text }: { text: string }) {
   return (
     <div className="rich-text answer-brief">
       {sections.map((section, sectionIndex) => (
-        <section className="answer-section" key={`${section.title}-${sectionIndex}`}>
-          {section.title && <h4>{section.title}</h4>}
+        <section className={`answer-section ${answerSectionTone(section.title, sectionIndex)}`} key={`${section.title}-${sectionIndex}`}>
+          {section.title && (
+            <h4>
+              <span>{String(sectionIndex + 1).padStart(2, "0")}</span>
+              <span>{section.title}</span>
+            </h4>
+          )}
           {section.blocks.map((block, blockIndex) => (
             <MarkdownBlock key={`${sectionIndex}-${blockIndex}`} block={block} blockKey={`${sectionIndex}-${blockIndex}`} />
           ))}

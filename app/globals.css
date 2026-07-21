@@ -9702,3 +9702,170 @@ body {
     flex-basis: 36px;
   }
 }
+
+/* Structured advisor answer: compact hierarchy instead of a single text wall. */
+.smart-answer-panel .answer-brief {
+  display: block;
+  overflow: hidden;
+  border: 1px solid #dbe5eb;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0;
+}
+
+.smart-answer-panel .answer-section {
+  border: 0;
+  border-bottom: 1px solid #e5ebef;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 16px 18px;
+}
+
+.smart-answer-panel .answer-section:last-child {
+  border-bottom: 0;
+}
+
+.smart-answer-panel .answer-section.summary {
+  border-left: 4px solid var(--alpha-cyan, #00a7e1);
+  background: linear-gradient(90deg, #eef9fd 0%, #ffffff 72%);
+  padding-left: 15px;
+}
+
+.smart-answer-panel .answer-section.actions {
+  border-left: 4px solid var(--alpha-green, #43a62a);
+  background: linear-gradient(90deg, #f0f8ed 0%, #ffffff 72%);
+  padding-left: 15px;
+}
+
+.smart-answer-panel .answer-section.risk {
+  border-left: 4px solid #d3a338;
+  background: linear-gradient(90deg, #fff9eb 0%, #ffffff 72%);
+  padding-left: 15px;
+}
+
+.smart-answer-panel .answer-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 10px;
+  color: var(--alpha-navy, #00153f);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.smart-answer-panel .answer-section h4 > span:first-child {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  border-radius: 50%;
+  background: #e8f6fc;
+  color: #007aa9;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.smart-answer-panel .answer-section.actions h4 > span:first-child {
+  background: #e8f5e5;
+  color: #2d7d25;
+}
+
+.smart-answer-panel .answer-section.risk h4 > span:first-child {
+  background: #fff1cf;
+  color: #875f0d;
+}
+
+.smart-answer-panel .answer-section h5 {
+  margin: 12px 0 6px;
+  color: #26343d;
+  font-size: 0.8rem;
+}
+
+.smart-answer-panel .answer-section p,
+.smart-answer-panel .answer-section li,
+.smart-answer-panel .answer-section span {
+  color: #34434c;
+  font-size: 0.84rem;
+  line-height: 1.66;
+}
+
+.smart-answer-panel .answer-section p {
+  max-width: 82ch;
+  margin: 0 0 10px;
+}
+
+.smart-answer-panel .answer-section ul,
+.smart-answer-panel .answer-section ol {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding-left: 24px;
+}
+
+.smart-answer-panel .answer-section li {
+  padding-left: 3px;
+}
+
+.smart-answer-panel .answer-section li::marker {
+  color: #008bc4;
+  font-weight: 800;
+}
+
+.smart-answer-panel .answer-section strong {
+  color: #18262f;
+  font-weight: 800;
+}
+
+.theme-dark .smart-answer-panel .answer-brief {
+  border-color: #2a3941;
+  background: #101619;
+}
+
+.theme-dark .smart-answer-panel .answer-section,
+.theme-dark .smart-answer-panel .answer-section.summary,
+.theme-dark .smart-answer-panel .answer-section.actions,
+.theme-dark .smart-answer-panel .answer-section.risk {
+  border-bottom-color: #29363d;
+  background: transparent;
+}
+
+.theme-dark .smart-answer-panel .answer-section.summary {
+  background: linear-gradient(90deg, rgba(0, 167, 225, 0.12), transparent 72%);
+}
+
+.theme-dark .smart-answer-panel .answer-section.actions {
+  background: linear-gradient(90deg, rgba(67, 166, 42, 0.12), transparent 72%);
+}
+
+.theme-dark .smart-answer-panel .answer-section.risk {
+  background: linear-gradient(90deg, rgba(211, 163, 56, 0.12), transparent 72%);
+}
+
+.theme-dark .smart-answer-panel .answer-section h4,
+.theme-dark .smart-answer-panel .answer-section h5,
+.theme-dark .smart-answer-panel .answer-section strong {
+  color: #f2f8fa;
+}
+
+.theme-dark .smart-answer-panel .answer-section p,
+.theme-dark .smart-answer-panel .answer-section li,
+.theme-dark .smart-answer-panel .answer-section span {
+  color: #cbd8de;
+}
+
+@media (max-width: 620px) {
+  .smart-answer-panel .answer-section {
+    padding: 14px;
+  }
+
+  .smart-answer-panel .answer-section p,
+  .smart-answer-panel .answer-section li,
+  .smart-answer-panel .answer-section span {
+    font-size: 0.8rem;
+  }
+}
