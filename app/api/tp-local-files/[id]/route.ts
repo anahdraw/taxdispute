@@ -5,6 +5,7 @@ import { deleteTpLocalFileProject, getTpLocalFileProjectById, hasDatabase, upser
 import {
   normalizeTpProjectState,
   tpDocumentKinds,
+  tpExtractionScopes,
   type TpLocalFileProject,
   type TpProjectStatus,
   type TpSourceDocument
@@ -32,6 +33,7 @@ function mergeProjectDocuments(value: unknown, current: TpSourceDocument[], proj
   if (!Array.isArray(value)) return current;
   const existing = new Map(current.map((document) => [document.id, document]));
   const allowedKinds = new Set(tpDocumentKinds.map((kind) => kind.id));
+  const allowedScopes = new Set<string>(tpExtractionScopes.map((scope) => scope.id));
   return value.map((raw) => {
     const source = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
     const currentDocument = existing.get(String(source.id || ""));
@@ -40,6 +42,9 @@ function mergeProjectDocuments(value: unknown, current: TpSourceDocument[], proj
       throw new Error("The source document must be an uploaded TP Local File Blob.");
     }
     const kind = String(source.kind || "other") as TpSourceDocument["kind"];
+    const requestedScopes = Array.isArray(source.requestedScopes)
+      ? source.requestedScopes.map(String).filter((scope) => allowedScopes.has(scope)) as TpSourceDocument["requestedScopes"]
+      : [];
     return {
       id: String(source.id || "").slice(0, 120),
       filename: String(source.filename || "source-document").slice(0, 240),
@@ -49,7 +54,10 @@ function mergeProjectDocuments(value: unknown, current: TpSourceDocument[], proj
       size: Math.max(0, Math.min(Number(source.size || 0), 250 * 1024 * 1024)),
       status: "uploaded" as const,
       extractionMessage: "",
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
+      requestedScopes,
+      detectedScopes: [],
+      coverage: []
     };
   });
 }
