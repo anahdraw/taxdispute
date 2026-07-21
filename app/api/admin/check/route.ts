@@ -5,6 +5,7 @@ import { modelChoiceFromRequest } from "@/lib/model-options";
 import { configuredModel, hasOpenAIKey, resolveLlmRuntime } from "@/lib/openai";
 import { hasExplicitAuthSecret, requireAuth } from "@/lib/auth";
 import { PASSWORD_HASH_ALGORITHM } from "@/lib/password";
+import { hasTavilyKey } from "@/lib/tavily";
 
 export const runtime = "nodejs";
 
@@ -50,6 +51,14 @@ export async function GET(request: Request) {
       process.env.BLOB_READ_WRITE_TOKEN ? "ok" : "warning",
       process.env.BLOB_READ_WRITE_TOKEN ? "Blob token is configured for PDF upload/storage." : "BLOB_READ_WRITE_TOKEN is missing.",
       process.env.BLOB_READ_WRITE_TOKEN ? "configured" : "not configured"
+    ),
+    check(
+      "Tavily research",
+      hasTavilyKey() ? "ok" : "warning",
+      hasTavilyKey()
+        ? "TAVILY_API_KEY is configured for privacy-filtered industry and preliminary comparable research."
+        : "TAVILY_API_KEY is missing; TP Local File external research is unavailable.",
+      hasTavilyKey() ? "configured" : "not configured"
     )
   ];
 

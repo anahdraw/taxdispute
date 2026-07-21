@@ -52,6 +52,8 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [externalResearchConfigured, setExternalResearchConfigured] = useState(false);
+  const [useExternalResearch, setUseExternalResearch] = useState(false);
 
   const headers = useMemo(() => ({ [LLM_MODEL_HEADER]: modelChoice }), [modelChoice]);
   const completeness = project ? tpProjectCompleteness(project.state) : 0;
@@ -70,7 +72,16 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
     setProjectName(payload.project.name);
   }
 
-  useEffect(() => { void loadProjects(true).catch((reason) => setError(reason instanceof Error ? reason.message : String(reason))); }, []);
+  useEffect(() => {
+    void loadProjects(true).catch((reason) => setError(reason instanceof Error ? reason.message : String(reason)));
+    void fetch("/api/tp-local-files/research-status")
+      .then((response) => jsonResponse<{ configured: boolean }>(response))
+      .then((payload) => {
+        setExternalResearchConfigured(payload.configured);
+        setUseExternalResearch(false);
+      })
+      .catch(() => setExternalResearchConfigured(false));
+  }, []);
 
   async function createProjectRecord(name = "") {
     const payload = await jsonResponse<{ project: TpLocalFileProject }>(await fetch("/api/tp-local-files", {
@@ -170,10 +181,13 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
     setBusy(true); setError(""); setStatus(en ? "Preparing TP advisor review..." : "Menyiapkan review advisor TP...");
     try {
       await saveProject({ ...project, name: projectName || project.name });
-      const payload = await jsonResponse<{ project: TpLocalFileProject }>(await fetch(`/api/tp-local-files/${encodeURIComponent(project.id)}/analyze`, {
-        method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify({ language })
+      const payload = await jsonResponse<{ project: TpLocalFileProject; research?: { status: string; sourceCount: number; warnings: string[] } }>(await fetch(`/api/tp-local-files/${encodeURIComponent(project.id)}/analyze`, {
+        method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify({ language, useExternalResearch })
       }));
-      setProject(payload.project); setStatus(en ? "Advisor review completed." : "Review advisor selesai."); setTab("review"); await loadProjects();
+      const sourceNote = payload.research?.sourceCount
+        ? ` ${payload.research.sourceCount} ${en ? "external sources reviewed." : "sumber eksternal ditelaah."}`
+        : "";
+      setProject(payload.project); setStatus(`${en ? "Advisor review completed." : "Review advisor selesai."}${sourceNote}`); setTab("review"); await loadProjects();
     } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); } finally { setBusy(false); }
   }
 
@@ -220,6 +234,14 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
         "sources", en ? "1. Source documents" : "1. Dokumen sumber"
       ], ["profile", en ? "2. Company profile" : "2. Profil perusahaan"], ["transactions", en ? "3. Transactions & method" : "3. Transaksi & metode"], ["readiness", en ? "4. Generation readiness" : "4. Kesiapan generasi"], ["review", en ? "5. Advisor review" : "5. Review advisor"]] as Array<[WorkspaceTab, string]>).map(([key, label]) => <button key={key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>{label}</button>)}
     </nav>
+
+    <div className={`tp-research-control ${externalResearchConfigured ? "ready" : "unavailable"}`}>
+      <label>
+        <input type="checkbox" checked={useExternalResearch} disabled={!externalResearchConfigured || busy} onChange={(event) => setUseExternalResearch(event.target.checked)} />
+        <span><strong>{en ? "External comparable research (explicit opt-in)" : "Riset pembanding eksternal (persetujuan eksplisit)"}</strong><small>{externalResearchConfigured ? (en ? "When selected, Tavily receives filtered business descriptors only; client identity and transaction values are excluded." : "Jika dicentang, Tavily hanya menerima deskriptor usaha yang telah difilter; identitas klien dan nilai transaksi tidak dikirim.") : (en ? "Add TAVILY_API_KEY to enable structured research." : "Tambahkan TAVILY_API_KEY untuk mengaktifkan riset terstruktur.")}</small></span>
+      </label>
+      <b>{externalResearchConfigured ? (en ? "Ready" : "Siap") : (en ? "Not configured" : "Belum dikonfigurasi")}</b>
+    </div>
 
     {status && <div className="status-banner success compact-status">{status}</div>}
     {error && <div className="status-banner error compact-status">{error}</div>}
@@ -309,11 +331,17 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
       {!project.state.analysis.executiveSummary && <div className="empty-state compact"><strong>{en ? "Advisor analysis has not been run." : "Analisis advisor belum dijalankan."}</strong><button className="primary-button" onClick={analyzeProject} disabled={busy}>{en ? "Run analysis" : "Jalankan analisis"}</button></div>}
       {project.state.analysis.executiveSummary && <div className="tp-analysis-sections">
         <AnalysisSection title={en ? "Executive summary" : "Ringkasan eksekutif"} text={project.state.analysis.executiveSummary} />
+        <AnalysisSection title={en ? "Industry and business context" : "Konteks industri dan bisnis"} text={`${project.state.analysis.industryAnalysis}\n\n${project.state.analysis.businessCharacterization}`} />
         <AnalysisSection title={en ? "Functional analysis" : "Analisis fungsi, aset, dan risiko"} text={project.state.analysis.functionalAnalysis} />
         <AnalysisSection title={en ? "Method and PLI" : "Metode dan PLI"} text={`${project.state.analysis.methodSelectionJustification}\n\n${project.state.analysis.pliSelectionRationale}`} />
         <AnalysisSection title={en ? "Comparability and conclusion" : "Kesebandingan dan kesimpulan"} text={`${project.state.analysis.comparabilityAnalysis}\n\n${project.state.analysis.conclusion}`} />
+        {project.state.analysis.externalResearchSummary && <AnalysisSection title={en ? "External research synthesis" : "Sintesis riset eksternal"} text={project.state.analysis.externalResearchSummary} />}
+        <ComparableResearch language={language} project={project} />
         <ListSection title={en ? "Risk flags" : "Faktor risiko"} items={project.state.analysis.riskFlags} />
         <ListSection title={en ? "Evidence still required" : "Bukti yang masih diperlukan"} items={project.state.analysis.requiredEvidence} />
+        <ListSection title={en ? "Assumptions requiring confirmation" : "Asumsi yang perlu dikonfirmasi"} items={project.state.analysis.assumptions} />
+        <ListSection title={en ? "Likely counterarguments" : "Counterargument yang mungkin"} items={project.state.analysis.counterarguments} />
+        <ListSection title={en ? "Sequenced action plan" : "Rencana tindakan berurutan"} items={project.state.analysis.actionPlan} />
       </div>}
       <div className="tp-sticky-actions"><button className="primary-button" onClick={analyzeProject} disabled={busy}>{en ? "Update analysis" : "Perbarui analisis"}</button><a className="primary-button secondary-button" href={`/api/tp-local-files/${encodeURIComponent(project.id)}/export?language=${language}`}>{en ? "Download Word Local File" : "Unduh Word Local File"}</a></div>
     </div>}
@@ -328,6 +356,25 @@ function Area({ label, value, onChange }: { label: string; value: string; onChan
 }
 function AnalysisSection({ title, text }: { title: string; text: string }) { return <section><h3>{title}</h3>{text.split(/\n{2,}/).filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</section>; }
 function ListSection({ title, items }: { title: string; items: string[] }) { return <section><h3>{title}</h3><ul>{items.map((item, index) => <li key={index}>{item}</li>)}</ul></section>; }
+
+function ComparableResearch({ language, project }: { language: Language; project: TpLocalFileProject }) {
+  const en = language === "en";
+  const analysis = project.state.analysis;
+  if (!analysis.externalComparableCandidates.length && !analysis.externalResearchSources.length) return null;
+  return <section className="tp-external-research">
+    <header><div><h3>{en ? "Preliminary comparable screening" : "Screening awal pembanding"}</h3><p>{en ? "Discovery candidates only. Final acceptance requires independence, ownership, financial-period, loss-making, and commercial-database screening." : "Hanya kandidat hasil discovery. Penerimaan final memerlukan screening independensi, kepemilikan, periode keuangan, kerugian, dan database komersial."}</p></div><span>{analysis.externalResearchSources.length} {en ? "sources" : "sumber"}</span></header>
+    {analysis.externalComparableCandidates.length > 0 && <div className="tp-comparable-candidates">
+      {analysis.externalComparableCandidates.map((candidate, index) => <article key={`${candidate.sourceUrl}-${index}`}>
+        <div className="tp-candidate-heading"><div><strong>{candidate.name || (en ? "Unnamed candidate" : "Kandidat tanpa nama")}</strong><small>{candidate.country || (en ? "Country not verified" : "Negara belum diverifikasi")}</small></div><span className={`screening-${candidate.screeningStatus}`}>{candidate.screeningStatus.replaceAll("_", " ")}</span></div>
+        <p>{candidate.businessDescription}</p>
+        <dl><div><dt>{en ? "Why it may fit" : "Alasan berpotensi cocok"}</dt><dd>{candidate.matchRationale}</dd></div><div><dt>{en ? "Material differences / checks" : "Perbedaan / pemeriksaan material"}</dt><dd>{candidate.keyDifferences.join("; ") || candidate.limitation}</dd></div></dl>
+        <footer><a href={candidate.sourceUrl} target="_blank" rel="noreferrer">{candidate.sourceTitle || (en ? "Open source" : "Buka sumber")}</a><span>{candidate.sourceQuality.replaceAll("_", " ")} · {Math.round(candidate.sourceScore * 100)}% {en ? "retrieval score" : "skor retrieval"}</span></footer>
+      </article>)}
+    </div>}
+    {analysis.externalResearchWarnings.length > 0 && <details className="tp-research-warnings"><summary>{en ? "Research limitations and warnings" : "Keterbatasan dan peringatan riset"}</summary><ul>{analysis.externalResearchWarnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>}
+    <details className="tp-research-sources"><summary>{en ? "Research source audit trail" : "Audit trail sumber riset"}</summary><div>{analysis.externalResearchSources.map((source, index) => <article key={`${source.url}-${index}`}><strong>{source.title}</strong><span>{source.sourceType.replaceAll("_", " ")} · {source.qualityTier.replaceAll("_", " ")} · {Math.round(source.score * 100)}%</span><p>{source.snippet}</p><small>{source.qualityReason}</small><a href={source.url} target="_blank" rel="noreferrer">{source.domain || source.url}</a></article>)}</div></details>
+  </section>;
+}
 
 function ScopeSelector({ language, auto, selected, onAutoChange, onChange, compact = false }: {
   language: Language;

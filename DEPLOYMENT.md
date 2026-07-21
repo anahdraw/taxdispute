@@ -58,6 +58,8 @@ Set di Vercel Project Settings -> Environment Variables.
 | `BLOB_READ_WRITE_TOKEN` | Yes for PDF upload/storage | Vercel Blob read/write token |
 | `DATABASE_URL` | Yes for persistence | PostgreSQL connection URL |
 | `POSTGRES_URL` | Optional fallback | Some Vercel/Postgres integrations use this |
+| `TAVILY_API_KEY` | Optional, recommended for TP Local File | Privacy-filtered industry research and preliminary comparable discovery |
+| `TAVILY_PROJECT_ID` | Optional | Tavily project attribution, e.g. `alpha-ai-jurist` |
 
 Example:
 
@@ -69,6 +71,8 @@ TDP_TEXT_VERBOSITY=low
 TDP_AUTH_SECRET=replace-with-a-long-random-secret
 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxx
 DATABASE_URL=postgres://user:password@host/db?sslmode=require
+TAVILY_API_KEY=tvly-xxx
+TAVILY_PROJECT_ID=alpha-ai-jurist
 ```
 
 Important:
@@ -77,6 +81,9 @@ Important:
 - Use a long random `TDP_AUTH_SECRET` in production.
 - Use public Vercel Blob if the app needs direct browser PDF links.
 - For private Blob, PDF viewer links need signed read URL support.
+- TP Local File calls Tavily only after explicit advisor opt-in and sends filtered business descriptors. Do not replace this privacy filter with client names, NPWP, transaction values, or affiliate names.
+- Tavily results are discovery inputs, not final comparable-company acceptance or an arm's-length range. Final screening still requires verified financial data and an advisor-owned acceptance/rejection log.
+- Comparable discovery is skipped when the anonymized product/transaction descriptor is too generic. Source-quality tiers and research warnings are persisted in the project and Word audit trail.
 
 ## 4. Vercel Project Setup
 
@@ -188,7 +195,8 @@ https://taxdispute.vercel.app/api/health?format=json
   "openaiConfigured": true,
   "blobConfigured": true,
   "databaseConfigured": true,
-  "authSecretConfigured": true
+  "authSecretConfigured": true,
+  "tavilyConfigured": true
 }
 ```
 

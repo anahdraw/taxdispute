@@ -125,6 +125,42 @@ export type TpProjectAnalysis = {
   riskFlags: string[];
   requiredEvidence: string[];
   regulatoryReferences: string[];
+  assumptions: string[];
+  counterarguments: string[];
+  actionPlan: string[];
+  externalResearchSummary: string;
+  externalResearchStatus: "not_requested" | "not_configured" | "completed" | "partial" | "failed";
+  externalResearchWarnings: string[];
+  externalResearchSources: TpExternalResearchSource[];
+  externalComparableCandidates: TpExternalComparableCandidate[];
+};
+
+export type TpExternalResearchSource = {
+  title: string;
+  url: string;
+  domain: string;
+  sourceType: "official" | "industry" | "comparable_candidate";
+  query: string;
+  snippet: string;
+  score: number;
+  qualityTier: "primary_official" | "exchange_or_filing" | "credible_secondary" | "discovery_only";
+  qualityReason: string;
+  publishedDate: string;
+  retrievedAt: string;
+};
+
+export type TpExternalComparableCandidate = {
+  name: string;
+  country: string;
+  businessDescription: string;
+  matchRationale: string;
+  keyDifferences: string[];
+  sourceTitle: string;
+  sourceUrl: string;
+  sourceScore: number;
+  sourceQuality: TpExternalResearchSource["qualityTier"];
+  screeningStatus: "preliminary" | "needs_financial_screening" | "exclude";
+  limitation: string;
 };
 
 export type TpProjectState = {
@@ -228,7 +264,15 @@ export function emptyTpProjectAnalysis(): TpProjectAnalysis {
     conclusion: "",
     riskFlags: [],
     requiredEvidence: [],
-    regulatoryReferences: []
+    regulatoryReferences: [],
+    assumptions: [],
+    counterarguments: [],
+    actionPlan: [],
+    externalResearchSummary: "",
+    externalResearchStatus: "not_requested",
+    externalResearchWarnings: [],
+    externalResearchSources: [],
+    externalComparableCandidates: []
   };
 }
 
@@ -390,7 +434,51 @@ export function normalizeTpProjectState(value: unknown): TpProjectState {
       conclusion: text(analysisSource.conclusion),
       riskFlags: Array.isArray(analysisSource.riskFlags) ? analysisSource.riskFlags.map(text).filter(Boolean) : [],
       requiredEvidence: Array.isArray(analysisSource.requiredEvidence) ? analysisSource.requiredEvidence.map(text).filter(Boolean) : [],
-      regulatoryReferences: Array.isArray(analysisSource.regulatoryReferences) ? analysisSource.regulatoryReferences.map(text).filter(Boolean) : []
+      regulatoryReferences: Array.isArray(analysisSource.regulatoryReferences) ? analysisSource.regulatoryReferences.map(text).filter(Boolean) : [],
+      assumptions: Array.isArray(analysisSource.assumptions) ? analysisSource.assumptions.map(text).filter(Boolean) : [],
+      counterarguments: Array.isArray(analysisSource.counterarguments) ? analysisSource.counterarguments.map(text).filter(Boolean) : [],
+      actionPlan: Array.isArray(analysisSource.actionPlan) ? analysisSource.actionPlan.map(text).filter(Boolean) : [],
+      externalResearchSummary: text(analysisSource.externalResearchSummary),
+      externalResearchStatus: ["not_requested", "not_configured", "completed", "partial", "failed"].includes(text(analysisSource.externalResearchStatus))
+        ? text(analysisSource.externalResearchStatus) as TpProjectAnalysis["externalResearchStatus"]
+        : "not_requested",
+      externalResearchWarnings: Array.isArray(analysisSource.externalResearchWarnings)
+        ? analysisSource.externalResearchWarnings.map(text).filter(Boolean)
+        : [],
+      externalResearchSources: arrayOf(analysisSource.externalResearchSources, (entry) => ({
+        title: text(entry.title),
+        url: text(entry.url),
+        domain: text(entry.domain),
+        sourceType: ["official", "industry", "comparable_candidate"].includes(text(entry.sourceType))
+          ? text(entry.sourceType) as TpExternalResearchSource["sourceType"]
+          : "industry",
+        query: text(entry.query),
+        snippet: text(entry.snippet),
+        score: Number.isFinite(Number(entry.score)) ? Number(entry.score) : 0,
+        qualityTier: ["primary_official", "exchange_or_filing", "credible_secondary", "discovery_only"].includes(text(entry.qualityTier))
+          ? text(entry.qualityTier) as TpExternalResearchSource["qualityTier"]
+          : "discovery_only",
+        qualityReason: text(entry.qualityReason),
+        publishedDate: text(entry.publishedDate),
+        retrievedAt: text(entry.retrievedAt)
+      })),
+      externalComparableCandidates: arrayOf(analysisSource.externalComparableCandidates, (entry) => ({
+        name: text(entry.name),
+        country: text(entry.country),
+        businessDescription: text(entry.businessDescription),
+        matchRationale: text(entry.matchRationale),
+        keyDifferences: Array.isArray(entry.keyDifferences) ? entry.keyDifferences.map(text).filter(Boolean) : [],
+        sourceTitle: text(entry.sourceTitle),
+        sourceUrl: text(entry.sourceUrl),
+        sourceScore: Number.isFinite(Number(entry.sourceScore)) ? Number(entry.sourceScore) : 0,
+        sourceQuality: ["primary_official", "exchange_or_filing", "credible_secondary", "discovery_only"].includes(text(entry.sourceQuality))
+          ? text(entry.sourceQuality) as TpExternalComparableCandidate["sourceQuality"]
+          : "discovery_only",
+        screeningStatus: ["preliminary", "needs_financial_screening", "exclude"].includes(text(entry.screeningStatus))
+          ? text(entry.screeningStatus) as TpExternalComparableCandidate["screeningStatus"]
+          : "preliminary",
+        limitation: text(entry.limitation)
+      }))
     },
     fieldSources: normalizeFieldSources(source.fieldSources)
   };

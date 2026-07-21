@@ -237,6 +237,10 @@ export async function buildTpLocalFileDocx(project: TpLocalFileProject, language
     ...paragraphs(s.businessRestructuring, language),
     heading(en ? "Industry analysis" : "Analisis industri", HeadingLevel.HEADING_2),
     ...paragraphs(s.analysis.industryAnalysis, language),
+    ...(s.analysis.externalResearchSummary ? [
+      heading(en ? "External research synthesis" : "Sintesis riset eksternal", HeadingLevel.HEADING_2),
+      ...paragraphs(s.analysis.externalResearchSummary, language)
+    ] : []),
 
     heading(en ? "4. Related Parties, Transactions, and FAR" : "4. Pihak Afiliasi, Transaksi, dan FAR", HeadingLevel.HEADING_1, true),
     dataTable([en ? "Related party" : "Pihak afiliasi", en ? "Country" : "Negara", en ? "Relationship" : "Hubungan", en ? "Transaction" : "Transaksi"], s.affiliatedParties.map((item) => [item.name, item.country, item.relationship, item.transactionType]), language),
@@ -262,6 +266,18 @@ export async function buildTpLocalFileDocx(project: TpLocalFileProject, language
     dataTable([en ? "Candidate" : "Kandidat", en ? "Decision" : "Keputusan", en ? "Reason" : "Alasan"], s.rejectionMatrix.map((item) => [item.name, item.accepted ? (en ? "Accepted" : "Diterima") : (en ? "Rejected" : "Ditolak"), item.reason]), language),
     heading(en ? "Accepted comparable companies" : "Perusahaan pembanding yang diterima", HeadingLevel.HEADING_2),
     dataTable([en ? "Company" : "Perusahaan", en ? "Country" : "Negara", en ? "Business description" : "Deskripsi usaha", en ? "Ratio" : "Rasio"], s.comparableCompanies.map((item) => [item.name, item.country, item.description, item.ratio]), language),
+    heading(en ? "Preliminary external comparable candidates" : "Kandidat pembanding eksternal awal", HeadingLevel.HEADING_2),
+    callout(
+      en ? "SCREENING LIMITATION" : "BATASAN SCREENING",
+      en
+        ? "Web research is discovery evidence only. These candidates are not accepted comparables until independence, ownership, business activity, financial period, persistent losses, data availability, and commercial-database criteria have been screened and documented."
+        : "Riset web hanya merupakan bukti discovery. Kandidat ini belum menjadi pembanding yang diterima sebelum independensi, kepemilikan, kegiatan usaha, periode keuangan, kerugian berulang, ketersediaan data, dan kriteria database komersial selesai diperiksa dan didokumentasikan."
+    ),
+    dataTable(
+      [en ? "Candidate" : "Kandidat", en ? "Country" : "Negara", en ? "Potential fit" : "Potensi kecocokan", en ? "Material differences / limitation" : "Perbedaan / batasan material", en ? "Status" : "Status", en ? "Source" : "Sumber"],
+      s.analysis.externalComparableCandidates.map((item) => [item.name, item.country, item.matchRationale, [...item.keyDifferences, item.limitation].filter(Boolean).join("; "), `${item.screeningStatus}; ${item.sourceQuality}`, item.sourceUrl]),
+      language
+    ),
     heading(en ? "Comparability conclusion" : "Kesimpulan kesebandingan", HeadingLevel.HEADING_2),
     ...paragraphs(s.analysis.comparabilityAnalysis || s.comparabilityFactors, language),
 
@@ -276,6 +292,12 @@ export async function buildTpLocalFileDocx(project: TpLocalFileProject, language
     ...bullets(s.analysis.riskFlags, language),
     heading(en ? "Evidence still required" : "Bukti yang masih diperlukan", HeadingLevel.HEADING_2),
     ...bullets(s.analysis.requiredEvidence, language),
+    heading(en ? "Assumptions requiring confirmation" : "Asumsi yang perlu dikonfirmasi", HeadingLevel.HEADING_2),
+    ...bullets(s.analysis.assumptions, language),
+    heading(en ? "Likely counterarguments" : "Counterargument yang mungkin", HeadingLevel.HEADING_2),
+    ...bullets(s.analysis.counterarguments, language),
+    heading(en ? "Sequenced advisor action plan" : "Rencana tindakan advisor berurutan", HeadingLevel.HEADING_2),
+    ...bullets(s.analysis.actionPlan, language),
     new Paragraph({ spacing: { before: 360, after: 90 }, children: [new TextRun({ text: en ? "Prepared by:" : "Disusun oleh:", bold: true, color: NAVY, size: 19 })] }),
     new Paragraph({ spacing: { after: 260 }, children: [new TextRun({ text: "____________________________________", color: GREY, size: 19 })] }),
     new Paragraph({ spacing: { after: 90 }, children: [new TextRun({ text: en ? "Reviewed and approved by:" : "Direview dan disetujui oleh:", bold: true, color: NAVY, size: 19 })] }),
@@ -298,6 +320,21 @@ export async function buildTpLocalFileDocx(project: TpLocalFileProject, language
     dataTable(
       [en ? "Section" : "Bagian", en ? "Required item" : "Item wajib", en ? "Status" : "Status", en ? "Typical source / action" : "Sumber / tindakan"],
       readiness.blockers.map((item) => [item.section, en ? item.en : item.idLabel, item.status, item.expectedSources.join(", ") || (en ? "Advisor confirmation" : "Konfirmasi advisor")]),
+      language
+    ),
+    heading(en ? "Appendix C. External Research Audit Trail" : "Lampiran C. Audit Trail Riset Eksternal", HeadingLevel.HEADING_1, true),
+    callout(
+      en ? "RESEARCH STATUS" : "STATUS RISET",
+      `${s.analysis.externalResearchStatus} · ${s.analysis.externalResearchSources.length} ${en ? "source(s) retained" : "sumber tersimpan"}`,
+      s.analysis.externalResearchStatus === "completed" ? "green" : "blue"
+    ),
+    ...(s.analysis.externalResearchWarnings.length ? [
+      heading(en ? "Research Limitations" : "Keterbatasan Riset", HeadingLevel.HEADING_2),
+      ...bullets(s.analysis.externalResearchWarnings, language)
+    ] : []),
+    dataTable(
+      [en ? "Type" : "Jenis", en ? "Source" : "Sumber", en ? "Quality" : "Kualitas", en ? "Retrieval score" : "Skor retrieval", "URL"],
+      s.analysis.externalResearchSources.map((item) => [item.sourceType, item.title, item.qualityTier, `${Math.round(item.score * 100)}%`, item.url]),
       language
     )
   ];

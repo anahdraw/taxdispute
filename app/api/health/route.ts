@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { configuredModel, hasOpenAIKey } from "@/lib/openai";
 import { hasDatabase } from "@/lib/db";
 import { hasExplicitAuthSecret } from "@/lib/auth";
+import { hasTavilyKey } from "@/lib/tavily";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,7 @@ function payload() {
     blobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
     databaseConfigured: hasDatabase(),
     authSecretConfigured: hasExplicitAuthSecret(),
+    tavilyConfigured: hasTavilyKey(),
     model: configuredModel(),
     note: "Next.js deployment is active.",
     checkedAt: new Date().toISOString()
@@ -30,6 +32,7 @@ function htmlHealth(data: ReturnType<typeof payload>) {
     ["Auth", data.authSecretConfigured, "Signed server-side login cookie"],
     ["Vercel Blob", data.blobConfigured, "Decision PDF storage and document links"],
     ["Database", data.databaseConfigured, "Saved decisions, reports, regulations, users, and logs"],
+    ["Tavily", data.tavilyConfigured, "Privacy-filtered industry and preliminary comparable research"],
     ["Runtime", true, `${data.runtime} · ${data.model}`]
   ]
     .map(

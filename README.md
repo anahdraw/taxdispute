@@ -55,7 +55,10 @@ Modul TP Local File dipindahkan langsung ke framework Next.js yang sama, tanpa s
 3. LLM mengekstrak fakta terstruktur dan menggabungkan data antar dokumen dengan jejak sumber.
 4. Pengguna mereview profil perusahaan, pihak afiliasi, transaksi terkendali, informasi keuangan, metode, PLI, dan parameter kesebandingan.
 5. Advisor analysis menyusun ringkasan, analisis fungsi-aset-risiko, justifikasi metode, risiko, dan daftar bukti yang masih diperlukan.
-6. Draft Local File dapat diunduh dalam format Word dengan identitas Alpha AI Jurist.
+6. Bila `TAVILY_API_KEY` tersedia dan advisor memberikan persetujuan eksplisit melalui checkbox, sistem menjalankan riset eksternal memakai deskriptor usaha yang telah difilter. Hasil dipisahkan menjadi sumber resmi, konteks industri, dan kandidat pembanding awal dengan URL, kualitas sumber, retrieval score, alasan kecocokan, perbedaan material, serta keterbatasan screening. Pencarian kandidat hanya dijalankan bila deskriptor produk/transaksi cukup spesifik; annual report dan exchange filing diprioritaskan di atas directory/discovery pages.
+7. Draft Local File dapat diunduh dalam format Word dengan identitas Alpha AI Jurist dan audit trail riset eksternal.
+
+Riset Tavily bersifat **discovery evidence**. Kandidat web belum menjadi pembanding final sebelum advisor menyelesaikan pemeriksaan independensi, kepemilikan, FAR, produk/pasar, periode keuangan, kerugian berulang, ketersediaan data, serta acceptance/rejection log dari database komersial. Nama klien, NPWP, nilai transaksi, dan nama pihak afiliasi tidak dimasukkan ke kueri eksternal.
 
 Data proyek disimpan di tabel `tp_local_file_projects`; file sumber tetap berada di Blob. Akses fitur dibatasi untuk paket Platinum melalui server-side feature guard.
 
@@ -140,6 +143,8 @@ TDP_LLM_MODEL=gpt-5.4-mini
 TDP_AUTH_SECRET=replace-with-a-long-random-secret
 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxx
 DATABASE_URL=postgres://user:password@host/db?sslmode=require
+TAVILY_API_KEY=tvly-...
+TAVILY_PROJECT_ID=alpha-ai-jurist
 ```
 
 Jalankan lokal:
