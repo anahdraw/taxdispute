@@ -9,6 +9,7 @@ import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormul
 import { referenceDetailPath } from "@/lib/reference-links";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { sessionFromCookieStore } from "@/lib/auth";
+import { AlphaBrand } from "@/app/brand";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,17 +90,6 @@ function extractionCompleteness(extraction: ExtractionResult | null | undefined)
   const filled = scalarFields.filter((field) => String(extraction[field] || "").trim()).length;
   const arrayFilled = [extraction.judgeNames, extraction.evidence, extraction.legalReferences].filter((items) => Array.isArray(items) && items.length > 0).length;
   return Math.round(((filled + arrayFilled) / (scalarFields.length + 3)) * 100);
-}
-
-function RsmMark() {
-  return (
-    <div className="rsm-mark detail-rsm-mark" aria-label="RSM">
-      <span className="rsm-gray" />
-      <span className="rsm-green" />
-      <span className="rsm-blue" />
-      <strong>RSM</strong>
-    </div>
-  );
 }
 
 function DetailRows({ rows }: { rows: Array<[string, React.ReactNode]> }) {
@@ -391,8 +381,7 @@ export default async function DecisionDetailPage({ params }: PageProps) {
   return (
     <DetailThemeShell className="decision-detail-page">
       <aside className="detail-sidebar">
-        <RsmMark />
-        <p className="caption">Tax Dispute Agentic Advisor</p>
+        <AlphaBrand className="detail-alpha-brand" />
         <div className="session-card">
           <span>Detail putusan</span>
           <b>{document.extraction?.putusanNumber || document.filename}</b>

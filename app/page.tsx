@@ -39,6 +39,7 @@ import {
   type LlmModelChoice
 } from "@/lib/model-options";
 import { TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
+import { AlphaBrand, AlphaTaxBotMark } from "@/app/brand";
 
 type Language = "id" | "en";
 type ThemeMode = "dark" | "light";
@@ -61,8 +62,8 @@ const ADMIN_USERS_KEY = "tax-dispute-admin-users";
 const ACTIVITY_LOGS_KEY = "tax-dispute-activity-logs";
 const THEME_MODE_KEY = "tax-dispute-theme-mode-v2";
 const SIDEBAR_COLLAPSED_KEY = "tax-dispute-sidebar-collapsed";
-const APP_NAME = "Tax Dispute Agentic Advisor";
-const APP_SHORT_NAME = "Tax Dispute Agentic Advisor";
+const APP_NAME = "Alpha AI Jurist";
+const APP_SHORT_NAME = "Tax Intelligence. Trusted Judgment.";
 const DEFAULT_USER_BY_ROLE = {
   admin: seedUsers.find((user) => user.role === "admin") || seedUsers[0],
   user: seedUsers.find((user) => user.role === "user") || seedUsers[1]
@@ -283,7 +284,7 @@ const copy = {
     retrievalSummary: "Ringkasan retrieval",
     noSmartAnswer: "Ajukan pertanyaan untuk melihat jawaban, sumber RAG, dan visualisasi jika relevan.",
     openReference: "Buka referensi",
-    loginTitle: "Masuk ke RSM Tax Dispute Agentic Advisor",
+    loginTitle: "Masuk ke Alpha AI Jurist",
     loginSubtitle: "Admin mengelola sistem; user fokus analisis dan chatbot.",
     username: "Username",
     password: "Password",
@@ -609,7 +610,7 @@ const copy = {
     retrievalSummary: "Retrieval summary",
     noSmartAnswer: "Ask a question to see an answer, RAG sources, and visualizations when relevant.",
     openReference: "Open reference",
-    loginTitle: "Sign in to RSM Tax Dispute Agentic Advisor",
+    loginTitle: "Sign in to Alpha AI Jurist",
     loginSubtitle: "Admins manage the system; users focus on analysis and chat.",
     username: "Username",
     password: "Password",
@@ -763,34 +764,6 @@ const initialInput: AnalyzeInput = {
   evidence: ["VAT invoice", "VAT return", "Payment evidence"],
   language: "en"
 };
-
-function RsmMark() {
-  return (
-    <div className="rsm-mark" aria-label="RSM">
-      <span className="rsm-gray" />
-      <span className="rsm-green" />
-      <span className="rsm-blue" />
-      <strong>RSM</strong>
-    </div>
-  );
-}
-
-function RsmTaxBotMark() {
-  return (
-    <div className="rsm-taxbot-mark" aria-label="RSM TaxBot">
-      <span className="rsm-taxbot-bars" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </span>
-      <span className="rsm-taxbot-wordmark">
-        <strong>RSM</strong>
-        <small>TaxBot</small>
-      </span>
-      <span className="rsm-taxbot-signal" aria-hidden="true" />
-    </div>
-  );
-}
 
 function QuickActionIcon({ type }: { type: "document" | "chatbot" | "database" }) {
   if (type === "chatbot") {
@@ -1153,8 +1126,7 @@ function LoginScreen({
     <main className={`login-shell theme-${themeMode}`}>
       <section className="login-card">
         <div className="login-brand">
-          <RsmMark />
-          <p className="eyebrow">{APP_SHORT_NAME}</p>
+          <AlphaBrand />
           <h1>{labels.loginTitle}</h1>
           <p className="login-subtitle">{labels.loginSubtitle}</p>
         </div>
@@ -3303,10 +3275,9 @@ export default function Home() {
     <main className={`app-shell theme-${themeMode} ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <aside className="sidebar">
         <div className="sidebar-brand-full">
-          <RsmMark />
-          <p className="caption">{APP_SHORT_NAME}</p>
+          <AlphaBrand />
         </div>
-        <div className="sidebar-brand-compact" aria-label="RSM">R</div>
+        <div className="sidebar-brand-compact"><AlphaBrand compact /></div>
         <div className="sidebar-language">
           <label className="field-label" htmlFor="language">Language</label>
           <select id="language" value={language} onChange={(event) => changeLanguage(event.target.value as Language)}>
@@ -3378,7 +3349,7 @@ export default function Home() {
         <header className="hero">
           <div>
             <p className="eyebrow">{page === "dashboard" ? labels.commandCenter : APP_SHORT_NAME}</p>
-            <h1>{page === "dashboard" ? APP_SHORT_NAME : APP_NAME}</h1>
+            <h1>{APP_NAME}</h1>
             <p>{page === "dashboard" ? labels.appGuidance : labels.subtitle}</p>
           </div>
         </header>
@@ -3667,10 +3638,10 @@ export default function Home() {
                         <div className={`reg-rag-chat${regulationBotResponse ? " has-response" : ""}`}>
                           <div className="reg-rag-chat-header">
                             <div className="reg-bot-heading">
-                              <RsmTaxBotMark />
+                              <AlphaTaxBotMark />
                               <div>
                                 <span>{language === "en" ? "Indonesian tax regulatory knowledge" : "Knowledge peraturan perpajakan Indonesia"}</span>
-                                <h3>{language === "en" ? "RSM Regulatory TaxBot" : "RSM TaxBot Peraturan"}</h3>
+                                <h3>Alpha AI Regulation Bot</h3>
                                 <p>{language === "en" ? "Ask with context and verify every source." : "Tanya dengan konteks dan verifikasi setiap sumber."}</p>
                               </div>
                             </div>

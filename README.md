@@ -1,6 +1,8 @@
-# RSM Tax Dispute Agentic Advisor
+# Alpha AI Jurist
 
-RSM Tax Dispute Agentic Advisor adalah aplikasi berbasis Next.js untuk membantu workflow sengketa pajak: upload putusan, ekstraksi data terstruktur, pencarian putusan pembanding, RAG chatbot untuk putusan dan peraturan, analisis risiko, scoring transparan, dan pembuatan draft Word/PDF untuk direview advisor.
+**Tax Intelligence. Trusted Judgment.**
+
+Alpha AI Jurist adalah platform Tax & Legal AI berbasis Next.js untuk membantu workflow sengketa pajak: upload putusan, ekstraksi data terstruktur, pencarian putusan pembanding, RAG chatbot untuk putusan dan peraturan, analisis risiko, scoring transparan, dan pembuatan draft Word/PDF untuk direview advisor.
 
 Live app: https://taxdispute.vercel.app/
 
@@ -30,7 +32,7 @@ Catatan lokal: jika `.env` belum diisi, health JSON akan menandai OpenAI, Blob, 
 - **Reference Viewer**: halaman referensi untuk PDF putusan/peraturan dengan pencarian dan smartbot context.
 - **Admin Center**: activity logs, user management, privacy & access control, pengaturan paket, prompt management per fitur, serta API/integration check.
 - **Bilingual UI**: Bahasa Indonesia dan English.
-- **Export**: dokumen Word/PDF dengan identitas RSM dan struktur report yang lebih rapi.
+- **Export**: dokumen Word/PDF dengan identitas Alpha AI Jurist dan struktur report yang lebih rapi.
 
 ## Arsitektur Singkat
 

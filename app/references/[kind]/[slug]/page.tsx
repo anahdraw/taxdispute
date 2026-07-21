@@ -9,6 +9,8 @@ import { mergeRegulationRecords, regulationTopicLabel } from "@/lib/regulation-k
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { sessionFromCookieStore } from "@/lib/auth";
 import { ReferenceViewer } from "./reference-viewer";
+import { RegulationReferenceTabs } from "./reference-tabs";
+import { AlphaBrand } from "@/app/brand";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,17 +60,6 @@ function formatBytes(bytes: number) {
     unit += 1;
   }
   return `${size.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
-}
-
-function RsmMark() {
-  return (
-    <div className="rsm-mark detail-rsm-mark" aria-label="RSM">
-      <span className="rsm-gray" />
-      <span className="rsm-green" />
-      <span className="rsm-blue" />
-      <strong>RSM</strong>
-    </div>
-  );
 }
 
 function DetailRows({ rows }: { rows: Array<[string, ReactNode]> }) {
@@ -186,94 +177,110 @@ const relationLabels: Record<string, string> = {
   related: "Terkait"
 };
 
-function RegulationPipeline({ record }: { record: Regulation }) {
+function RegulationPipeline({ record, metadata, viewer }: { record: Regulation; metadata: Array<[string, ReactNode]>; viewer: ReactNode }) {
   const extraction = record.extraction;
   const relations = record.relations || extraction?.relations || [];
   return (
-    <>
-      <section className={`status-banner compact-status regulation-pipeline-status ${record.ingestionStatus === "failed" ? "error" : record.ingestionStatus === "ready" ? "success" : "warning"}`}>
-        <div>
-          <strong>Status pemrosesan: {record.ingestionStatus || "seed"}</strong>
-          <span>{record.ingestionMessage || (extraction ? "PDF resmi telah diproses menjadi knowledge terstruktur." : "Record ini masih berupa metadata awal dan belum mempunyai hasil ekstraksi PDF.")}</span>
+    <RegulationReferenceTabs
+      summary={(
+        <div className="reference-tab-stack">
+          <section className={`status-banner compact-status regulation-pipeline-status ${record.ingestionStatus === "failed" ? "error" : record.ingestionStatus === "ready" ? "success" : "warning"}`}>
+            <div>
+              <strong>Status pemrosesan: {record.ingestionStatus || "seed"}</strong>
+              <span>{record.ingestionMessage || (extraction ? "PDF resmi telah diproses menjadi knowledge terstruktur." : "Record ini masih berupa metadata awal dan belum mempunyai hasil ekstraksi PDF.")}</span>
+            </div>
+          </section>
+          <section className="case-detail-card">
+            <h3>Metadata referensi</h3>
+            <DetailRows rows={metadata} />
+          </section>
+          <section className="case-detail-card regulation-extraction-card">
+            <h3>Ringkasan hasil ekstraksi PDF</h3>
+            {extraction ? (
+              <div className="regulation-extraction-body">
+                <div className="regulation-extraction-summary">
+                  <span>Ringkasan terverifikasi dari PDF</span>
+                  <p>{extraction.summary || "Ringkasan belum tersedia."}</p>
+                </div>
+                <div className="regulation-extraction-facts">
+                  <div><span>Status hukum</span><strong>{extraction.legalStatus}</strong></div>
+                  <div><span>Tanggal berlaku</span><strong>{extraction.effectiveDate || "Perlu verifikasi"}</strong></div>
+                  <div><span>Model ekstraksi</span><strong>{extraction.model}</strong></div>
+                </div>
+                {extraction.scope.length > 0 && (
+                  <div className="regulation-scope-summary">
+                    <h4>Ruang lingkup</h4>
+                    <ul>{extraction.scope.map((item) => <li key={item}>{item}</li>)}</ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="empty-state regulation-extraction-empty">Belum ada JSON ekstraksi PDF. Buka tab <strong>Dokumen &amp; Tanya</strong> untuk memulai pemrosesan.</div>
+            )}
+          </section>
         </div>
-      </section>
-
-      <section className="case-detail-card regulation-provenance-card">
-        <h3>Provenance dokumen resmi</h3>
-        <DetailRows
-          rows={[
-            ["Halaman sumber", record.sourceUrl ? <a href={record.sourceUrl} target="_blank" rel="noreferrer">{record.sourceUrl}</a> : "-"],
-            ["PDF resmi", record.officialPdfUrl ? <a href={record.officialPdfUrl} target="_blank" rel="noreferrer">Buka PDF pada sumber resmi</a> : "Belum ditemukan"],
-            ["Salinan Blob", record.storedPdfUrl ? <a href={record.storedPdfUrl} target="_blank" rel="noreferrer">Buka salinan PDF tersimpan</a> : "Belum disimpan"],
-            ["SHA-256", record.fileHash ? <code>{record.fileHash}</code> : "-"],
-            ["Waktu ekstraksi", record.extractedAt ? new Date(record.extractedAt).toLocaleString() : "-"]
-          ]}
-        />
-      </section>
-
-      <section className="case-detail-card regulation-extraction-card">
-        <h3>Hasil ekstraksi PDF</h3>
-        {extraction ? (
-          <div className="regulation-extraction-body">
-            <div className="regulation-extraction-summary">
-              <span>Ringkasan terverifikasi dari PDF</span>
-              <p>{extraction.summary || "Ringkasan belum tersedia."}</p>
+      )}
+      provisions={(
+        <section className="case-detail-card regulation-extraction-card regulation-scroll-card">
+          <h3>Ketentuan kunci dari PDF</h3>
+          {extraction?.keyProvisions.length ? (
+            <div className="regulation-provision-list">
+              {extraction.keyProvisions.map((item, index) => (
+                <article key={`${item.article || "provision"}-${index}`}>
+                  <b>{item.article || "Bagian penting"}{item.page ? ` · halaman ${item.page}` : ""}</b>
+                  <p>{item.text}</p>
+                </article>
+              ))}
+              {extraction.verificationNotes.length > 0 && (
+                <details className="regulation-verification-notes">
+                  <summary>Catatan yang masih perlu diverifikasi</summary>
+                  <ul>{extraction.verificationNotes.map((item) => <li key={item}>{item}</li>)}</ul>
+                </details>
+              )}
             </div>
-            <div className="regulation-extraction-facts">
-              <div><span>Status hukum dalam dokumen</span><strong>{extraction.legalStatus}</strong></div>
-              <div><span>Tanggal berlaku</span><strong>{extraction.effectiveDate || "Perlu verifikasi"}</strong></div>
-              <div><span>Model ekstraksi</span><strong>{extraction.model}</strong></div>
+          ) : (
+            <div className="empty-state">Belum ada ketentuan terstruktur. Jalankan ekstraksi PDF resmi dari tab Dokumen &amp; Tanya.</div>
+          )}
+        </section>
+      )}
+      relations={(
+        <section className="case-detail-card regulation-relations-card regulation-scroll-card">
+          <h3>Keterkaitan antaraturan</h3>
+          {relations.length ? (
+            <div className="regulation-relation-grid">
+              {relations.map((relation, index) => (
+                <article key={`${relation.type}-${relation.citation}-${index}`}>
+                  <span>{relationLabels[relation.type] || relation.type}</span>
+                  <strong>{relation.citation}</strong>
+                  {relation.title && <p>{relation.title}</p>}
+                  {relation.note && <small>{relation.note}</small>}
+                  <i>Sumber relasi: {relation.source === "pdf" ? "hasil ekstraksi PDF" : "catatan awal/seed"}</i>
+                </article>
+              ))}
             </div>
-            {extraction.scope.length > 0 && (
-              <div>
-                <h4>Ruang lingkup</h4>
-                <ul>{extraction.scope.map((item) => <li key={item}>{item}</li>)}</ul>
-              </div>
-            )}
-            {extraction.keyProvisions.length > 0 && (
-              <div className="regulation-provision-list">
-                <h4>Ketentuan kunci</h4>
-                {extraction.keyProvisions.map((item, index) => (
-                  <article key={`${item.article || "provision"}-${index}`}>
-                    <b>{item.article || "Bagian penting"}{item.page ? ` · halaman ${item.page}` : ""}</b>
-                    <p>{item.text}</p>
-                  </article>
-                ))}
-              </div>
-            )}
-            {extraction.verificationNotes.length > 0 && (
-              <details className="regulation-verification-notes">
-                <summary>Catatan yang masih perlu diverifikasi</summary>
-                <ul>{extraction.verificationNotes.map((item) => <li key={item}>{item}</li>)}</ul>
-              </details>
-            )}
-          </div>
-        ) : (
-          <div className="empty-state regulation-extraction-empty">
-            Belum ada JSON ekstraksi PDF. Gunakan tombol <strong>Unduh, simpan & ekstrak PDF</strong> di bawah; metadata seed tidak dianggap sebagai hasil pembacaan dokumen.
-          </div>
-        )}
-      </section>
-
-      <section className="case-detail-card regulation-relations-card">
-        <h3>Keterkaitan antaraturan</h3>
-        {relations.length ? (
-          <div className="regulation-relation-grid">
-            {relations.map((relation, index) => (
-              <article key={`${relation.type}-${relation.citation}-${index}`}>
-                <span>{relationLabels[relation.type] || relation.type}</span>
-                <strong>{relation.citation}</strong>
-                {relation.title && <p>{relation.title}</p>}
-                {relation.note && <small>{relation.note}</small>}
-                <i>Sumber relasi: {relation.source === "pdf" ? "hasil ekstraksi PDF" : "catatan awal/seed"}</i>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="empty-state">Belum ada relasi yang terverifikasi. Relasi akan dibentuk dari klausul mencabut, mengubah, melaksanakan, dan merujuk pada PDF resmi.</div>
-        )}
-      </section>
-    </>
+          ) : (
+            <div className="empty-state">Belum ada relasi yang terverifikasi. Relasi dibentuk dari klausul mencabut, mengubah, melaksanakan, dan merujuk pada PDF resmi.</div>
+          )}
+        </section>
+      )}
+      documents={(
+        <div className="reference-tab-stack">
+          <section className="case-detail-card regulation-provenance-card">
+            <h3>Provenance dokumen resmi</h3>
+            <DetailRows
+              rows={[
+                ["Halaman sumber", record.sourceUrl ? <a href={record.sourceUrl} target="_blank" rel="noreferrer">Buka halaman sumber resmi</a> : "-"],
+                ["PDF resmi", record.officialPdfUrl ? <a href={record.officialPdfUrl} target="_blank" rel="noreferrer">Buka PDF pada sumber resmi</a> : "Belum ditemukan"],
+                ["Salinan Blob", record.storedPdfUrl ? <a href={record.storedPdfUrl} target="_blank" rel="noreferrer">Buka salinan PDF tersimpan</a> : "Belum disimpan"],
+                ["SHA-256", record.fileHash ? <code>{record.fileHash}</code> : "-"],
+                ["Waktu ekstraksi", record.extractedAt ? new Date(record.extractedAt).toLocaleString() : "-"]
+              ]}
+            />
+          </section>
+          {viewer}
+        </div>
+      )}
+    />
   );
 }
 
@@ -306,12 +313,24 @@ export default async function ReferencePage({ params, searchParams }: PageProps)
   if (!record) notFound();
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const initialQuery = String(resolvedSearchParams.q || "").trim();
+  const viewer = (
+    <ReferenceViewer
+      canManage={session.role === "admin"}
+      initialQuery={initialQuery}
+      kind={record.kind}
+      pdfUrl={record.pdfUrl}
+      regulationId={record.regulation?.id || ""}
+      ingestionStatus={record.regulation?.ingestionStatus || ""}
+      sourceUrl={record.sourceUrl}
+      sourceText={record.sourceText}
+      title={record.title}
+    />
+  );
 
   return (
     <DetailThemeShell className="reference-page">
       <aside className="detail-sidebar reference-sidebar">
-        <RsmMark />
-        <p className="caption">Tax Dispute Agentic Advisor</p>
+        <AlphaBrand className="detail-alpha-brand" />
         <div className="session-card">
           <span>Penampil referensi</span>
           <b>{record.kind === "decision" ? "Putusan" : "Peraturan"}</b>
@@ -349,22 +368,17 @@ export default async function ReferencePage({ params, searchParams }: PageProps)
               <span key={badge}>{badge}</span>
             ))}
           </div>
-          <section className="case-detail-card">
-            <h3>Metadata referensi</h3>
-            <DetailRows rows={record.meta} />
-          </section>
-          {record.regulation && <RegulationPipeline record={record.regulation} />}
-          <ReferenceViewer
-            canManage={session.role === "admin"}
-            initialQuery={initialQuery}
-            kind={record.kind}
-            pdfUrl={record.pdfUrl}
-            regulationId={record.regulation?.id || ""}
-            ingestionStatus={record.regulation?.ingestionStatus || ""}
-            sourceUrl={record.sourceUrl}
-            sourceText={record.sourceText}
-            title={record.title}
-          />
+          {record.regulation ? (
+            <RegulationPipeline record={record.regulation} metadata={record.meta} viewer={viewer} />
+          ) : (
+            <>
+              <section className="case-detail-card">
+                <h3>Metadata referensi</h3>
+                <DetailRows rows={record.meta} />
+              </section>
+              {viewer}
+            </>
+          )}
         </article>
       </section>
     </DetailThemeShell>

@@ -93,7 +93,7 @@ const baseSeedUsers: ManagedUser[] = [
     id: "user-admin-rsm",
     username: "admin",
     password: "Admin@RSM2026",
-    name: "Admin RSM",
+    name: "Alpha AI Platform Admin",
     role: "admin",
     tier: "platinum",
     status: "active",

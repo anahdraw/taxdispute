@@ -36,19 +36,19 @@ type ReportBlock =
   | { type: "table"; headers: string[]; rows: string[][] };
 
 const COLORS = {
-  charcoal: "54585A",
-  text: "2F3340",
-  muted: "667085",
-  line: "D8E0E7",
-  lightBlue: "EAF7FD",
-  lightGreen: "EAF6EB",
-  blue: "009CDE",
-  green: "43A047",
-  grey: "8C949B",
+  charcoal: "00153F",
+  text: "17233B",
+  muted: "657084",
+  line: "D7E1E8",
+  lightBlue: "EAF8FD",
+  lightGreen: "EEF8EB",
+  blue: "00A7E1",
+  green: "43A62A",
+  grey: "92989F",
   white: "FFFFFF"
 };
 const PAGE_TEXT_WIDTH_DXA = 9360;
-const APP_NAME = "RSM Tax Dispute Agentic Advisor";
+const APP_NAME = "Alpha AI Jurist";
 
 function isEn(language: "id" | "en") {
   return language === "en";
@@ -340,28 +340,36 @@ function brandBarCell(width: number, fill?: string) {
   });
 }
 
-function rsmDocumentHeader(): Array<Paragraph | Table> {
+function alphaDocumentHeader(): Array<Paragraph | Table> {
   return [
     new Table({
       width: { size: 3860, type: WidthType.DXA },
-      columnWidths: [220, 150, 760, 150, 2580],
+      columnWidths: [520, 100, 1320, 100, 1820],
       layout: TableLayoutType.FIXED,
       borders: noBorders(),
       rows: [
         new TableRow({
           children: [
-            brandBarCell(220, COLORS.grey),
-            brandBarCell(150),
-            brandBarCell(760, COLORS.green),
-            brandBarCell(150),
-            brandBarCell(2580, COLORS.blue)
+            brandBarCell(520, COLORS.charcoal),
+            brandBarCell(100),
+            brandBarCell(1320, COLORS.blue),
+            brandBarCell(100),
+            brandBarCell(1820, COLORS.green)
           ]
         })
       ]
     }),
     new Paragraph({
-      spacing: { before: 95, after: 90 },
-      children: [new TextRun({ text: "RSM", bold: true, color: COLORS.charcoal, size: 62, font: "Arial" })]
+      spacing: { before: 95, after: 35 },
+      children: [
+        new TextRun({ text: "Alpha ", bold: true, color: COLORS.charcoal, size: 34, font: "Arial" }),
+        new TextRun({ text: "AI", bold: true, color: COLORS.blue, size: 34, font: "Arial" }),
+        new TextRun({ text: " Jurist", bold: true, color: COLORS.charcoal, size: 34, font: "Arial" })
+      ]
+    }),
+    new Paragraph({
+      spacing: { before: 0, after: 90 },
+      children: [new TextRun({ text: "Tax Intelligence. Trusted Judgment.", bold: true, color: COLORS.charcoal, size: 15, font: "Arial" })]
     })
   ];
 }
@@ -606,7 +614,7 @@ export async function buildReportDocx(payload: ReportPayload) {
   const ppnFormula = ppnFormulaReportRows(payload);
 
   const children: Array<Paragraph | Table> = [
-    ...rsmDocumentHeader(),
+    ...alphaDocumentHeader(),
     new Paragraph({
       heading: HeadingLevel.TITLE,
       spacing: { after: 120 },
@@ -735,10 +743,13 @@ export async function buildReportPdf(payload: ReportPayload) {
   const addPage = () => {
     page = pdf.addPage(pageSize);
     y = pageSize[1] - margin;
-    page.drawRectangle({ x: margin, y: y + 40, width: 12, height: 8, color: rgb(0.541, 0.561, 0.576) });
-    page.drawRectangle({ x: margin + 20, y: y + 40, width: 58, height: 8, color: rgb(0.263, 0.627, 0.278) });
-    page.drawRectangle({ x: margin + 88, y: y + 40, width: 150, height: 8, color: rgb(0, 0.612, 0.871) });
-    page.drawText("RSM", { x: margin, y, size: 30, font: bold, color: rgb(0.329, 0.345, 0.353) });
+    page.drawRectangle({ x: margin, y: y + 40, width: 54, height: 8, color: rgb(0, 0.082, 0.247) });
+    page.drawRectangle({ x: margin + 62, y: y + 40, width: 92, height: 8, color: rgb(0, 0.655, 0.882) });
+    page.drawRectangle({ x: margin + 162, y: y + 40, width: 76, height: 8, color: rgb(0.263, 0.651, 0.165) });
+    page.drawText("Alpha", { x: margin, y, size: 22, font: bold, color: rgb(0, 0.082, 0.247) });
+    page.drawText("AI", { x: margin + 62, y, size: 22, font: bold, color: rgb(0, 0.655, 0.882) });
+    page.drawText("Jurist", { x: margin + 89, y, size: 22, font: bold, color: rgb(0, 0.082, 0.247) });
+    page.drawText("Tax Intelligence. Trusted Judgment.", { x: margin, y: y - 13, size: 7.5, font: bold, color: rgb(0.396, 0.439, 0.518) });
     y -= 54;
   };
 

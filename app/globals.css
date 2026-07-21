@@ -20,6 +20,215 @@
   --text-hero: clamp(1.95rem, 2.8vw, 3.05rem);
 }
 
+/* Alpha AI Jurist corporate identity */
+:root {
+  --alpha-navy: #00153f;
+  --alpha-cyan: #00a7e1;
+  --alpha-green: #43a62a;
+  --alpha-gray: #92989f;
+  --alpha-mist: #eef3f6;
+  --alpha-ink: #17233b;
+  --rsm-blue: var(--alpha-cyan);
+  --rsm-green: var(--alpha-green);
+  --rsm-blue-dark: #006f9f;
+  --rsm-green-dark: #2f7f24;
+  --rsm-gray: var(--alpha-navy);
+  --rsm-mid-gray: var(--alpha-gray);
+  --rsm-light-blue: #7dd7f2;
+  --ink: var(--alpha-ink);
+  --muted: #657084;
+  --line: #d7e1e8;
+  --soft: var(--alpha-mist);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(circle at 94% 2%, rgba(0, 167, 225, 0.09), transparent 30rem),
+    linear-gradient(180deg, #ffffff 0%, #f7fafc 55%, var(--alpha-mist) 100%);
+}
+
+.alpha-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(100%, 310px);
+  color: var(--alpha-navy);
+}
+
+.alpha-brand > img {
+  flex: 0 0 auto;
+  width: 78px;
+  height: auto;
+}
+
+.alpha-brand-copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1.08;
+}
+
+.alpha-brand-copy strong {
+  color: var(--alpha-navy);
+  font-size: 1.36rem;
+  font-style: normal;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.alpha-brand-copy em {
+  color: var(--alpha-cyan);
+  font-style: normal;
+}
+
+.alpha-brand-copy span {
+  margin-top: 5px;
+  color: var(--alpha-navy);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.alpha-brand-copy small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+.alpha-brand.compact {
+  display: grid;
+  place-items: center;
+  width: 38px;
+}
+
+.alpha-brand.compact > img {
+  width: 34px;
+}
+
+.detail-alpha-brand {
+  width: 270px;
+}
+
+.detail-alpha-brand > img {
+  width: 70px;
+}
+
+.alpha-taxbot-mark {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 144px;
+  border: 1px solid rgba(0, 21, 63, 0.12);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 11px;
+  box-shadow: 0 7px 16px rgba(0, 21, 63, 0.07);
+}
+
+.alpha-taxbot-mark img {
+  width: 38px;
+}
+
+.alpha-taxbot-mark div {
+  display: grid;
+  line-height: 1.05;
+}
+
+.alpha-taxbot-mark strong {
+  color: var(--alpha-navy);
+  font-size: 0.84rem;
+}
+
+.alpha-taxbot-mark small {
+  color: var(--alpha-cyan);
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.alpha-taxbot-mark i {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--alpha-green);
+}
+
+.sidebar-brand-full > .caption {
+  margin-top: 12px;
+  color: var(--alpha-navy);
+  font-size: 0.72rem;
+}
+
+.sidebar-brand-compact {
+  display: none;
+}
+
+.hero h1,
+.login-card h1 {
+  color: var(--alpha-navy);
+  font-weight: 650;
+}
+
+.eyebrow {
+  color: var(--alpha-cyan);
+  letter-spacing: 0.08em;
+}
+
+nav button.active,
+.regulation-tab-list button.active {
+  background: linear-gradient(110deg, var(--alpha-navy), #073c6f 55%, var(--alpha-cyan));
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(0, 21, 63, 0.16);
+}
+
+.primary-button:not(.danger-button) {
+  background: var(--alpha-green);
+}
+
+.theme-dark .alpha-brand-copy strong,
+.theme-dark .alpha-brand-copy span {
+  color: #fff;
+}
+
+.theme-dark .alpha-brand-copy small {
+  color: #b9c4d2;
+}
+
+.theme-dark .alpha-taxbot-mark {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #111b2d;
+}
+
+.theme-dark .alpha-taxbot-mark strong {
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .alpha-brand > img {
+    width: 60px;
+  }
+
+  .alpha-brand-copy strong {
+    font-size: 1.05rem;
+  }
+
+  .alpha-brand-copy small {
+    display: none;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -3302,7 +3511,9 @@ pre {
   }
 
   .login-card {
-    min-height: 100vh;
+    min-height: 0;
+    grid-template-rows: auto auto;
+    align-content: start;
     border: 0;
     border-radius: 0;
     box-shadow: none;
@@ -3311,6 +3522,10 @@ pre {
   .login-brand,
   .login-panel {
     padding: 24px;
+  }
+
+  .login-brand {
+    justify-content: flex-start;
   }
 
   .login-card h1 {
@@ -4188,7 +4403,7 @@ button.toolbar-user:hover,
   }
 }
 
-/* Refined UI layer: compact, modern, and RSM-aligned without adding client-side weight. */
+/* Refined UI layer: compact and modern without adding client-side weight. */
 :root {
   --surface: rgba(255, 255, 255, 0.92);
   --surface-solid: #ffffff;
@@ -9058,5 +9273,193 @@ tbody tr:hover {
 
   .sidebar nav button .nav-tier {
     font-size: 0.5rem;
+  }
+}
+
+/* Final Alpha identity layer stays last so legacy theme rules cannot override the brand. */
+body,
+button,
+input,
+select,
+textarea {
+  font-family: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background:
+    radial-gradient(circle at 96% 0%, rgba(0, 167, 225, 0.09), transparent 32rem),
+    linear-gradient(180deg, #fff 0%, #f8fbfd 54%, var(--alpha-mist) 100%);
+}
+
+.theme-light .hero h1,
+.theme-light .login-card h1,
+.theme-light h1,
+.theme-light h2,
+.theme-light h3 {
+  color: var(--alpha-navy);
+}
+
+.theme-light nav button.active,
+.theme-light .regulation-tab-list button.active {
+  background: linear-gradient(110deg, var(--alpha-navy), #073c6f 58%, var(--alpha-cyan));
+  color: #fff;
+}
+
+.app-shell.sidebar-collapsed .sidebar-brand-full {
+  display: none;
+}
+
+.app-shell.sidebar-collapsed .sidebar-brand-compact {
+  display: grid;
+  place-items: center;
+}
+
+.reference-workspace-tabs {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.reference-workspace-tablist,
+.reference-viewer-tablist {
+  position: sticky;
+  top: 10px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 6px;
+  box-shadow: 0 10px 24px rgba(0, 21, 63, 0.07);
+  backdrop-filter: blur(12px);
+}
+
+.reference-workspace-tablist button,
+.reference-viewer-tablist button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 750;
+  padding: 8px 14px;
+}
+
+.reference-workspace-tablist button span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--alpha-mist);
+  color: var(--alpha-navy);
+  font-size: 0.69rem;
+}
+
+.reference-workspace-tablist button.active,
+.reference-viewer-tablist button.active {
+  background: var(--alpha-navy);
+  color: #fff;
+}
+
+.reference-workspace-tablist button.active span {
+  background: var(--alpha-cyan);
+  color: #fff;
+}
+
+.reference-workspace-panel {
+  min-width: 0;
+  animation: softIn 160ms ease-out;
+}
+
+.reference-tab-stack,
+.reference-viewer {
+  display: grid;
+  gap: 14px;
+}
+
+.regulation-scroll-card {
+  max-height: min(68vh, 760px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.reference-viewer-tablist {
+  position: static;
+  width: fit-content;
+  box-shadow: none;
+}
+
+.reference-pdf-frame {
+  height: min(70vh, 840px);
+  min-height: 520px;
+}
+
+.reference-text-card {
+  max-height: min(64vh, 700px);
+  overflow: auto;
+}
+
+.theme-dark .reference-workspace-tablist,
+.theme-dark .reference-viewer-tablist {
+  border-color: #2d3b4f;
+  background: rgba(12, 22, 36, 0.96);
+}
+
+.theme-dark .reference-page a:not(.primary-button),
+.reference-page.theme-dark a:not(.primary-button) {
+  color: #62d5ff;
+}
+
+.theme-dark .reference-page a:not(.primary-button):hover,
+.reference-page.theme-dark a:not(.primary-button):hover {
+  color: #a9ebff;
+}
+
+@media (max-width: 760px) {
+  .reference-workspace-tablist,
+  .reference-viewer-tablist {
+    top: 4px;
+  }
+
+  .reference-workspace-tablist button,
+  .reference-viewer-tablist button {
+    min-height: 38px;
+    padding: 7px 10px;
+  }
+
+  .reference-pdf-frame {
+    min-height: 440px;
+  }
+}
+
+@media (max-width: 620px) {
+  .login-shell {
+    min-height: 100dvh;
+    place-items: start stretch;
+  }
+
+  .login-card {
+    width: 100%;
+    min-height: 100dvh;
+  }
+
+  .login-brand {
+    min-height: 0;
+    padding-bottom: 20px;
+  }
+
+  .login-panel {
+    justify-content: flex-start;
+    padding-top: 24px;
   }
 }

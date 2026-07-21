@@ -108,6 +108,7 @@ function AnswerText({ text }: { text: string }) {
 }
 
 export function ReferenceViewer({ canManage = false, initialQuery, ingestionStatus = "", kind, pdfUrl, regulationId = "", sourceUrl, sourceText, title }: ReferenceViewerProps) {
+  const [activeView, setActiveView] = useState<"chat" | "pdf" | "text">(pdfUrl ? "pdf" : "chat");
   const [query, setQuery] = useState(initialQuery);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -217,40 +218,50 @@ export function ReferenceViewer({ canManage = false, initialQuery, ingestionStat
         </p>
       </div>
 
-      <section className="reference-chat-card">
-        <div>
-          <h3>Tanya Smartbot tentang referensi ini</h3>
-          <p className="muted">Jawaban dibatasi pada konteks referensi yang sedang dibuka agar lebih hemat token dan mudah diverifikasi.</p>
-        </div>
-        <label>
-          <span>Pertanyaan</span>
-          <textarea
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            placeholder="Contoh: Apa isu utama dalam putusan ini? Dasar hukum apa yang dipakai? Bagian mana yang relevan untuk PPN minyak?"
-            rows={3}
-          />
-        </label>
-        <button className="primary-button" onClick={askReferenceBot} disabled={loading || !question.trim()}>
-          {loading ? "Menjawab..." : "Tanya Smartbot Referensi"}
-        </button>
-        {status && <div className="status-banner success compact-status">{status}</div>}
-        {error && <div className="status-banner error compact-status">{error}</div>}
-        {answer && <AnswerText text={answer} />}
-      </section>
+      <div className="reference-viewer-tablist" role="tablist" aria-label="Alat referensi">
+        <button type="button" className={activeView === "chat" ? "active" : ""} onClick={() => setActiveView("chat")}>Tanya AI</button>
+        <button type="button" className={activeView === "pdf" ? "active" : ""} onClick={() => setActiveView("pdf")}>PDF</button>
+        <button type="button" className={activeView === "text" ? "active" : ""} onClick={() => setActiveView("text")}>Teks terindeks</button>
+      </div>
 
-      {pdfUrl ? (
-        <div className="reference-pdf-frame">
-          <iframe key={pdfSrc} title={`PDF viewer - ${title}`} src={pdfSrc} />
-        </div>
-      ) : (
-        <div className="status-banner warning reference-no-pdf">PDF belum tersedia. Gunakan link sumber asli atau teks ringkasan di bawah.</div>
+      {activeView === "chat" && (
+        <section className="reference-chat-card">
+          <div>
+            <h3>Tanya AI tentang referensi ini</h3>
+            <p className="muted">Jawaban dibatasi pada referensi yang sedang dibuka agar hemat token dan mudah diverifikasi.</p>
+          </div>
+          <label>
+            <span>Pertanyaan</span>
+            <textarea
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="Contoh: Apa ketentuan utama dalam dokumen ini? Pasal mana yang mengatur masa berlaku?"
+              rows={3}
+            />
+          </label>
+          <button className="primary-button" onClick={askReferenceBot} disabled={loading || !question.trim()}>
+            {loading ? "Menjawab..." : "Tanya Alpha AI"}
+          </button>
+          {status && <div className="status-banner success compact-status">{status}</div>}
+          {error && <div className="status-banner error compact-status">{error}</div>}
+          {answer && <AnswerText text={answer} />}
+        </section>
       )}
 
-      <section className="case-detail-card reference-text-card">
-        <h3>Teks ringkasan / metadata</h3>
-        <TextPreview text={sourceText} query={query} />
-      </section>
+      {activeView === "pdf" && (pdfUrl ? (
+          <div className="reference-pdf-frame">
+            <iframe key={pdfSrc} title={`PDF viewer - ${title}`} src={pdfSrc} />
+          </div>
+        ) : (
+          <div className="status-banner warning reference-no-pdf">PDF belum tersedia. Jalankan pemrosesan PDF atau gunakan sumber asli.</div>
+        ))}
+
+      {activeView === "text" && (
+        <section className="case-detail-card reference-text-card">
+          <h3>Teks ringkasan / metadata</h3>
+          <TextPreview text={sourceText} query={query} />
+        </section>
+      )}
     </section>
   );
 }

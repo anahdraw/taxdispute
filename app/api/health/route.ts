@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 function payload() {
   return {
     ok: true,
-    service: "tax-dispute-agentic-advisor",
+    service: "alpha-ai-jurist",
     runtime: "nextjs",
     openaiConfigured: hasOpenAIKey(),
     blobConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN),
@@ -50,13 +50,13 @@ function htmlHealth(data: ReturnType<typeof payload>) {
     <head>
       <meta charset="utf-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>RSM Tax Dispute Agentic Advisor - API Health</title>
+      <title>Alpha AI Jurist - API Health</title>
       <style>
         :root {
-          --rsm-blue: #009cde;
-          --rsm-green: #43a047;
-          --rsm-gray: #54585a;
-          --ink: #2f3340;
+          --brand-blue: #00a7e1;
+          --brand-green: #43a62a;
+          --brand-navy: #00153f;
+          --ink: #17233b;
           --muted: #667085;
           --line: #d7dde3;
           --soft: #f4f7f9;
@@ -67,33 +67,25 @@ function htmlHealth(data: ReturnType<typeof payload>) {
           min-height: 100vh;
           background: linear-gradient(180deg, #fff 0%, var(--soft) 100%);
           color: var(--ink);
-          font: 16px/1.55 "Segoe UI", Arial, Helvetica, sans-serif;
+          font: 16px/1.55 "Plus Jakarta Sans", "Segoe UI", Arial, Helvetica, sans-serif;
         }
         main {
           width: min(1120px, calc(100% - 40px));
           margin: 0 auto;
           padding: 42px 0 56px;
         }
-        .rsm-mark {
-          display: grid;
-          grid-template-columns: 20px 58px 150px;
-          grid-template-rows: 14px auto;
-          align-items: end;
-          gap: 9px 10px;
-          width: 240px;
+        .brand-mark {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          width: 320px;
           margin-bottom: 32px;
         }
-        .rsm-mark span { display: block; height: 14px; }
-        .rsm-mark strong {
-          grid-column: 1 / -1;
-          color: var(--rsm-gray);
-          font-size: 3.35rem;
-          line-height: .94;
-          letter-spacing: 0;
-        }
-        .gray { background: #8a8f93; }
-        .green { background: var(--rsm-green); }
-        .blue { background: var(--rsm-blue); }
+        .brand-mark img { width: 76px; }
+        .brand-mark div { display: grid; line-height: 1.1; }
+        .brand-mark strong { color: var(--brand-navy); font-size: 1.55rem; }
+        .brand-mark strong em { color: var(--brand-blue); font-style: normal; }
+        .brand-mark span { color: var(--brand-navy); font-size: .72rem; font-weight: 800; }
         header {
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
@@ -103,7 +95,7 @@ function htmlHealth(data: ReturnType<typeof payload>) {
         }
         h1 {
           margin: 0;
-          color: var(--rsm-gray);
+          color: var(--brand-navy);
           font-size: clamp(2.2rem, 5vw, 4.2rem);
           line-height: 1.02;
           letter-spacing: 0;
@@ -115,12 +107,12 @@ function htmlHealth(data: ReturnType<typeof payload>) {
           font-size: 1.08rem;
         }
         .status {
-          border-left: 5px solid var(--rsm-green);
+          border-left: 5px solid var(--brand-green);
           border-radius: 8px;
           background: #edf8ef;
           padding: 16px 18px;
           font-weight: 800;
-          color: var(--rsm-gray);
+          color: var(--brand-navy);
         }
         .grid {
           display: grid;
@@ -131,14 +123,14 @@ function htmlHealth(data: ReturnType<typeof payload>) {
         .card {
           min-height: 170px;
           border: 1px solid var(--line);
-          border-top: 5px solid var(--rsm-blue);
+          border-top: 5px solid var(--brand-blue);
           border-radius: 8px;
           background: rgba(255,255,255,.96);
           padding: 18px;
           box-shadow: 0 12px 28px rgba(84, 88, 90, .08);
         }
-        .card:nth-child(2) { border-top-color: var(--rsm-green); }
-        .card:nth-child(3), .card:nth-child(4) { border-top-color: var(--rsm-gray); }
+        .card:nth-child(2) { border-top-color: var(--brand-green); }
+        .card:nth-child(3), .card:nth-child(4) { border-top-color: var(--brand-navy); }
         .eyebrow {
           color: var(--muted);
           font-size: .78rem;
@@ -187,7 +179,7 @@ function htmlHealth(data: ReturnType<typeof payload>) {
         }
         a.primary {
           border-color: transparent;
-          background: var(--rsm-green);
+          background: var(--brand-green);
           color: #fff;
         }
         .meta {
@@ -208,13 +200,14 @@ function htmlHealth(data: ReturnType<typeof payload>) {
     </head>
     <body>
       <main>
-        <div class="rsm-mark" aria-label="RSM">
-          <span class="gray"></span><span class="green"></span><span class="blue"></span><strong>RSM</strong>
+        <div class="brand-mark" aria-label="Alpha AI Jurist">
+          <img src="/alpha-ai-jurist-mark.svg" alt="" />
+          <div><strong>Alpha <em>AI</em> Jurist</strong><span>Tax Intelligence. Trusted Judgment.</span></div>
         </div>
         <header>
           <div>
             <h1>API Health Check</h1>
-            <p class="lead">Status halaman server untuk RSM Tax Dispute Agentic Advisor. Gunakan ini untuk memastikan service utama siap sebelum ekstraksi, RAG chatbot, dan report generation.</p>
+            <p class="lead">Status layanan Alpha AI Jurist. Gunakan halaman ini untuk memastikan ekstraksi, RAG, penyimpanan, autentikasi, dan report generation siap digunakan.</p>
           </div>
           <div class="status">Deployment active</div>
         </header>

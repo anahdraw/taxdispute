@@ -135,7 +135,7 @@ async function fetchWithTimeout(url: string, accept: string, timeoutMs = 20000) 
       signal: controller.signal,
       headers: {
         Accept: accept,
-        "User-Agent": "RSM-Tax-Dispute-Agentic-Advisor/1.0 (+official-regulation-indexer)"
+        "User-Agent": "Alpha-AI-Jurist/1.0 (+official-regulation-indexer)"
       }
     });
   } finally {
