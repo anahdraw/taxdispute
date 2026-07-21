@@ -58,6 +58,12 @@ export type RegulationExtraction = {
   sourcePdfUrl: string;
 };
 
+export type RegulationTranslation = {
+  title?: string;
+  focus?: string;
+  content?: string;
+};
+
 export type Regulation = {
   id: string;
   topic?: "vat" | "transfer_pricing" | "general";
@@ -65,12 +71,15 @@ export type Regulation = {
   citation: string;
   focus: string;
   relevance: number;
-  source?: "seed" | "ortax" | "official" | "manual";
+  source?: "seed" | "official" | "manual";
   sourceUrl?: string;
   pdfUrl?: string;
   officialPdfUrl?: string;
   storedPdfUrl?: string;
   sourceAuthority?: string;
+  canonicalKey?: string;
+  sourceLanguage?: "id" | "en";
+  translations?: Partial<Record<"id" | "en", RegulationTranslation>>;
   content?: string;
   ingestionStatus?: RegulationIngestionStatus;
   ingestionMessage?: string;
@@ -215,26 +224,6 @@ export const comparableDecisions: ComparableDecision[] = [
 
 const coreRegulations: Regulation[] = [
   {
-    id: "uu-ppn",
-    topic: "vat",
-    title: "VAT Law",
-    citation: "Law No. 8/1983 as amended",
-    focus: "Taxable delivery, VAT object, input VAT creditability, and formal VAT documentation.",
-    relevance: 94,
-    source: "seed",
-    sourceUrl: "https://datacenter.ortax.org/"
-  },
-  {
-    id: "pp-ppn",
-    topic: "vat",
-    title: "VAT Implementing Regulation",
-    citation: "Government Regulation No. 44/2022",
-    focus: "Transaction treatment, VAT objects, tax base, and timing of VAT payable after the HPP Law changes.",
-    relevance: 86,
-    source: "seed",
-    sourceUrl: "https://datacenter.ortax.org/ortax/aturan/show/26049"
-  },
-  {
     id: "per-faktur",
     topic: "vat",
     title: "Tax Invoice Regulation",
@@ -242,18 +231,7 @@ const coreRegulations: Regulation[] = [
     focus: "Invoice validity, correction, replacement, and administrative evidence.",
     relevance: 79,
     source: "seed",
-    sourceUrl: "https://datacenter.ortax.org/"
-  },
-  {
-    id: "pmk-172-transfer-pricing",
-    topic: "transfer_pricing",
-    title: "Arm's Length Principle and Related-Party Transactions",
-    citation: "Minister of Finance Regulation No. 172/2023",
-    focus:
-      "Main transfer pricing framework for related-party transactions, arm's length analysis, comparability, method selection, documentation, secondary adjustments, APA, and MAP links.",
-    relevance: 96,
-    source: "seed",
-    sourceUrl: "https://datacenter.ortax.org/ortax/aturan/show/25467"
+    sourceUrl: ""
   },
   {
     id: "pmk-213-tp-doc",
@@ -264,7 +242,7 @@ const coreRegulations: Regulation[] = [
       "Master file, local file, and country-by-country report obligations, including timing, thresholds, and documentation readiness for related-party taxpayers.",
     relevance: 90,
     source: "seed",
-    sourceUrl: "https://datacenter.ortax.org/"
+    sourceUrl: ""
   },
   {
     id: "per-22-tp-audit",
@@ -275,7 +253,7 @@ const coreRegulations: Regulation[] = [
       "Audit approach for taxpayers with related-party transactions, including functional analysis, comparability review, tested party selection, method review, and evidence expectations.",
     relevance: 88,
     source: "seed",
-    sourceUrl: "https://datacenter.ortax.org/"
+    sourceUrl: ""
   },
   {
     id: "per-32-alp",
@@ -286,7 +264,7 @@ const coreRegulations: Regulation[] = [
       "Operational guidance for applying arm's length principles to related-party transactions, including comparability factors and transfer pricing methods.",
     relevance: 82,
     source: "seed",
-    sourceUrl: "https://datacenter.ortax.org/ortax?id=14855&mod=aturan"
+    sourceUrl: ""
   },
   {
     id: "pmk-22-apa",
@@ -297,7 +275,7 @@ const coreRegulations: Regulation[] = [
       "Procedure and governance for unilateral or bilateral advance pricing agreements, useful for forward-looking TP risk management and dispute prevention.",
     relevance: 76,
     source: "seed",
-    sourceUrl: "https://datacenter.ortax.org/"
+    sourceUrl: ""
   }
 ];
 

@@ -1,4 +1,4 @@
-export type RegulationSourceScope = "all" | "bpk" | "kemenkeu" | "djp" | "ortax" | "other";
+export type RegulationSourceScope = "all" | "bpk" | "kemenkeu" | "djp" | "other";
 
 export const regulationSourceScopeOptions: Array<{ key: RegulationSourceScope; id: string; en: string }> = [
   { key: "all", id: "Semua sumber resmi", en: "All official links" },
@@ -13,7 +13,6 @@ export function normalizeRegulationSourceScope(value: string | null | undefined)
   if (["bpk", "jdih_bpk", "peraturan_bpk"].includes(normalized)) return "bpk";
   if (["kemenkeu", "jdih_kemenkeu", "kemenkeu_jdih"].includes(normalized)) return "kemenkeu";
   if (["djp", "pajak", "pajak_go_id", "dgt"].includes(normalized)) return "djp";
-  if (["ortax", "datacenter_ortax"].includes(normalized)) return "ortax";
   if (["other", "lain", "sumber_lain"].includes(normalized)) return "other";
   return "all";
 }
@@ -24,7 +23,6 @@ export function regulationSourceBucket(sourceUrl: string | null | undefined): Ex
     if (hostname.includes("peraturan.bpk.go.id")) return "bpk";
     if (hostname.includes("jdih.kemenkeu.go.id")) return "kemenkeu";
     if (hostname.includes("pajak.go.id")) return "djp";
-    if (hostname.includes("datacenter.ortax.org") || hostname.includes("ortax.org")) return "ortax";
   } catch {
     return "other";
   }
@@ -32,6 +30,23 @@ export function regulationSourceBucket(sourceUrl: string | null | undefined): Ex
 }
 
 export function regulationSourceMatches(sourceUrl: string | null | undefined, scope: RegulationSourceScope) {
-  if (scope === "all") return /^https?:\/\//i.test(String(sourceUrl || ""));
-  return regulationSourceBucket(sourceUrl) === scope;
+  if (scope === "all") return isAllowedOfficialRegulationUrl(sourceUrl);
+  return isAllowedOfficialRegulationUrl(sourceUrl) && regulationSourceBucket(sourceUrl) === scope;
+}
+
+export function isAllowedOfficialRegulationUrl(sourceUrl: string | null | undefined) {
+  try {
+    const hostname = new URL(String(sourceUrl || "")).hostname.replace(/^www\./, "").toLowerCase();
+    return hostname.endsWith(".go.id") || hostname === "go.id";
+  } catch {
+    return false;
+  }
+}
+
+export function officialRegulationSourceLabel(sourceUrl: string | null | undefined) {
+  const bucket = regulationSourceBucket(sourceUrl);
+  if (bucket === "bpk") return "JDIH BPK";
+  if (bucket === "kemenkeu") return "JDIH Kementerian Keuangan";
+  if (bucket === "djp") return "Direktorat Jenderal Pajak";
+  return isAllowedOfficialRegulationUrl(sourceUrl) ? "Situs resmi pemerintah" : "";
 }

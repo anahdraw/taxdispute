@@ -2525,6 +2525,53 @@ pre {
   padding: 14px;
 }
 
+.extraction-bullet-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 18px 14px 34px;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.extraction-bullet-list li {
+  padding-left: 3px;
+}
+
+.extraction-bullet-list li::marker {
+  color: var(--rsm-blue);
+  font-weight: 900;
+}
+
+.case-detail-rows .extraction-bullet-list {
+  padding: 0 0 0 18px;
+}
+
+.case-issue-card .extraction-bullet-list {
+  padding: 2px 0 0 20px;
+}
+
+.extraction-quality-warning {
+  margin: 0 0 14px;
+  border: 1px solid #efd393;
+  border-left: 4px solid #d6a52e;
+  border-radius: 8px;
+  background: #fff9e9;
+  color: #654b12;
+  padding: 12px 14px;
+}
+
+.extraction-quality-warning > b {
+  display: block;
+  font-size: var(--text-sm);
+}
+
+.extraction-quality-warning .extraction-bullet-list {
+  color: inherit;
+  padding: 8px 0 0 20px;
+}
+
 .case-subtitle {
   margin: 14px 14px 8px;
   color: var(--rsm-blue-dark);
@@ -7171,11 +7218,19 @@ tbody tr:hover {
 .theme-dark .case-detail-meter strong,
 .theme-dark .case-detail-rows dd,
 .theme-dark .case-detail-card p,
+.theme-dark .extraction-bullet-list,
 .theme-dark .case-file-stats b,
 .theme-dark .reference-chat-card h3,
 .theme-dark .reference-text-preview,
 .theme-dark .reference-answer-text {
   color: #edf4f7;
+}
+
+.theme-dark .extraction-quality-warning {
+  border-color: #6f5824;
+  border-left-color: #d6a52e;
+  background: #292313;
+  color: #f5d98f;
 }
 
 .theme-light .case-detail-header h3,

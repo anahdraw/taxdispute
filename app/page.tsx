@@ -10,12 +10,13 @@ import { regulations, type Regulation } from "@/lib/mock-data";
 import { hasPpnComponentData, ppnClassificationRows, ppnComponentRows, ppnFormulaRows } from "@/lib/ppn-components";
 import {
   filterRegulationsByTopic,
+  localizeRegulationRecord,
   normalizeRegulationText,
   normalizeRegulationTopic,
   regulationTopicOptions,
   type RegulationTopic
 } from "@/lib/regulation-knowledge";
-import { regulationSourceMatches, regulationSourceScopeOptions, type RegulationSourceScope } from "@/lib/regulation-sources";
+import { isAllowedOfficialRegulationUrl, officialRegulationSourceLabel, regulationSourceMatches, regulationSourceScopeOptions, type RegulationSourceScope } from "@/lib/regulation-sources";
 import type { SmartChatResponse, SmartChatSourceMode } from "@/lib/smart-chat";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { buildReportKey, buildStoredReport, type StoredReport } from "@/lib/stored-reports";
@@ -42,6 +43,8 @@ import { TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 import { AlphaBrand, AlphaTaxBotMark } from "@/app/brand";
 import { normalizeSmartAnswerMarkdown } from "@/lib/answer-format";
 import TpLocalFilePanel from "@/app/tp-local-file-panel";
+import { extractionCompleteness, extractionQuality } from "@/lib/extraction-quality";
+import { structuredTextItems } from "@/lib/text-presentation";
 
 type Language = "id" | "en";
 type ThemeMode = "dark" | "light";
@@ -365,7 +368,7 @@ const copy = {
     disputeNarrative: "Pokok Sengketa",
     decisionContent: "Konten Putusan",
     originalFile: "File asli",
-    extractionConfidence: "Confidence ekstraksi",
+    extractionConfidence: "Kelengkapan ekstraksi",
     noCaseDetail: "Dokumen ini belum punya hasil ekstraksi. Klik Ekstrak dulu untuk membuat detail putusan.",
     casePageLink: "Halaman",
     adminTitle: "Admin Center",
@@ -692,7 +695,7 @@ const copy = {
     disputeNarrative: "Dispute Issue",
     decisionContent: "Decision Content",
     originalFile: "Original file",
-    extractionConfidence: "Extraction confidence",
+    extractionConfidence: "Extraction completeness",
     noCaseDetail: "This document does not have extraction data yet. Click Extract first to create the decision detail.",
     casePageLink: "Page",
     adminTitle: "Admin Center",
@@ -1654,45 +1657,16 @@ function rowRegulation(row: RegulationImportRow, index: number): Regulation | nu
     citation,
     focus,
     relevance: Number.isFinite(relevance) ? Math.max(1, Math.min(100, relevance)) : 75,
-    source: /^https?:\/\//i.test(rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber", "sumber_resmi", "official_source"]))
+    source: isAllowedOfficialRegulationUrl(rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber", "sumber_resmi", "official_source"]))
       ? "official"
       : "manual",
-    sourceUrl: rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber", "sumber_resmi", "official_source"]),
+    sourceUrl: isAllowedOfficialRegulationUrl(rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber", "sumber_resmi", "official_source"]))
+      ? rowValue(row, ["source_url", "sourceUrl", "url", "link", "link_sumber", "source", "sumber", "sumber_resmi", "official_source"])
+      : "",
     pdfUrl: rowValue(row, ["pdf_url", "pdf", "link_pdf", "url_pdf", "download_url", "tautan_pdf"]),
     content: content || focus,
     updatedAt: new Date(Date.now() + index).toISOString()
   };
-}
-
-function extractionCompleteness(extraction: ExtractionResult | null | undefined) {
-  if (!extraction) return 0;
-  const summaryScore = Number((extraction as ExtractionResult & { extractionCompleteness?: number }).extractionCompleteness);
-  if (Number.isFinite(summaryScore) && summaryScore >= 0) return Math.round(summaryScore);
-  const scalarFields: Array<keyof ExtractionResult> = [
-    "putusanNumber",
-    "putusanYear",
-    "courtPanel",
-    "clerkName",
-    "decisionDate",
-    "taxpayerName",
-    "taxpayerNpwp",
-    "taxpayerAddress",
-    "legalCounselName",
-    "djpUnit",
-    "taxType",
-    "taxPeriod",
-    "skpNumber",
-    "djpDecisionNumber",
-    "issueType",
-    "correctionAmount",
-    "taxAuthorityPosition",
-    "taxpayerPosition",
-    "courtReasoning",
-    "outcome"
-  ];
-  const filled = scalarFields.filter((field) => nonEmpty(extraction[field])).length;
-  const arrayFilled = [extraction.judgeNames, extraction.evidence, extraction.legalReferences].filter((items) => Array.isArray(items) && items.length > 0).length;
-  return Math.round(((filled + arrayFilled) / (scalarFields.length + 3)) * 100);
 }
 
 function printCaseDetail() {
@@ -1815,8 +1789,10 @@ export default function Home() {
   );
   const dynamicDashboard = useMemo(() => buildDynamicDashboard(storedDocuments, language, regulationRecords.length), [storedDocuments, language, regulationRecords.length]);
   const visibleRegulations = useMemo(
-    () => filterRegulationsByTopic(regulationRecords, regulationTopic).filter((record) => regulationSourceMatches(record.sourceUrl, regulationSourceScope)),
-    [regulationRecords, regulationSourceScope, regulationTopic]
+    () => filterRegulationsByTopic(regulationRecords, regulationTopic)
+      .filter((record) => regulationSourceMatches(record.sourceUrl, regulationSourceScope))
+      .map((record) => localizeRegulationRecord(record, language)),
+    [language, regulationRecords, regulationSourceScope, regulationTopic]
   );
   const regulationTotalPages = Math.max(1, Math.ceil(visibleRegulations.length / regulationPerPage));
   const currentRegulationPage = Math.min(regulationPage, regulationTotalPages);
@@ -3908,10 +3884,10 @@ export default function Home() {
                                 <small>{item.extraction ? "JSON terekstrak" : "Belum diekstrak"}</small>
                               </div>
                               <p>{item.focus}</p>
-                              {item.content && <p className="muted">{truncateText(item.content.replace(/\\n/g, " · "), 420)}</p>}
-                              <small>
-                                {labels.source}: {item.source || "seed"}
-                                {item.sourceUrl && item.sourceUrl.startsWith("https://") ? (
+                              {item.content && <StructuredTextList value={item.content} limit={8} />}
+                              {officialRegulationSourceLabel(item.sourceUrl) && <small>
+                                {labels.source}: {officialRegulationSourceLabel(item.sourceUrl)}
+                                {isAllowedOfficialRegulationUrl(item.sourceUrl) ? (
                                   <>
                                     {" · "}
                                     <a href={item.sourceUrl} target="_blank" rel="noreferrer">
@@ -3919,7 +3895,7 @@ export default function Home() {
                                     </a>
                                   </>
                                 ) : null}
-                              </small>
+                              </small>}
                               {item.pdfUrl ? (
                                 <small>
                                   <a href={item.pdfUrl} target="_blank" rel="noreferrer">
@@ -4262,7 +4238,7 @@ function ExpandableSourceCard({
         <span className="source-score">{Math.round(score)}%</span>
       </summary>
       <div className="source-card-details">
-        <p>{cleanExcerpt}</p>
+        <StructuredTextList value={cleanExcerpt} limit={6} />
         <small>{detailsLabel}{source ? ` · ${normalizeRegulationText(source)}` : ""}</small>
         <a href={href}>{openLabel}</a>
       </div>
@@ -4420,6 +4396,16 @@ function DetailRows({ rows }: { rows: Array<[string, React.ReactNode]> }) {
   );
 }
 
+function StructuredTextList({ value, empty = "-", limit = 16 }: { value: unknown; empty?: string; limit?: number }) {
+  const items = structuredTextItems(value, limit);
+  if (!items.length) return <p className="muted">{empty}</p>;
+  return (
+    <ul className="extraction-bullet-list">
+      {items.map((item, index) => <li key={`${index}-${item.slice(0, 48)}`}>{item}</li>)}
+    </ul>
+  );
+}
+
 function CaseDetailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="case-detail-card">
@@ -4508,7 +4494,8 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
     return <div className="empty-state">{labels.noCaseDetail}</div>;
   }
 
-  const completeness = extractionCompleteness(extraction);
+  const quality = extractionQuality(extraction);
+  const completeness = quality.score;
   const outcomeLabel = classifyOutcome(extraction.outcome || "", labels.caseDetail === "Decision Detail" ? "en" : "id");
   const badges = [
     extraction.taxType,
@@ -4518,8 +4505,6 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
     completeness ? `${completeness}% ${labels.extractionConfidence}` : ""
   ].filter((badge): badge is string => Boolean(badge));
   const judges = Array.isArray(extraction.judgeNames) && extraction.judgeNames.length ? extraction.judgeNames.join("; ") : "";
-  const legalReferences = Array.isArray(extraction.legalReferences) && extraction.legalReferences.length ? extraction.legalReferences.join("; ") : "";
-  const evidence = Array.isArray(extraction.evidence) && extraction.evidence.length ? extraction.evidence.join("; ") : "";
   const language = labels.caseDetail === "Decision Detail" ? "en" : "id";
   const tabBase = `case-tabs-${safeDomId(document.id)}`;
 
@@ -4546,6 +4531,12 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
           <span key={badge}>{badge}</span>
         ))}
       </div>
+      {quality.warnings.length > 0 && (
+        <div className="extraction-quality-warning" role="status">
+          <b>{language === "en" ? "Extraction review required" : "Hasil ekstraksi perlu ditinjau"}</b>
+          <StructuredTextList value={quality.warnings} />
+        </div>
+      )}
 
       <div className="case-detail-tabs">
         <input className="case-tab-radio" id={`${tabBase}-metadata`} name={tabBase} type="radio" defaultChecked />
@@ -4631,17 +4622,15 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
             </CaseDetailCard>
           </section>
           <section className="case-tab-panel">
-            {hasPpnComponentData(extraction) ? (
+            {quality.ppnCase && (hasPpnComponentData(extraction) ? (
               <PpnComponentsCard extraction={extraction} language={language} />
             ) : (
               <CaseDetailCard title={language === "en" ? "Extracted VAT components" : "Komponen PPN terekstraksi"}>
-                <p>
-                  {language === "en"
-                    ? "No structured VAT component has been extracted for this record yet. Use Re-extract to read the new VAT fields from the document."
-                    : "Belum ada komponen PPN terstruktur pada data ini. Gunakan Re-extract agar field PPN baru dibaca dari dokumen."}
-                </p>
+                <StructuredTextList value={language === "en"
+                  ? ["No structured VAT value has been extracted yet.", "Use Re-extract and verify the calculation table in the source PDF."]
+                  : ["Nilai komponen PPN belum berhasil diekstrak secara terstruktur.", "Jalankan Re-extract lalu verifikasi tabel perhitungan pada PDF sumber."]} />
               </CaseDetailCard>
-            )}
+            ))}
             <CaseDetailCard title={labels.disputedAmount}>
               <DetailRows
                 rows={[
@@ -4657,30 +4646,30 @@ function CaseDetailSheet({ labels, document }: { labels: (typeof copy)["en"]; do
             <CaseDetailCard title={labels.disputeNarrative}>
               <div className="case-issue-card">
                 <b>{dash(extraction.issueType || extraction.issueSubtype || extraction.correctionObject)}</b>
-                <p>{truncateText(extraction.summary || extraction.correctionReason || extraction.taxAuthorityPosition, 700)}</p>
+                <StructuredTextList value={extraction.summary || extraction.correctionReason || extraction.taxAuthorityPosition} limit={8} />
               </div>
             </CaseDetailCard>
             <div className="case-detail-grid two">
               <CaseDetailCard title={labels.authority}>
-                <p>{truncateText(extraction.taxAuthorityPosition || extraction.correctionReason, 700) || "-"}</p>
+                <StructuredTextList value={extraction.taxAuthorityPosition || extraction.correctionReason} limit={10} />
               </CaseDetailCard>
               <CaseDetailCard title={labels.taxpayerPosition}>
-                <p>{truncateText(extraction.taxpayerPosition || extraction.taxpayerRebuttal, 700) || "-"}</p>
+                <StructuredTextList value={extraction.taxpayerPosition || extraction.taxpayerRebuttal} limit={10} />
               </CaseDetailCard>
             </div>
             <div className="case-detail-grid two">
               <CaseDetailCard title={labels.extractedEvidence}>
-                <p>{evidence || "-"}</p>
+                <StructuredTextList value={extraction.evidence} limit={24} />
               </CaseDetailCard>
               <CaseDetailCard title={labels.relatedRules}>
-                <p>{legalReferences || "-"}</p>
+                <StructuredTextList value={extraction.legalReferences} limit={24} />
               </CaseDetailCard>
             </div>
             <CaseDetailCard title={labels.decisionContent}>
               <DetailRows
                 rows={[
-                  ["Pertimbangan", truncateText(extraction.courtReasoning, 1000)],
-                  ["Amar putusan", truncateText(extraction.outcome, 520)]
+                  [language === "en" ? "Reasoning" : "Pertimbangan", <StructuredTextList key="reasoning" value={extraction.courtReasoning} limit={14} />],
+                  [language === "en" ? "Decision" : "Amar putusan", <StructuredTextList key="outcome" value={extraction.outcome} limit={6} />]
                 ]}
               />
             </CaseDetailCard>
@@ -6084,7 +6073,7 @@ function AnalysisResult({
                 </div>
                 <meter min="0" max={component.maxPoints} value={component.earnedPoints} />
                 <p>{component.rationale}</p>
-                <small>{component.signals.slice(0, 3).join(" · ")}</small>
+                <StructuredTextList value={component.signals.slice(0, 3)} limit={3} />
               </article>
             ))}
           </div>
@@ -6103,13 +6092,13 @@ function AnalysisResult({
             <span>
               {item.taxType} | {item.issue} | {item.score}
             </span>
-            <p>{item.reasoning}</p>
+            <StructuredTextList value={item.reasoning} limit={6} />
             <ul>
               {item.matchPoints.map((point) => (
                 <li key={point}>{point}</li>
               ))}
             </ul>
-            {expanded && <p className="muted">{item.implication}</p>}
+            {expanded && <StructuredTextList value={item.implication} limit={6} />}
           </article>
         ))}
       </div>

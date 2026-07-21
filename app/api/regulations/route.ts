@@ -8,7 +8,8 @@ import {
   upsertTaxRegulations
 } from "@/lib/db";
 import { regulations, type Regulation } from "@/lib/mock-data";
-import { mergeRegulationRecords, normalizeRegulationText, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
+import { canonicalRegulationKey, mergeRegulationRecords, normalizeRegulationText, normalizeRegulationTopic } from "@/lib/regulation-knowledge";
+import { isAllowedOfficialRegulationUrl, officialRegulationSourceLabel } from "@/lib/regulation-sources";
 import { requireAuth, requireFeature } from "@/lib/auth";
 import { buildPaginationMeta, parsePaginationParams } from "@/lib/pagination";
 
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
     const record =
       (hasDatabase() ? await getTaxRegulationById(id).catch(() => null) : null) || regulations.find((item) => item.id === id) || null;
     if (!record) return NextResponse.json({ error: "Regulation not found." }, { status: 404 });
-    return NextResponse.json({ record: mergeRegulationRecords([record]).find((item) => item.id === id) || record });
+    return NextResponse.json({ record: mergeRegulationRecords([record])[0] || record });
   }
 
   if (url.searchParams.get("detail") === "full") {
@@ -68,21 +69,23 @@ function normalizeRegulationRecord(body: Partial<Regulation>, index = 0): Regula
     throw new Error("Title, citation, and focus are required.");
   }
   const topic = normalizeRegulationTopic(body.topic);
-  const source =
-    body.source === "ortax" ? "ortax" : body.source === "seed" ? "seed" : body.source === "official" ? "official" : "manual";
-  return {
+  const requestedSourceUrl = String(body.sourceUrl || "").trim();
+  const sourceUrl = isAllowedOfficialRegulationUrl(requestedSourceUrl) ? requestedSourceUrl : "";
+  const record: Regulation = {
     id: String(body.id || `manual-${topic}-${slugPart(`${citation}-${title}`) || `rule-${index + 1}`}`),
     topic,
     title,
     citation,
     focus,
     relevance: Math.max(1, Math.min(100, Number(body.relevance || 75))),
-    source,
-    sourceUrl: String(body.sourceUrl || "").trim(),
+    source: sourceUrl ? "official" : body.source === "seed" ? "seed" : "manual",
+    sourceUrl,
     pdfUrl: String(body.pdfUrl || "").trim(),
     officialPdfUrl: String(body.officialPdfUrl || "").trim(),
     storedPdfUrl: String(body.storedPdfUrl || "").trim(),
-    sourceAuthority: String(body.sourceAuthority || "").trim(),
+    sourceAuthority: officialRegulationSourceLabel(sourceUrl),
+    sourceLanguage: body.sourceLanguage === "en" ? "en" : "id",
+    translations: body.translations || {},
     content: normalizeRegulationText(body.content),
     ingestionStatus: body.ingestionStatus || "seed",
     ingestionMessage: normalizeRegulationText(body.ingestionMessage),
@@ -92,6 +95,8 @@ function normalizeRegulationRecord(body: Partial<Regulation>, index = 0): Regula
     extractedAt: body.extractedAt,
     updatedAt: new Date().toISOString()
   };
+  record.canonicalKey = body.canonicalKey || canonicalRegulationKey(record);
+  return record;
 }
 
 export async function POST(request: Request) {

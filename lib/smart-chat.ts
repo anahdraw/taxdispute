@@ -4,6 +4,8 @@ import { DEFAULT_LLM_MODEL_CHOICE, type LlmModelChoice } from "./model-options";
 import { callOpenAIText, configuredModel, hasRemoteLlm, missingKeyStatus, type LlmStatus } from "./openai";
 import { tierWorkProfiles, type TierWorkProfile } from "./tier-profiles";
 import { normalizeSmartAnswerMarkdown } from "./answer-format";
+import { officialRegulationSourceLabel } from "./regulation-sources";
+import { localizeRegulationRecord } from "./regulation-knowledge";
 
 export type SmartChatSourceMode = "all" | "decisions" | "regulations";
 
@@ -413,7 +415,7 @@ export function rankRegulations(query: string, records: Regulation[], limit = 8)
       title: item.title,
       citation: item.citation,
       topic: item.topic || "general",
-      source: item.source || "seed",
+      source: officialRegulationSourceLabel(item.sourceUrl),
       sourceUrl: item.sourceUrl || "",
       score: Math.round(score * 10) / 10,
       snippet: focusedSnippet(text, query)
@@ -641,7 +643,9 @@ export async function answerSmartChat({
   const wantsDecisions = effectiveMode === "all" || effectiveMode === "decisions";
   const wantsRules = effectiveMode === "all" || effectiveMode === "regulations";
   const decisionHits = wantsDecisions ? rankDecisionDocuments(question, documents, tierProfile.smartDecisionLimit) : [];
-  const ruleHits = wantsRules ? rankRegulations(question, regulations, tierProfile.smartRegulationLimit) : [];
+  const ruleHits = wantsRules
+    ? rankRegulations(question, regulations.map((item) => localizeRegulationRecord(item, language)), tierProfile.smartRegulationLimit)
+    : [];
   const charts = wantsDecisions ? buildCharts(question, documents, language) : [];
 
   const retrieval = {

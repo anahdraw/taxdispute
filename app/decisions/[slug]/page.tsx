@@ -10,6 +10,8 @@ import { referenceDetailPath } from "@/lib/reference-links";
 import type { StoredDecisionFile } from "@/lib/stored-decisions";
 import { sessionFromCookieStore } from "@/lib/auth";
 import { AlphaBrand } from "@/app/brand";
+import { extractionQuality } from "@/lib/extraction-quality";
+import { structuredTextItems } from "@/lib/text-presentation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,35 +65,6 @@ function classifyOutcome(outcome: string) {
   return "Unclassified";
 }
 
-function extractionCompleteness(extraction: ExtractionResult | null | undefined) {
-  if (!extraction) return 0;
-  const scalarFields: Array<keyof ExtractionResult> = [
-    "putusanNumber",
-    "putusanYear",
-    "courtPanel",
-    "clerkName",
-    "decisionDate",
-    "taxpayerName",
-    "taxpayerNpwp",
-    "taxpayerAddress",
-    "legalCounselName",
-    "djpUnit",
-    "taxType",
-    "taxPeriod",
-    "skpNumber",
-    "djpDecisionNumber",
-    "issueType",
-    "correctionAmount",
-    "taxAuthorityPosition",
-    "taxpayerPosition",
-    "courtReasoning",
-    "outcome"
-  ];
-  const filled = scalarFields.filter((field) => String(extraction[field] || "").trim()).length;
-  const arrayFilled = [extraction.judgeNames, extraction.evidence, extraction.legalReferences].filter((items) => Array.isArray(items) && items.length > 0).length;
-  return Math.round(((filled + arrayFilled) / (scalarFields.length + 3)) * 100);
-}
-
 function DetailRows({ rows }: { rows: Array<[string, React.ReactNode]> }) {
   return (
     <dl className="case-detail-rows">
@@ -102,6 +75,16 @@ function DetailRows({ rows }: { rows: Array<[string, React.ReactNode]> }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+function StructuredTextList({ value, empty = "-", limit = 16 }: { value: unknown; empty?: string; limit?: number }) {
+  const items = structuredTextItems(value, limit);
+  if (!items.length) return <p className="muted">{empty}</p>;
+  return (
+    <ul className="extraction-bullet-list">
+      {items.map((item, index) => <li key={`${index}-${item.slice(0, 48)}`}>{item}</li>)}
+    </ul>
   );
 }
 
@@ -191,12 +174,11 @@ function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
     return <div className="empty-state">This document has no extraction data yet. Re-extract it from Decision Database first.</div>;
   }
 
-  const completeness = extractionCompleteness(extraction);
+  const quality = extractionQuality(extraction);
+  const completeness = quality.score;
   const outcomeLabel = classifyOutcome(extraction.outcome || "");
   const badges = [extraction.taxType, extraction.issueType || extraction.issueSubtype, extraction.documentType, outcomeLabel, `${completeness}% extraction confidence`].filter(Boolean);
   const judges = Array.isArray(extraction.judgeNames) && extraction.judgeNames.length ? extraction.judgeNames.join("; ") : "-";
-  const legalReferences = Array.isArray(extraction.legalReferences) && extraction.legalReferences.length ? extraction.legalReferences.join("; ") : "-";
-  const evidence = Array.isArray(extraction.evidence) && extraction.evidence.length ? extraction.evidence.join("; ") : "-";
   const tabBase = `case-tabs-${safeDomId(document.id)}`;
 
   return (
@@ -212,7 +194,7 @@ function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
           </p>
         </div>
         <div className="case-detail-meter">
-          <span>Extraction confidence</span>
+          <span>Kelengkapan ekstraksi</span>
           <strong>{completeness}%</strong>
         </div>
       </div>
@@ -222,6 +204,12 @@ function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
           <span key={badge}>{badge}</span>
         ))}
       </div>
+      {quality.warnings.length > 0 && (
+        <div className="extraction-quality-warning" role="status">
+          <b>Hasil ekstraksi perlu ditinjau</b>
+          <StructuredTextList value={quality.warnings} />
+        </div>
+      )}
 
       <div className="case-detail-tabs">
         <input className="case-tab-radio" id={`${tabBase}-metadata`} name={tabBase} type="radio" defaultChecked />
@@ -306,13 +294,16 @@ function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
             </CaseDetailCard>
           </section>
           <section className="case-tab-panel">
-            {hasPpnComponentData(extraction) ? (
+            {quality.ppnCase && (hasPpnComponentData(extraction) ? (
               <PpnComponentsCard extraction={extraction} />
             ) : (
               <CaseDetailCard title="Komponen PPN terekstraksi">
-                <p>Belum ada komponen PPN terstruktur pada data ini. Gunakan Re-extract agar field PPN baru dibaca dari dokumen.</p>
+                <StructuredTextList value={[
+                  "Nilai komponen PPN belum berhasil diekstrak secara terstruktur.",
+                  "Jalankan Re-extract lalu verifikasi tabel perhitungan pada PDF sumber."
+                ]} />
               </CaseDetailCard>
-            )}
+            ))}
             <CaseDetailCard title="Nilai sengketa umum">
               <DetailRows
                 rows={[
@@ -328,30 +319,30 @@ function CaseDetailSheet({ document }: { document: StoredDecisionFile }) {
             <CaseDetailCard title="Pokok Sengketa">
               <div className="case-issue-card">
                 <b>{dash(extraction.issueType || extraction.issueSubtype || extraction.correctionObject)}</b>
-                <p>{truncate(extraction.summary || extraction.correctionReason || extraction.taxAuthorityPosition, 700)}</p>
+                <StructuredTextList value={extraction.summary || extraction.correctionReason || extraction.taxAuthorityPosition} limit={8} />
               </div>
             </CaseDetailCard>
             <div className="case-detail-grid two">
               <CaseDetailCard title="Menurut Terbanding / DJP">
-                <p>{truncate(extraction.taxAuthorityPosition || extraction.correctionReason, 700) || "-"}</p>
+                <StructuredTextList value={extraction.taxAuthorityPosition || extraction.correctionReason} limit={10} />
               </CaseDetailCard>
               <CaseDetailCard title="Menurut Pemohon Banding / WP">
-                <p>{truncate(extraction.taxpayerPosition || extraction.taxpayerRebuttal, 700) || "-"}</p>
+                <StructuredTextList value={extraction.taxpayerPosition || extraction.taxpayerRebuttal} limit={10} />
               </CaseDetailCard>
             </div>
             <div className="case-detail-grid two">
               <CaseDetailCard title="Bukti terdeteksi">
-                <p>{evidence}</p>
+                <StructuredTextList value={extraction.evidence} limit={24} />
               </CaseDetailCard>
               <CaseDetailCard title="Dasar hukum terdeteksi">
-                <p>{legalReferences}</p>
+                <StructuredTextList value={extraction.legalReferences} limit={24} />
               </CaseDetailCard>
             </div>
             <CaseDetailCard title="Konten Putusan">
               <DetailRows
                 rows={[
-                  ["Pertimbangan", truncate(extraction.courtReasoning, 1000)],
-                  ["Amar putusan", truncate(extraction.outcome, 520)]
+                  ["Pertimbangan", <StructuredTextList key="reasoning" value={extraction.courtReasoning} limit={14} />],
+                  ["Amar putusan", <StructuredTextList key="outcome" value={extraction.outcome} limit={6} />]
                 ]}
               />
             </CaseDetailCard>

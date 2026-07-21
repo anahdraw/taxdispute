@@ -1,4 +1,5 @@
-import { regulations, type Regulation, type RegulationRelation, type RegulationRelationType } from "./mock-data";
+import { regulations, type Regulation, type RegulationRelation, type RegulationRelationType, type RegulationTranslation } from "./mock-data";
+import { isAllowedOfficialRegulationUrl, officialRegulationSourceLabel } from "./regulation-sources";
 
 export type RegulationTopic = "vat" | "transfer_pricing" | "general";
 
@@ -17,8 +18,68 @@ export function normalizeRegulationText(value: unknown) {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n[ \t]+/g, "\n")
     .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .replace(/\.{2,}/g, ".")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function removeThirdPartySourceMentions(value: unknown) {
+  return normalizeRegulationText(value)
+    .replace(/\s*(?:ortax|hukumonline|ddtc)\s+(?:source|sumber)[^\n.]*\.?/gi, "")
+    .replace(/^\s*(?:source|sumber)\s*:\s*(?:ortax|hukumonline|ddtc)[^\n]*$/gim, "")
+    .replace(/\n{2,}/g, "\n")
+    .replace(/\bcoretax\b/gi, "sistem inti administrasi perpajakan DJP")
+    .trim();
+}
+
+function removeExternalProductNames(value: unknown) {
+  return normalizeRegulationText(value).replace(/\bcoretax\b/gi, "sistem inti administrasi perpajakan DJP");
+}
+
+export function canonicalRegulationKey(record: Pick<Regulation, "citation" | "title">) {
+  const normalized = normalizeRegulationText(`${record.citation || ""} ${record.title || ""}`)
+    .toLowerCase()
+    .replace(/minister(?:ial)? of finance regulation/g, "pmk")
+    .replace(/government regulation/g, "pp")
+    .replace(/dgt regulation/g, "per")
+    .replace(/value added tax law|vat law|\blaw\b/g, "uu")
+    .replace(/nomor|number|no\.?/g, " ")
+    .replace(/tahun|year/g, " ")
+    .replace(/sebagaimana.*$|as amended.*$/g, " ")
+    .replace(/[^a-z0-9/.-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const match = normalized.match(/\b(uu|pp|pmk|per|kep|se)\b[^0-9]*([0-9]+)[^0-9]+(?:[a-z.]+[^0-9]+)?((?:19|20)\d{2})\b/i);
+  return match ? `${match[1].toLowerCase()}-${Number(match[2])}-${match[3]}` : normalized || "unknown-regulation";
+}
+
+const CURATED_EN_TRANSLATIONS: Record<string, RegulationTranslation> = {
+  "uu-8-1983": {
+    title: "Value Added Tax and Luxury Goods Sales Tax Law",
+    focus: "VAT objects, taxable entrepreneurs, tax base, rates, tax invoices, input VAT, exports/imports, and luxury goods sales tax."
+  },
+  "pp-44-2022": {
+    title: "Implementing Regulation for VAT and Luxury Goods Sales Tax",
+    focus: "Implementing rules on taxable supplies, VAT objects, tax base, and the timing of VAT becoming payable."
+  },
+  "uu-7-2021": {
+    title: "Tax Regulation Harmonization Law",
+    focus: "Amendments covering general tax procedure, income tax, VAT, voluntary disclosure, carbon tax, and excise."
+  },
+  "pmk-172-2023": {
+    title: "Arm's-Length Principle and Related-Party Transactions",
+    focus: "Transfer-pricing framework covering related parties, comparability, method selection, documentation, APA, and MAP."
+  }
+};
+
+export function localizeRegulationRecord(record: Regulation, language: "id" | "en"): Regulation {
+  const explicit = record.translations?.[language];
+  const curated = language === "en" ? CURATED_EN_TRANSLATIONS[record.canonicalKey || canonicalRegulationKey(record)] : undefined;
+  const translation = explicit || curated;
+  return translation
+    ? { ...record, title: translation.title || record.title, focus: translation.focus || record.focus, content: translation.content || record.content }
+    : record;
 }
 
 export function normalizeRegulationTopic(value: string | undefined | null): RegulationTopic {
@@ -69,7 +130,10 @@ export function deriveRegulationRelations(record: Regulation): RegulationRelatio
 }
 
 function recordQuality(item: Regulation) {
-  let score = item.source === "official" ? 40 : item.source === "manual" ? 25 : item.source === "ortax" ? 20 : 0;
+  let score = item.source === "official" ? 40 : item.source === "manual" ? 25 : 0;
+  if (isAllowedOfficialRegulationUrl(item.sourceUrl)) score += 100;
+  if (/\b(?:uu|pp|pmk|per|kep|se)\b/i.test(`${item.title} ${item.citation}`)) score += 12;
+  if (item.sourceLanguage === "id") score += 50;
   if (item.updatedAt) score += 10;
   if (item.officialPdfUrl || item.pdfUrl) score += 60;
   if (item.storedPdfUrl) score += 80;
@@ -82,26 +146,35 @@ function recordQuality(item: Regulation) {
 export function mergeRegulationRecords(records: Regulation[]) {
   const merged = new Map<string, Regulation>();
   for (const item of [...regulations, ...records]) {
+    const sourceUrl = isAllowedOfficialRegulationUrl(item.sourceUrl) ? String(item.sourceUrl) : "";
+    const officialPdfUrl = isAllowedOfficialRegulationUrl(item.officialPdfUrl || item.pdfUrl) ? String(item.officialPdfUrl || item.pdfUrl) : "";
+    const canonicalKey = item.canonicalKey || canonicalRegulationKey(item);
     const normalized: Regulation = {
       ...item,
       title: normalizeRegulationText(item.title),
       citation: normalizeRegulationText(item.citation),
-      focus: normalizeRegulationText(item.focus),
-      content: normalizeRegulationText(item.content),
+      focus: removeExternalProductNames(item.focus),
+      content: removeThirdPartySourceMentions(item.content),
+      canonicalKey,
+      sourceLanguage: item.sourceLanguage || (/\b(?:undang-undang|peraturan|pajak|tahun)\b/i.test(`${item.title} ${item.focus}`) ? "id" : "en"),
       topic: item.topic || normalizeRegulationTopic(item.topic),
-      source: item.source || "seed",
+      source: sourceUrl || officialPdfUrl ? "official" : item.source === "seed" ? "seed" : "manual",
+      sourceUrl,
+      officialPdfUrl,
+      pdfUrl: item.storedPdfUrl || officialPdfUrl,
+      sourceAuthority: officialRegulationSourceLabel(sourceUrl || officialPdfUrl),
       relevance: item.relevance || 70,
       ingestionStatus: item.ingestionStatus || (item.extraction ? "ready" : "seed")
     };
     normalized.relations = deriveRegulationRelations(normalized);
-    const previous = merged.get(item.id);
+    const previous = merged.get(canonicalKey);
     if (!previous) {
-      merged.set(item.id, normalized);
+      merged.set(canonicalKey, normalized);
       continue;
     }
     const preferred = recordQuality(normalized) >= recordQuality(previous) ? normalized : previous;
     const fallback = preferred === normalized ? previous : normalized;
-    merged.set(item.id, {
+    merged.set(canonicalKey, {
       ...fallback,
       ...preferred,
       sourceUrl: preferred.sourceUrl || fallback.sourceUrl,
@@ -109,6 +182,9 @@ export function mergeRegulationRecords(records: Regulation[]) {
       officialPdfUrl: preferred.officialPdfUrl || fallback.officialPdfUrl,
       storedPdfUrl: preferred.storedPdfUrl || fallback.storedPdfUrl,
       sourceAuthority: preferred.sourceAuthority || fallback.sourceAuthority,
+      canonicalKey,
+      sourceLanguage: preferred.sourceLanguage || fallback.sourceLanguage,
+      translations: { ...(fallback.translations || {}), ...(preferred.translations || {}) },
       content: preferred.content || fallback.content,
       ingestionMessage: preferred.ingestionMessage || fallback.ingestionMessage,
       fileHash: preferred.fileHash || fallback.fileHash,
@@ -163,77 +239,77 @@ function regulationSearchScore(item: Regulation, question: string, inferredTopic
   return score;
 }
 
-export function buildOrtaxRegulationSeeds(topicValue: string): Regulation[] {
+export function buildOfficialRegulationSeeds(topicValue: string): Regulation[] {
   const topic = normalizeRegulationTopic(topicValue);
   const now = new Date().toISOString();
   if (topic === "transfer_pricing") {
     return [
       {
-        id: "ortax-pmk-172-transfer-pricing",
+        id: "official-pmk-172-transfer-pricing",
         topic,
         title: "Penerapan Prinsip Kewajaran dan Kelaziman Usaha",
         citation: "PMK No. 172 Tahun 2023",
         focus:
           "Kerangka utama transfer pricing: hubungan istimewa, penerapan prinsip kewajaran dan kelaziman usaha, analisis kesebandingan, metode transfer pricing, dokumentasi, secondary adjustment, APA, dan MAP.",
         relevance: 98,
-        source: "ortax",
-        sourceUrl: "https://datacenter.ortax.org/ortax/aturan/show/25467",
+        source: "official",
+        sourceUrl: "https://jdih.kemenkeu.go.id/dok/pmk-172-tahun-2023",
         content:
           "Gunakan sebagai rujukan utama untuk sengketa transfer pricing modern, terutama ketika isu berkaitan dengan hubungan istimewa, metode pembanding, kewajaran margin, dokumentasi, dan pembuktian substansi transaksi.",
         updatedAt: now
       },
       {
-        id: "ortax-pmk-213-tp-doc",
+        id: "official-pmk-213-tp-doc",
         topic,
         title: "Jenis Dokumen dan/atau Informasi Tambahan yang Wajib Disimpan oleh Wajib Pajak yang Melakukan Transaksi dengan Pihak Afiliasi",
         citation: "PMK No. 213/PMK.03/2016",
         focus:
           "Kewajiban dokumentasi transfer pricing, termasuk master file, local file, dan country-by-country report untuk WP dengan transaksi afiliasi.",
         relevance: 92,
-        source: "ortax",
-        sourceUrl: "https://datacenter.ortax.org/",
+        source: "seed",
+        sourceUrl: "",
         content:
           "Pakai untuk mengecek kesiapan dokumen TP, ambang batas, waktu penyediaan dokumen, dan risiko ketika dokumentasi tidak lengkap pada proses pemeriksaan atau sengketa.",
         updatedAt: now
       },
       {
-        id: "ortax-per-22-tp-audit",
+        id: "official-per-22-tp-audit",
         topic,
         title: "Pedoman Pemeriksaan terhadap Wajib Pajak yang Mempunyai Hubungan Istimewa",
         citation: "PER-22/PJ/2013",
         focus:
           "Pedoman pemeriksaan TP: identifikasi transaksi afiliasi, analisis fungsi/aset/risiko, pemilihan metode, pembanding, tested party, dan dokumentasi pendukung.",
         relevance: 90,
-        source: "ortax",
-        sourceUrl: "https://datacenter.ortax.org/",
+        source: "seed",
+        sourceUrl: "",
         content:
           "Berguna untuk memahami cara DJP membangun koreksi TP dan bukti apa yang biasanya diuji dalam sengketa, seperti FAR analysis, benchmarking, dan rekonsiliasi transaksi afiliasi.",
         updatedAt: now
       },
       {
-        id: "ortax-per-32-alp",
+        id: "official-per-32-alp",
         topic,
         title: "Penerapan Prinsip Kewajaran dan Kelaziman Usaha dalam Transaksi antara Wajib Pajak dengan Pihak yang Mempunyai Hubungan Istimewa",
         citation: "PER-32/PJ/2011",
         focus:
           "Panduan operasional penerapan arm's length principle, faktor kesebandingan, metode CUP/RPM/CPM/TNMM/Profit Split, dan dokumentasi analisis.",
         relevance: 84,
-        source: "ortax",
-        sourceUrl: "https://datacenter.ortax.org/ortax?id=14855&mod=aturan",
+        source: "seed",
+        sourceUrl: "",
         content:
           "Tetap berguna untuk perkara tahun pajak lama atau analisis historis, sambil memeriksa apakah ketentuan terbaru sudah menggantikannya untuk masa pajak terkait.",
         updatedAt: now
       },
       {
-        id: "ortax-pmk-22-apa",
+        id: "official-pmk-22-apa",
         topic,
         title: "Tata Cara Pelaksanaan Kesepakatan Harga Transfer",
         citation: "PMK No. 22/PMK.03/2020",
         focus:
           "Prosedur Advance Pricing Agreement untuk mitigasi risiko transfer pricing ke depan dan referensi pendekatan penyelesaian sengketa.",
         relevance: 78,
-        source: "ortax",
-        sourceUrl: "https://datacenter.ortax.org/",
+        source: "official",
+        sourceUrl: "https://jdih.kemenkeu.go.id/dok/22-pmk-03-2020",
         content:
           "Gunakan sebagai konteks tambahan jika rekomendasi sengketa juga membutuhkan strategi pencegahan koreksi berulang melalui APA.",
         updatedAt: now
@@ -244,43 +320,43 @@ export function buildOrtaxRegulationSeeds(topicValue: string): Regulation[] {
   if (topic === "vat") {
     return [
       {
-        id: "ortax-uu-ppn",
+        id: "official-uu-ppn",
         topic,
         title: "Undang-Undang Pajak Pertambahan Nilai",
         citation: "UU No. 8 Tahun 1983 sebagaimana diubah terakhir",
         focus:
           "Dasar objek PPN, penyerahan BKP/JKP, DPP, saat terutang, pengkreditan Pajak Masukan, dan dokumentasi formal.",
         relevance: 96,
-        source: "ortax",
-        sourceUrl: "https://datacenter.ortax.org/",
+        source: "official",
+        sourceUrl: "https://peraturan.bpk.go.id/Details/46990/uu-no-8-tahun-1983",
         content:
           "Rujukan utama untuk menilai apakah transaksi merupakan objek PPN, apakah pajak masukan dapat dikreditkan, dan apakah koreksi DJP menyasar elemen material atau formal.",
         updatedAt: now
       },
       {
-        id: "ortax-pp-44-2022",
+        id: "official-pp-44-2022",
         topic,
         title: "Penerapan terhadap Pajak Pertambahan Nilai Barang dan Jasa dan Pajak Penjualan atas Barang Mewah",
         citation: "PP No. 44 Tahun 2022",
         focus:
           "Aturan pelaksanaan PPN setelah UU HPP, termasuk perlakuan transaksi, DPP, objek pajak, dan waktu terutang.",
         relevance: 88,
-        source: "ortax",
-        sourceUrl: "https://datacenter.ortax.org/ortax/aturan/show/26049",
+        source: "official",
+        sourceUrl: "https://jdih.kemenkeu.go.id/dok/pp-44-tahun-2022",
         content:
           "Gunakan untuk memperkuat analisis teknis PPN ketika sengketa berkaitan dengan klasifikasi penyerahan, DPP, atau saat terutang.",
         updatedAt: now
       },
       {
-        id: "ortax-per-faktur-ppn",
+        id: "official-per-faktur-ppn",
         topic,
         title: "Ketentuan Faktur Pajak",
         citation: "Peraturan Direktur Jenderal Pajak tentang Faktur Pajak",
         focus:
           "Validitas faktur pajak, penggantian/pembetulan faktur, administrasi faktur, dan pembuktian formal Pajak Masukan.",
         relevance: 82,
-        source: "ortax",
-        sourceUrl: "https://datacenter.ortax.org/",
+        source: "seed",
+        sourceUrl: "",
         content:
           "Pakai untuk sengketa yang menilai apakah bukti faktur pajak cukup kuat, cacat formal bisa diperbaiki, atau perlu ditopang bukti material transaksi.",
         updatedAt: now
@@ -290,15 +366,15 @@ export function buildOrtaxRegulationSeeds(topicValue: string): Regulation[] {
 
   return [
     {
-      id: `ortax-general-${Date.now()}`,
+      id: `official-general-${Date.now()}`,
       topic,
-      title: "Ortax Tax Regulation Search",
-      citation: "Ortax Data Center",
-      focus: "General Indonesian tax regulation reference selected by topic.",
+      title: "Repository Peraturan Resmi",
+      citation: "JDIH Kementerian Keuangan / JDIH BPK",
+      focus: "Rujukan umum peraturan pajak Indonesia dari repository pemerintah.",
       relevance: 70,
-      source: "ortax",
-      sourceUrl: "https://datacenter.ortax.org/",
-      content: "Use the Ortax Data Center source as a starting point, then add specific regulation cards manually when the exact regulation is identified.",
+      source: "official",
+      sourceUrl: "https://jdih.kemenkeu.go.id/",
+      content: "Gunakan repository pemerintah sebagai titik awal, lalu tambahkan kartu peraturan spesifik setelah nomor aturan teridentifikasi.",
       updatedAt: now
     }
   ];

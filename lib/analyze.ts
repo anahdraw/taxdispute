@@ -2,6 +2,7 @@ import { comparableDecisions, regulations } from "./mock-data";
 import type { ComparableDecision, OutcomeKey } from "./mock-data";
 import type { ExtractionResult } from "./extraction";
 import type { StoredDecisionFile } from "./stored-decisions";
+import { localizeRegulationRecord } from "./regulation-knowledge";
 
 export type AnalyzeInput = {
   taxpayerName: string;
@@ -378,29 +379,31 @@ export function buildAnalysis(input: AnalyzeInput, extraction?: ExtractionResult
   const recommendation =
     input.language === "en"
       ? [
-          `Initial recommendation for ${input.taxpayerName || "the taxpayer"}`,
-          `The dispute should be framed around ${input.issueType || "the main tax issue"} at the ${input.stage || "appeal"} stage.`,
-          "The taxpayer position should be supported by a clear chronology, amount reconciliation, and evidence mapping against each correction reason.",
+          "## Recommended actions",
+          `- Initial recommendation for **${input.taxpayerName || "the taxpayer"}**.`,
+          `- Frame the dispute around ${input.issueType || "the main tax issue"} at the ${input.stage || "appeal"} stage.`,
+          "- Support the taxpayer position with a clear chronology, amount reconciliation, and evidence mapping against each correction reason.",
           isTransferPricing
-            ? "For transfer pricing, prioritize FAR analysis, transaction segmentation, benchmarking quality, tested-party logic, method selection, and reconciliation between TP documentation, financial statements, and tax returns."
-            : "For VAT, prioritize invoice validity, VAT return reconciliation, payment flow, transaction substance, and counterparty confirmation.",
+            ? "- For transfer pricing, prioritize FAR analysis, transaction segmentation, benchmarking quality, tested-party logic, method selection, and reconciliation between TP documentation, financial statements, and tax returns."
+            : "- For VAT, prioritize invoice validity, VAT return reconciliation, payment flow, transaction substance, and counterparty confirmation.",
           topCases.length > 1
-            ? `Use ${topCases[0].number} mainly as a risk comparator and ${topCases[1].number} as a supporting comparator where the facts and evidence chain are genuinely similar.`
-            : `Use ${topCases[0]?.number || "the most relevant decision"} as a comparator only where the facts and evidence chain are genuinely similar.`,
-          "Before filing, complete the evidence gaps and verify the applicable legal basis against the relevant tax period."
-        ].join("\n\n")
+            ? `- Use ${topCases[0].number} mainly as a risk comparator and ${topCases[1].number} as a supporting comparator where the facts and evidence chain are genuinely similar.`
+            : `- Use ${topCases[0]?.number || "the most relevant decision"} as a comparator only where the facts and evidence chain are genuinely similar.`,
+          "- Before filing, complete the evidence gaps and verify the applicable legal basis against the relevant tax period."
+        ].join("\n")
       : [
-          `Rekomendasi awal untuk ${input.taxpayerName || "Wajib Pajak"}`,
-          `Sengketa sebaiknya disusun di sekitar ${input.issueType || "isu pajak utama"} pada tahap ${input.stage || "banding"}.`,
-          "Posisi WP perlu didukung kronologi, rekonsiliasi angka, dan pemetaan bukti terhadap setiap alasan koreksi.",
+          "## Rekomendasi tindakan",
+          `- Rekomendasi awal untuk **${input.taxpayerName || "Wajib Pajak"}**.`,
+          `- Susun sengketa di sekitar ${input.issueType || "isu pajak utama"} pada tahap ${input.stage || "banding"}.`,
+          "- Dukung posisi WP dengan kronologi, rekonsiliasi angka, dan pemetaan bukti terhadap setiap alasan koreksi.",
           isTransferPricing
-            ? "Untuk transfer pricing, prioritaskan analisis FAR, segmentasi transaksi, kualitas benchmarking, logika tested party, pemilihan metode, dan rekonsiliasi antara TP Doc, laporan keuangan, dan SPT."
-            : "Untuk PPN, prioritaskan validitas faktur, rekonsiliasi SPT Masa PPN, arus pembayaran, substansi transaksi, dan konfirmasi lawan transaksi.",
+            ? "- Untuk transfer pricing, prioritaskan analisis FAR, segmentasi transaksi, kualitas benchmarking, logika tested party, pemilihan metode, dan rekonsiliasi antara TP Doc, laporan keuangan, dan SPT."
+            : "- Untuk PPN, prioritaskan validitas faktur, rekonsiliasi SPT Masa PPN, arus pembayaran, substansi transaksi, dan konfirmasi lawan transaksi.",
           topCases.length > 1
-            ? `Gunakan ${topCases[0].number} terutama sebagai pembanding risiko dan ${topCases[1].number} sebagai pembanding pendukung apabila fakta dan rantai buktinya benar-benar mirip.`
-            : `Gunakan ${topCases[0]?.number || "putusan paling relevan"} sebagai pembanding hanya apabila fakta dan rantai buktinya benar-benar mirip.`,
-          "Sebelum pengajuan, lengkapi gap bukti dan cocokkan dasar hukum yang berlaku dengan masa pajak yang relevan."
-        ].join("\n\n");
+            ? `- Gunakan ${topCases[0].number} terutama sebagai pembanding risiko dan ${topCases[1].number} sebagai pembanding pendukung apabila fakta dan rantai buktinya benar-benar mirip.`
+            : `- Gunakan ${topCases[0]?.number || "putusan paling relevan"} sebagai pembanding hanya apabila fakta dan rantai buktinya benar-benar mirip.`,
+          "- Sebelum pengajuan, lengkapi gap bukti dan cocokkan dasar hukum yang berlaku dengan masa pajak yang relevan."
+        ].join("\n");
 
   return {
     score,
@@ -410,7 +413,10 @@ export function buildAnalysis(input: AnalyzeInput, extraction?: ExtractionResult
     indication,
     topCases,
     evidenceGaps,
-    regulations: regulations.filter((item) => (isTransferPricing ? item.topic === "transfer_pricing" : isVat ? item.topic === "vat" : true)).slice(0, 4),
+    regulations: regulations
+      .filter((item) => (isTransferPricing ? item.topic === "transfer_pricing" : isVat ? item.topic === "vat" : true))
+      .map((item) => localizeRegulationRecord(item, input.language))
+      .slice(0, 4),
     recommendation,
     llmStatus: {
       used: false,

@@ -143,6 +143,16 @@ export async function listDecisionDocumentSummaries(params: PaginationParams): P
             'issueSubtype', e.extraction->>'issueSubtype',
             'correctionAmount', e.extraction->>'correctionAmount',
             'correctionObject', e.extraction->>'correctionObject',
+            'taxpayerAddress', e.extraction->>'taxpayerAddress',
+            'legalCounselName', e.extraction->>'legalCounselName',
+            'djpUnit', e.extraction->>'djpUnit',
+            'taxAuthorityPosition', left(e.extraction->>'taxAuthorityPosition', 1),
+            'taxpayerPosition', left(e.extraction->>'taxpayerPosition', 1),
+            'courtReasoning', left(e.extraction->>'courtReasoning', 1),
+            'judgeNames', e.extraction->'judgeNames',
+            'evidence', e.extraction->'evidence',
+            'legalReferences', e.extraction->'legalReferences',
+            'ppnComponents', e.extraction->'ppnComponents',
             'outcome', e.extraction->>'outcome',
             'summary', left(e.extraction->>'summary', 180),
             'extractionCompleteness', c.completeness,
@@ -315,6 +325,9 @@ export async function ensureRegulationSchema() {
       ADD COLUMN IF NOT EXISTS official_pdf_url TEXT NOT NULL DEFAULT '',
       ADD COLUMN IF NOT EXISTS stored_pdf_url TEXT NOT NULL DEFAULT '',
       ADD COLUMN IF NOT EXISTS source_authority TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS canonical_key TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS source_language TEXT NOT NULL DEFAULT 'id',
+      ADD COLUMN IF NOT EXISTS translations JSONB NOT NULL DEFAULT '{}'::jsonb,
       ADD COLUMN IF NOT EXISTS ingestion_status TEXT NOT NULL DEFAULT 'seed',
       ADD COLUMN IF NOT EXISTS ingestion_message TEXT NOT NULL DEFAULT '',
       ADD COLUMN IF NOT EXISTS file_hash TEXT NOT NULL DEFAULT '',
@@ -325,6 +338,47 @@ export async function ensureRegulationSchema() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS tax_regulations_topic_idx
       ON tax_regulations (topic, updated_at DESC);
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS tax_regulations_canonical_key_idx
+      ON tax_regulations (canonical_key)
+      WHERE canonical_key <> '';
+  `);
+  await pool.query(`
+    UPDATE tax_regulations
+    SET
+      source = CASE WHEN source = 'seed' THEN 'seed' ELSE 'manual' END,
+      source_url = '',
+      source_authority = ''
+    WHERE source_url <> ''
+      AND source_url !~* '^https?://([a-z0-9-]+\\.)*go\\.id(?:[/:]|$)';
+  `);
+  await pool.query(`
+    UPDATE tax_regulations
+    SET
+      pdf_url = CASE
+        WHEN pdf_url ~* '^https?://([a-z0-9-]+\\.)*go\\.id(?:[/:]|$)' THEN pdf_url
+        ELSE ''
+      END,
+      official_pdf_url = CASE
+        WHEN official_pdf_url ~* '^https?://([a-z0-9-]+\\.)*go\\.id(?:[/:]|$)' THEN official_pdf_url
+        ELSE ''
+      END
+    WHERE (pdf_url <> '' AND pdf_url !~* '^https?://([a-z0-9-]+\\.)*go\\.id(?:[/:]|$)')
+       OR (official_pdf_url <> '' AND official_pdf_url !~* '^https?://([a-z0-9-]+\\.)*go\\.id(?:[/:]|$)');
+  `);
+  await pool.query(`
+    UPDATE tax_regulations
+    SET
+      focus = regexp_replace(focus, '\\mCoretax\\M', 'sistem inti administrasi perpajakan DJP', 'gi'),
+      content = regexp_replace(
+        regexp_replace(content, '[^.\\n]*(Ortax|Hukumonline|DDTC)[^.\\n]*\\.?', '', 'gi'),
+        '\\mCoretax\\M',
+        'sistem inti administrasi perpajakan DJP',
+        'gi'
+      )
+    WHERE focus ~* '\\mCoretax\\M'
+       OR content ~* '(Ortax|Hukumonline|DDTC|Coretax)';
   `);
 }
 
@@ -341,12 +395,15 @@ function regulationFromRow(row: Record<string, unknown>, includeExtraction = tru
     citation: String(row.citation),
     focus: String(row.focus),
     relevance: Number(row.relevance || 70),
-    source: source === "ortax" ? "ortax" : source === "seed" ? "seed" : source === "official" ? "official" : "manual",
+    source: source === "seed" ? "seed" : source === "official" ? "official" : "manual",
     sourceUrl: String(row.source_url || ""),
     pdfUrl: storedPdfUrl || String(row.pdf_url || "") || officialPdfUrl,
     officialPdfUrl,
     storedPdfUrl,
     sourceAuthority: String(row.source_authority || ""),
+    canonicalKey: String(row.canonical_key || ""),
+    sourceLanguage: String(row.source_language || "id") === "en" ? "en" : "id",
+    translations: row.translations && typeof row.translations === "object" ? (row.translations as Regulation["translations"]) : {},
     content: includeExtraction ? String(row.content || "") : "",
     ingestionStatus: status,
     ingestionMessage: String(row.ingestion_message || ""),
@@ -362,7 +419,7 @@ export async function listTaxRegulations(): Promise<Regulation[]> {
   await ensureRegulationSchema();
   const result = await getPool().query(`
     SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url,
-           official_pdf_url, stored_pdf_url, source_authority, content, ingestion_status,
+           official_pdf_url, stored_pdf_url, source_authority, canonical_key, source_language, translations, content, ingestion_status,
            ingestion_message, file_hash, extraction, relations, extracted_at, updated_at
     FROM tax_regulations
     ORDER BY topic ASC, updated_at DESC, relevance DESC;
@@ -381,7 +438,7 @@ export async function listTaxRegulationSummaries(params: PaginationParams): Prom
   const result = await getPool().query(
     `
       SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url,
-             official_pdf_url, stored_pdf_url, source_authority, ingestion_status,
+             official_pdf_url, stored_pdf_url, source_authority, canonical_key, source_language, translations, ingestion_status,
              ingestion_message, file_hash, relations, extracted_at, updated_at
       FROM tax_regulations
       ORDER BY topic ASC, updated_at DESC, relevance DESC
@@ -397,7 +454,7 @@ export async function getTaxRegulationById(id: string): Promise<Regulation | nul
   const result = await getPool().query(
     `
       SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url,
-             official_pdf_url, stored_pdf_url, source_authority, content, ingestion_status,
+             official_pdf_url, stored_pdf_url, source_authority, canonical_key, source_language, translations, content, ingestion_status,
              ingestion_message, file_hash, extraction, relations, extracted_at, updated_at
       FROM tax_regulations
       WHERE id = $1
@@ -420,10 +477,11 @@ export async function upsertTaxRegulations(records: Regulation[]) {
         INSERT INTO tax_regulations
           (id, topic, title, citation, focus, relevance, source, source_url, pdf_url,
            official_pdf_url, stored_pdf_url, source_authority, content, ingestion_status,
-           ingestion_message, file_hash, extraction, relations, extracted_at, updated_at)
+           canonical_key, source_language, translations, ingestion_message, file_hash,
+           extraction, relations, extracted_at, updated_at)
         VALUES
           ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-           $15, $16, $17::jsonb, $18::jsonb, $19, $20)
+           $15, $16, $17::jsonb, $18, $19, $20::jsonb, $21::jsonb, $22, $23)
         ON CONFLICT (id) DO UPDATE SET
           topic = EXCLUDED.topic,
           title = EXCLUDED.title,
@@ -438,6 +496,9 @@ export async function upsertTaxRegulations(records: Regulation[]) {
           source_authority = EXCLUDED.source_authority,
           content = EXCLUDED.content,
           ingestion_status = EXCLUDED.ingestion_status,
+          canonical_key = EXCLUDED.canonical_key,
+          source_language = EXCLUDED.source_language,
+          translations = EXCLUDED.translations,
           ingestion_message = EXCLUDED.ingestion_message,
           file_hash = EXCLUDED.file_hash,
           extraction = EXCLUDED.extraction,
@@ -460,6 +521,9 @@ export async function upsertTaxRegulations(records: Regulation[]) {
         record.sourceAuthority || "",
         record.content || "",
         record.ingestionStatus || "seed",
+        record.canonicalKey || "",
+        record.sourceLanguage || "id",
+        JSON.stringify(record.translations || {}),
         record.ingestionMessage || "",
         record.fileHash || "",
         record.extraction ? JSON.stringify(record.extraction) : null,

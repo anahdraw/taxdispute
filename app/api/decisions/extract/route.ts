@@ -6,16 +6,14 @@ import { modelChoiceFromRequest } from "@/lib/model-options";
 import { getManagedPrompt } from "@/lib/server-settings";
 import { canUsePdfModel, configuredModel } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
+import { normalizeExtractedText, structuredTextItems } from "@/lib/text-presentation";
 
 export const runtime = "nodejs";
 
 const MAX_EXTRACT_BYTES = 3.6 * 1024 * 1024;
 
 function cleanMergedText(value: unknown) {
-  return String(value || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\bChunk\s+\d+\s*:\s*/gi, "\n\n")
-    .replace(/\b(?:Section|Bagian|Halaman|Pages?)\s+\d+(?:\s*[-–]\s*\d+)?\s*:\s*/gi, "\n\n")
+  return normalizeExtractedText(value)
     .split(/\n{2,}/)
     .map((part) => part.replace(/\s+/g, " ").trim())
     .filter(Boolean)
@@ -42,7 +40,7 @@ function mergeExtractions(parts: ExtractionResult[], originalName: string, langu
     const value = parts.map((part) => part[field]).find((item) => typeof item === "string" && item.trim());
     return typeof value === "string" ? cleanMergedText(value) : "";
   };
-  const unique = (values: string[][]) => Array.from(new Set(values.flat().map((item) => item.trim()).filter(Boolean))).slice(0, 24);
+  const unique = (values: string[][]) => structuredTextItems(values.flat(), 24);
   const combined = (field: keyof ExtractionResult) =>
     combineExtractionText(
       parts.map((part) => {

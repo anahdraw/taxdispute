@@ -2,8 +2,9 @@ import type { AnalysisResult, AnalyzeInput } from "./analyze";
 import type { ExtractionResult } from "./extraction";
 import { comparableDecisions, regulations, type Regulation } from "./mock-data";
 import { DEFAULT_LLM_MODEL_CHOICE, normalizeModelChoice, type LlmModelChoice } from "./model-options";
-import { chooseRegulationContext } from "./regulation-knowledge";
+import { chooseRegulationContext, localizeRegulationRecord } from "./regulation-knowledge";
 import { tierWorkProfiles, type TierWorkProfile } from "./tier-profiles";
+import { normalizeSmartAnswerMarkdown } from "./answer-format";
 
 export type LlmStatus = {
   used: boolean;
@@ -405,20 +406,20 @@ export function extractJsonObject(text: string) {
 function localTierAnalysisRecommendation(recommendation: string, language: "id" | "en", tierProfile: TierWorkProfile) {
   if (language === "en") {
     if (tierProfile.analysisDepth === "simple") {
-      return `Silver triage profile\n\n${recommendation}\n\nNext steps: confirm the main disputed amount, collect the strongest evidence, and escalate to deeper regulation/database review before filing.`;
+      return `## Silver triage profile\n\n${recommendation}\n\n## Next steps\n\n- Confirm the main disputed amount.\n- Collect the strongest evidence.\n- Escalate to deeper regulation/database review before filing.`;
     }
     if (tierProfile.analysisDepth === "standard") {
-      return `Gold advisor analysis profile\n\n${recommendation}\n\nAdvisor focus: align evidence with legal basis, compare the closest decisions, prepare rebuttal points, and identify missing source regulations before drafting.`;
+      return `## Gold advisor analysis profile\n\n${recommendation}\n\n## Advisor focus\n\n- Align evidence with the legal basis.\n- Compare the closest decisions.\n- Prepare rebuttal points.\n- Identify missing source regulations before drafting.`;
     }
-    return `Platinum deep case memo profile\n\n${recommendation}\n\nDeep review agenda: build a factual chronology, map taxpayer and tax authority arguments, test comparable decisions, synthesize regulations by hierarchy, prepare counterarguments, and turn evidence gaps into a filing checklist.`;
+    return `## Platinum deep case memo profile\n\n${recommendation}\n\n## Deep review agenda\n\n- Build a factual chronology.\n- Map taxpayer and tax authority arguments.\n- Test comparable decisions.\n- Synthesize regulations by hierarchy.\n- Prepare counterarguments and turn evidence gaps into a filing checklist.`;
   }
   if (tierProfile.analysisDepth === "simple") {
-    return `Profil triage Silver\n\n${recommendation}\n\nLangkah berikutnya: konfirmasi nilai sengketa utama, kumpulkan bukti terkuat, dan eskalasi ke pendalaman aturan/database sebelum filing.`;
+    return `## Profil triage Silver\n\n${recommendation}\n\n## Langkah berikutnya\n\n- Konfirmasi nilai sengketa utama.\n- Kumpulkan bukti terkuat.\n- Eskalasi ke pendalaman aturan/database sebelum filing.`;
   }
   if (tierProfile.analysisDepth === "standard") {
-    return `Profil analisis advisor Gold\n\n${recommendation}\n\nFokus advisor: cocokkan bukti dengan dasar hukum, bandingkan putusan terdekat, siapkan rebuttal, dan identifikasi aturan sumber yang masih kurang sebelum drafting.`;
+    return `## Profil analisis advisor Gold\n\n${recommendation}\n\n## Fokus advisor\n\n- Cocokkan bukti dengan dasar hukum.\n- Bandingkan putusan terdekat.\n- Siapkan rebuttal.\n- Identifikasi aturan sumber yang masih kurang sebelum drafting.`;
   }
-  return `Profil memo mendalam Platinum\n\n${recommendation}\n\nAgenda review mendalam: susun kronologi fakta, petakan argumen WP dan DJP, uji putusan pembanding, sintesis aturan berdasarkan hierarki, siapkan counterargument, dan ubah celah bukti menjadi checklist filing.`;
+  return `## Profil memo mendalam Platinum\n\n${recommendation}\n\n## Agenda review mendalam\n\n- Susun kronologi fakta.\n- Petakan argumen WP dan DJP.\n- Uji putusan pembanding.\n- Sintesis aturan berdasarkan hierarki.\n- Siapkan kontra-argumen dan ubah celah bukti menjadi checklist filing.`;
 }
 
 export async function buildLlmAnalysis(
@@ -434,7 +435,7 @@ export async function buildLlmAnalysis(
   const matchedRegulations = chooseRegulationContext(
     regulationContext.length ? regulationContext : regulations,
     `${input.taxType} ${input.issueType} ${input.taxAuthorityPosition} ${input.taxpayerPosition}`
-  ).slice(0, tierProfile.regulationContextLimit);
+  ).slice(0, tierProfile.regulationContextLimit).map((item) => localizeRegulationRecord(item, input.language));
   if (!runtime.remoteAvailable) {
     const status = missingKeyStatus(input.language, modelChoice);
     return {
@@ -463,8 +464,8 @@ export async function buildLlmAnalysis(
     {
       instruction:
         input.language === "en"
-          ? `${tierProfile.prompts.en.analysisInstruction} Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Use the regulation context that best matches the case topic. Use clear headings in plain text. Do not use Markdown tables.${managedPrompt?.instruction ? ` Managed instruction: ${managedPrompt.instruction}` : ""}`
-          : `${tierProfile.prompts.id.analysisInstruction} Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Gunakan konteks peraturan yang paling cocok dengan topik kasus. Gunakan heading teks biasa. Jangan gunakan tabel Markdown.${managedPrompt?.instruction ? ` Instruksi terkelola: ${managedPrompt.instruction}` : ""}`,
+          ? `${tierProfile.prompts.en.analysisInstruction} Keep numeric scores if they are reasonable. Return JSON with indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Use the regulation context that best matches the case topic. In recommendation, use Markdown ## headings and one concise idea per bullet; never return a wall of prose or a Markdown table. Keep reasoning and implication concise and cleanly punctuated.${managedPrompt?.instruction ? ` Managed instruction: ${managedPrompt.instruction}` : ""}`
+          : `${tierProfile.prompts.id.analysisInstruction} Pertahankan skor numerik jika masih wajar. Kembalikan JSON dengan indication, evidenceGaps, recommendation, topCases[].reasoning, topCases[].implication. Gunakan konteks peraturan yang paling cocok dengan topik kasus. Pada recommendation, gunakan heading Markdown ## dan satu gagasan ringkas per bullet; jangan kembalikan paragraf panjang atau tabel Markdown. Pastikan reasoning dan implication ringkas dengan tanda baca rapi.${managedPrompt?.instruction ? ` Instruksi terkelola: ${managedPrompt.instruction}` : ""}`,
       tierProfile: {
         tier: tierProfile.tier,
         analysisDepth: tierProfile.analysisDepth,
@@ -533,12 +534,14 @@ export async function answerRegulationQuestion(
 ) {
   const runtime = resolveLlmRuntime(modelChoice);
   const model = runtime.model;
-  const context = (regulationContext.length ? regulationContext : regulations).slice(0, tierProfile.regulationContextLimit);
+  const context = (regulationContext.length ? regulationContext : regulations)
+    .slice(0, tierProfile.regulationContextLimit)
+    .map((item) => localizeRegulationRecord(item, language));
   const top = context.slice(0, 3);
   const localAnswer =
     language === "en"
-      ? `Based on the available regulation cards, start with ${top[0]?.title || "the closest regulation"} (${top[0]?.citation || "local context"}). Then compare it with ${top[1]?.title || "supporting rules"}${top[1]?.citation ? ` (${top[1].citation})` : ""} for supporting requirements, evidence, and dispute positioning.`
-      : `Berdasarkan kartu peraturan yang tersedia, mulai dari ${top[0]?.title || "aturan terdekat"} (${top[0]?.citation || "konteks lokal"}). Lalu sandingkan dengan ${top[1]?.title || "aturan pendukung"}${top[1]?.citation ? ` (${top[1].citation})` : ""} untuk syarat pendukung, pembuktian, dan posisi sengketa.`;
+      ? `## Short answer\n\n- Start with **${top[0]?.title || "the closest regulation"}** (${top[0]?.citation || "local context"}).\n- Compare it with ${top[1]?.title || "supporting rules"}${top[1]?.citation ? ` (${top[1].citation})` : ""} for supporting requirements, evidence, and dispute positioning.`
+      : `## Jawaban singkat\n\n- Mulai dari **${top[0]?.title || "aturan terdekat"}** (${top[0]?.citation || "konteks lokal"}).\n- Sandingkan dengan ${top[1]?.title || "aturan pendukung"}${top[1]?.citation ? ` (${top[1].citation})` : ""} untuk syarat pendukung, pembuktian, dan posisi sengketa.`;
   const tierLocalAnswer =
     language === "en"
       ? `${tierProfile.labels.en.regulation} profile\n\n${localAnswer}\n\nNew-rule intake strategy: ${tierProfile.labels.en.ruleIntake}. Store each new rule with topic, title, citation, focus, source URL, content notes, relevance, and updated date.`
@@ -563,7 +566,9 @@ export async function answerRegulationQuestion(
     language === "en"
       ? `You are an Indonesian tax regulation chatbot for tax disputes. Answer only from the provided regulation context. Prefer records whose ingestionStatus is ready and whose extraction was produced from an official PDF. Distinguish seed notes from PDF extraction. State the applicable rule, verified article/page when available, effective date or legal-status uncertainty, and legal relationships such as amends, revokes, or implements. Cite the title/citation and source URL. If context is insufficient, say so and identify the missing official regulation or PDF. ${tierProfile.prompts.en.regulationInstruction}`
       : `Anda adalah chatbot peraturan pajak Indonesia untuk sengketa pajak. Jawab hanya dari konteks peraturan yang diberikan. Prioritaskan record dengan ingestionStatus ready dan extraction yang berasal dari PDF resmi. Bedakan catatan seed dari hasil ekstraksi PDF. Jelaskan aturan yang berlaku, pasal/halaman terverifikasi jika tersedia, tanggal berlaku atau ketidakpastian status, serta relasi hukum seperti mengubah, mencabut, atau melaksanakan. Cantumkan judul/sitasi dan URL sumber. Jika konteks belum cukup, nyatakan kekurangannya dan sebutkan aturan atau PDF resmi yang masih diperlukan. ${tierProfile.prompts.id.regulationInstruction}`;
-  const system = managedPrompt?.system?.trim() || defaultSystem;
+  const system = `${managedPrompt?.system?.trim() || defaultSystem}\n\n${language === "en"
+    ? "Return clean Markdown with ## headings, one concise idea per bullet, and no Markdown tables or long prose blocks."
+    : "Kembalikan Markdown rapi dengan heading ##, satu gagasan ringkas per bullet, tanpa tabel Markdown atau paragraf panjang."}`;
   const prompt = JSON.stringify(
     {
       question,
@@ -582,7 +587,7 @@ export async function answerRegulationQuestion(
   );
 
   try {
-    const answer = await callOpenAIText(prompt, system, modelChoice);
+    const answer = normalizeSmartAnswerMarkdown(await callOpenAIText(prompt, system, modelChoice));
     return {
       answer,
       citations: top,
