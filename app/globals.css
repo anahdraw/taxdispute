@@ -9463,3 +9463,242 @@ body {
     padding-top: 24px;
   }
 }
+
+/* Compact identity rail and language control in the top command bar. */
+.sidebar-brand-full {
+  min-width: 0;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(0, 21, 63, 0.09);
+  padding: 2px 0 18px;
+}
+
+.sidebar-brand-full .alpha-brand {
+  width: 100%;
+  gap: 10px;
+}
+
+.sidebar-brand-full .alpha-brand > img {
+  width: 50px;
+}
+
+.sidebar-brand-full .alpha-brand-copy {
+  overflow: hidden;
+}
+
+.sidebar-brand-full .alpha-brand-copy strong {
+  overflow: hidden;
+  font-size: 0.98rem;
+  text-overflow: ellipsis;
+}
+
+.sidebar-brand-full .alpha-brand-copy span {
+  margin-top: 4px;
+  font-size: 0.54rem;
+  line-height: 1.25;
+}
+
+.sidebar-brand-full .alpha-brand-copy small {
+  display: none;
+}
+
+.sidebar nav {
+  margin-top: 18px;
+}
+
+.toolbar-language {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  border: 1px solid #2a383f;
+  border-radius: 8px;
+  background: rgba(17, 24, 28, 0.9);
+  padding: 4px 5px 4px 9px;
+}
+
+.toolbar-language > span {
+  color: #9fadb4;
+  font-size: 0.62rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.toolbar-language select {
+  width: 54px;
+  height: 28px;
+  min-height: 28px;
+  border-color: rgba(0, 167, 225, 0.34);
+  background: #0d1519;
+  color: #e7f4f9;
+  font-size: 0.7rem;
+  font-weight: 850;
+  padding: 3px 22px 3px 8px;
+}
+
+.theme-light .toolbar-language {
+  border-color: #d9e4ea;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.theme-light .toolbar-language > span {
+  color: #68757e;
+}
+
+.theme-light .toolbar-language select {
+  border-color: #c4e7f6;
+  background: #f1faff;
+  color: #17647f;
+}
+
+@media (max-width: 760px) {
+  .toolbar-language {
+    padding-left: 5px;
+  }
+
+  .toolbar-language > span {
+    display: none;
+  }
+
+  .app-shell,
+  .app-shell.theme-light,
+  .app-shell.sidebar-collapsed,
+  .app-shell.theme-light.sidebar-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar,
+  .app-shell.sidebar-collapsed .sidebar {
+    position: relative;
+    z-index: 6;
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--app-border, #dbe6ee);
+    padding: 12px;
+    box-shadow: 0 8px 22px rgba(28, 44, 57, 0.06);
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-brand-full,
+  .sidebar-brand-full {
+    display: block;
+    width: fit-content;
+    border-bottom: 0;
+    padding: 0;
+  }
+
+  .sidebar-brand-full .alpha-brand {
+    gap: 8px;
+  }
+
+  .sidebar-brand-full .alpha-brand > img {
+    width: 38px;
+  }
+
+  .sidebar-brand-full .alpha-brand-copy strong {
+    max-width: none;
+    font-size: 0.86rem;
+  }
+
+  .sidebar-brand-full .alpha-brand-copy span {
+    margin-top: 2px;
+    font-size: 0.46rem;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar-brand-compact,
+  .sidebar-brand-compact {
+    display: none;
+  }
+
+  .sidebar nav,
+  .app-shell.sidebar-collapsed .sidebar nav {
+    display: flex;
+    grid-template-columns: none;
+    gap: 6px;
+    margin-top: 11px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+
+  .sidebar nav button,
+  .app-shell.sidebar-collapsed .sidebar nav button {
+    display: grid;
+    grid-template-columns: 16px minmax(0, auto) auto;
+    flex: 0 0 auto;
+    justify-content: start;
+    min-height: 38px;
+    border-radius: 7px;
+    padding: 7px 10px;
+  }
+
+  .app-shell.sidebar-collapsed .sidebar nav button .nav-label,
+  .app-shell.sidebar-collapsed .sidebar nav button .nav-tier,
+  .sidebar nav button .nav-label,
+  .sidebar nav button .nav-tier {
+    display: inline-grid;
+  }
+
+  .sidebar nav button .nav-label {
+    max-width: 124px;
+    font-size: 0.72rem;
+  }
+
+  .sidebar nav button .nav-tier {
+    width: 18px;
+    height: 18px;
+  }
+
+  .content,
+  .app-shell.sidebar-collapsed .content {
+    width: 100%;
+    max-width: none;
+    padding: 12px 12px 38px;
+  }
+
+  .content-toolbar {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .sidebar-visibility-button {
+    display: none;
+  }
+
+  .toolbar-language {
+    order: -1;
+    margin-left: auto;
+  }
+
+  .hero {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 460px) {
+  .toolbar-tier-preview {
+    min-width: 0;
+  }
+
+  .toolbar-tier-preview select {
+    width: 84px;
+  }
+
+  .theme-toggle.icon-only button {
+    width: 29px;
+    height: 29px;
+    min-height: 29px;
+  }
+
+  .toolbar-icon-button,
+  .toolbar-user {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    flex-basis: 36px;
+  }
+}

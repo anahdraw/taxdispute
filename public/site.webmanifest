@@ -1,0 +1,17 @@
+{
+  "name": "Alpha AI Jurist",
+  "short_name": "Alpha AI Jurist",
+  "description": "Tax Intelligence. Trusted Judgment.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EEF3F6",
+  "theme_color": "#00153F",
+  "icons": [
+    {
+      "src": "/favicon.svg?v=alpha-ai-jurist-2",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

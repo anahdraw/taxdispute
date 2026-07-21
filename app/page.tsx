@@ -3278,13 +3278,6 @@ export default function Home() {
           <AlphaBrand />
         </div>
         <div className="sidebar-brand-compact"><AlphaBrand compact /></div>
-        <div className="sidebar-language">
-          <label className="field-label" htmlFor="language">Language</label>
-          <select id="language" value={language} onChange={(event) => changeLanguage(event.target.value as Language)}>
-            <option value="en">English</option>
-            <option value="id">Bahasa Indonesia</option>
-          </select>
-        </div>
         <nav>
           {visiblePages.map(([key, title, minimumTier]) => (
             <button key={key} className={page === key ? "active" : ""} onClick={() => setPage(key)} aria-label={title} title={sidebarCollapsed ? title : undefined}>
@@ -3311,6 +3304,13 @@ export default function Home() {
             <AppIcon name={sidebarCollapsed ? "expand" : "collapse"} />
           </button>
           <ThemeToggle labels={labels} value={themeMode} onChange={changeTheme} compact iconOnly />
+          <label className="toolbar-language" htmlFor="language">
+            <span>{language === "en" ? "Language" : "Bahasa"}</span>
+            <select id="language" value={language} onChange={(event) => changeLanguage(event.target.value as Language)}>
+              <option value="en">EN</option>
+              <option value="id">ID</option>
+            </select>
+          </label>
           {session.role === "admin" && (
             <label className="toolbar-tier-preview">
               <span>{language === "en" ? "Preview" : "Pratinjau"}</span>
