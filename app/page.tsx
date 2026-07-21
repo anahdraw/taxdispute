@@ -41,10 +41,11 @@ import {
 import { TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 import { AlphaBrand, AlphaTaxBotMark } from "@/app/brand";
 import { normalizeSmartAnswerMarkdown } from "@/lib/answer-format";
+import TpLocalFilePanel from "@/app/tp-local-file-panel";
 
 type Language = "id" | "en";
 type ThemeMode = "dark" | "light";
-type PageKey = "dashboard" | "guided" | "database" | "smartchat" | "regulations" | "reports" | "admin";
+type PageKey = "dashboard" | "guided" | "database" | "smartchat" | "regulations" | "reports" | "tpdoc" | "admin";
 type RegulationTabKey = "bot" | "update" | "list" | "manual";
 type RegulationTopicFilter = RegulationTopic | "all";
 type DisputeTabKey = "chat" | "similar";
@@ -80,6 +81,7 @@ function canAccessPage(role: UserRole, tier: SubscriptionTier, key: PageKey, pla
   if (key === "smartchat") return planHasFeature(plans, tier, "disputeBot");
   if (key === "regulations") return planHasFeature(plans, tier, "regulationRead");
   if (key === "reports") return planHasFeature(plans, tier, "reports");
+  if (key === "tpdoc") return planHasFeature(plans, tier, "tpLocalFile");
   return false;
 }
 
@@ -109,6 +111,7 @@ const copy = {
     smartchat: "Dispute Analysis",
     regulations: "Peraturan",
     reports: "Reports",
+    tpdoc: "TP Local File",
     admin: "Admin",
     dataSummary: "Ringkasan Data",
     dataVisualization: "Visualisasi Data",
@@ -435,6 +438,7 @@ const copy = {
     smartchat: "Dispute Analysis",
     regulations: "Regulations",
     reports: "Reports",
+    tpdoc: "TP Local File",
     admin: "Admin",
     dataSummary: "Data Summary",
     dataVisualization: "Data Visualization",
@@ -823,6 +827,7 @@ type AppIconName =
   | "reports"
   | "smartchat"
   | "sun"
+  | "tpdoc"
   | "user";
 
 function AppIcon({ name }: { name: AppIconName }) {
@@ -840,6 +845,7 @@ function AppIcon({ name }: { name: AppIconName }) {
     reports: <><path d="M6 2h9l4 4v16H6z" /><path d="M14 2v5h5M9 12h6M9 16h6" /></>,
     smartchat: <><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.4-4.2A8 8 0 1 1 21 12Z" /><path d="M8 12h8M10 8h4" /></>,
     sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>,
+    tpdoc: <><path d="M4 4h10l6 6v10H4z" /><path d="M14 4v6h6M8 14h8M8 17h6" /><circle cx="7" cy="7" r="1.5" /></>,
     user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>
   };
 
@@ -853,6 +859,7 @@ const pageIcons: Record<PageKey, AppIconName> = {
   smartchat: "smartchat",
   regulations: "regulations",
   reports: "reports",
+  tpdoc: "tpdoc",
   admin: "admin"
 };
 
@@ -1818,14 +1825,15 @@ export default function Home() {
     [visibleRegulations, currentRegulationPage, regulationPerPage]
   );
   const navigationLabels = language === "en"
-    ? { dashboard: "Dashboard", smartchat: "Dispute Analysis", reports: "Reports", database: "Decisions", regulations: "Regulations", guided: "Advanced Review" }
-    : { dashboard: "Dashboard", smartchat: "Analisis Sengketa", reports: "Laporan", database: "Putusan", regulations: "Peraturan", guided: "Telaah Lanjut" };
+    ? { dashboard: "Dashboard", smartchat: "Dispute Analysis", reports: "Reports", database: "Decisions", regulations: "Regulations", tpdoc: "TP Local File", guided: "Advanced Review" }
+    : { dashboard: "Dashboard", smartchat: "Analisis Sengketa", reports: "Laporan", database: "Putusan", regulations: "Peraturan", tpdoc: "Local File TP", guided: "Telaah Lanjut" };
   const pages: Array<[PageKey, string, SubscriptionTier]> = [
     ["dashboard", navigationLabels.dashboard, "silver"],
     ["smartchat", navigationLabels.smartchat, "silver"],
     ["reports", navigationLabels.reports, "silver"],
     ["database", navigationLabels.database, "gold"],
     ["regulations", navigationLabels.regulations, "gold"],
+    ["tpdoc", navigationLabels.tpdoc, "platinum"],
     ["guided", navigationLabels.guided, "platinum"]
   ];
   const visiblePages = pages.filter(([key]) => (session ? canAccessPage(effectiveAccessRole, effectiveTier, key, runtimeSettings.plans) : false));
@@ -4015,6 +4023,10 @@ export default function Home() {
           />
         )}
 
+        {page === "tpdoc" && (
+          <TpLocalFilePanel language={language} modelChoice={modelChoice} />
+        )}
+
         {page === "admin" && session.role === "admin" && (
           <AdminPanel
             labels={labels}
@@ -5215,7 +5227,8 @@ function AdminPanel({
     { key: "disputeBot", label: labels.smartchat },
     { key: "regulationRead", label: isEnglish ? "Read regulation knowledge" : "Baca knowledge peraturan" },
     { key: "regulationWrite", label: isEnglish ? "Update regulation knowledge" : "Update knowledge peraturan" },
-    { key: "reports", label: labels.reports }
+    { key: "reports", label: labels.reports },
+    { key: "tpLocalFile", label: "TP Local File" }
   ];
   const securityControls = isEnglish
     ? [
@@ -5258,14 +5271,16 @@ function AdminPanel({
         advancedAnalysis: "Advanced analysis",
         disputeBot: "Dispute Analysis",
         regulationBot: "Regulation RAG",
-        referenceAssistant: "Reference assistant"
+        referenceAssistant: "Reference assistant",
+        tpLocalFile: "TP Local File"
       }
     : {
         extraction: "Ekstraksi dokumen",
         advancedAnalysis: "Analisis tingkat lanjut",
         disputeBot: "Dispute Analysis",
         regulationBot: "RAG peraturan",
-        referenceAssistant: "Asisten referensi"
+        referenceAssistant: "Asisten referensi",
+        tpLocalFile: "TP Local File"
       };
   const selectedPlan = runtimeSettings.plans[selectedPlanTier];
   const selectedPrompt = runtimeSettings.prompts[selectedPromptFeature][selectedPromptLanguage];

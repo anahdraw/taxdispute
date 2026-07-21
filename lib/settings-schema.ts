@@ -5,7 +5,7 @@ import {
   type TierFeatureKey
 } from "./admin";
 
-export type PromptFeatureKey = "extraction" | "advancedAnalysis" | "disputeBot" | "regulationBot" | "referenceAssistant";
+export type PromptFeatureKey = "extraction" | "advancedAnalysis" | "disputeBot" | "regulationBot" | "referenceAssistant" | "tpLocalFile";
 export type PromptLanguage = "id" | "en";
 
 export type ManagedPrompt = {
@@ -71,6 +71,16 @@ const promptDefaults: Record<PromptFeatureKey, PromptFeatureConfig> = {
       system: "You are a tax reference reading assistant. Answer only from the currently opened reference and never invent citations.",
       instruction: "Identify the supporting document section and say when the answer is not found."
     }
+  },
+  tpLocalFile: {
+    id: {
+      system: "Anda adalah senior transfer pricing advisor Indonesia dan mesin ekstraksi Local File. Gunakan hanya fakta yang didukung dokumen atau data proyek. Jangan mengarang. Kembalikan JSON saja jika diminta JSON.",
+      instruction: "Petakan profil perusahaan, kepemilikan, pihak afiliasi, transaksi, analisis fungsi-aset-risiko, data keuangan, metode TP, PLI, pembanding, bukti yang kurang, dan dasar aturan secara transparan."
+    },
+    en: {
+      system: "You are a senior Indonesian transfer pricing advisor and Local File extraction engine. Use only facts supported by source documents or project data. Never invent facts. Return JSON only when JSON is requested.",
+      instruction: "Map the company profile, ownership, related parties, transactions, functions-assets-risks, financials, TP method, PLI, comparables, evidence gaps, and regulatory basis transparently."
+    }
   }
 };
 
@@ -100,9 +110,10 @@ const featureKeys: TierFeatureKey[] = [
   "regulationRead",
   "regulationWrite",
   "reports",
+  "tpLocalFile",
   "admin"
 ];
-const promptKeys: PromptFeatureKey[] = ["extraction", "advancedAnalysis", "disputeBot", "regulationBot", "referenceAssistant"];
+const promptKeys: PromptFeatureKey[] = ["extraction", "advancedAnalysis", "disputeBot", "regulationBot", "referenceAssistant", "tpLocalFile"];
 
 function normalizeLimit(value: unknown, fallback: number | null) {
   if (value === null || value === "") return null;

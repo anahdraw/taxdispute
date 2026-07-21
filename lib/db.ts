@@ -8,6 +8,14 @@ import type { Regulation } from "./mock-data";
 import { hashPassword, isPasswordHash, PASSWORD_HASH_PREFIX } from "./password";
 import { normalizeRegulationTopic } from "./regulation-knowledge";
 import type { PaginationParams } from "./pagination";
+import {
+  normalizeTpProjectState,
+  tpProjectCompleteness,
+  type TpLocalFileProject,
+  type TpLocalFileProjectSummary,
+  type TpProjectStatus,
+  type TpSourceDocument
+} from "./tp-local-file";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -629,6 +637,122 @@ export async function deleteTaxReport(id: string) {
   await getPool().query(`DELETE FROM tax_reports WHERE id = $1`, [id]);
 }
 
+export async function ensureTpLocalFileSchema() {
+  const pool = getPool();
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tp_local_file_projects (
+      id TEXT PRIMARY KEY,
+      owner_username TEXT NOT NULL,
+      name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'draft',
+      state JSONB NOT NULL DEFAULT '{}'::jsonb,
+      documents JSONB NOT NULL DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS tp_local_file_owner_updated_idx
+      ON tp_local_file_projects (owner_username, updated_at DESC);
+  `);
+}
+
+function tpProjectFromRow(row: Record<string, unknown>): TpLocalFileProject {
+  const status = String(row.status || "draft") as TpProjectStatus;
+  return {
+    id: String(row.id),
+    ownerUsername: String(row.owner_username),
+    name: String(row.name),
+    status: status === "ready" || status === "analyzed" || status === "extracted" ? status : "draft",
+    state: normalizeTpProjectState(row.state),
+    documents: Array.isArray(row.documents) ? row.documents as TpSourceDocument[] : [],
+    createdAt: new Date(String(row.created_at)).toISOString(),
+    updatedAt: new Date(String(row.updated_at)).toISOString()
+  };
+}
+
+export async function countTpLocalFileProjects(ownerUsername?: string) {
+  await ensureTpLocalFileSchema();
+  const result = ownerUsername
+    ? await getPool().query(`SELECT COUNT(*)::int AS total FROM tp_local_file_projects WHERE owner_username = $1`, [normalizeUsername(ownerUsername)])
+    : await getPool().query(`SELECT COUNT(*)::int AS total FROM tp_local_file_projects`);
+  return Number(result.rows[0]?.total || 0);
+}
+
+export async function listTpLocalFileProjectSummaries(params: PaginationParams, ownerUsername?: string): Promise<TpLocalFileProjectSummary[]> {
+  await ensureTpLocalFileSchema();
+  const values: unknown[] = [];
+  const where = ownerUsername ? `WHERE owner_username = $1` : "";
+  if (ownerUsername) values.push(normalizeUsername(ownerUsername));
+  values.push(params.perPage, params.offset);
+  const limitIndex = values.length - 1;
+  const offsetIndex = values.length;
+  const result = await getPool().query(
+    `SELECT id, owner_username, name, status, state, documents, created_at, updated_at
+     FROM tp_local_file_projects
+     ${where}
+     ORDER BY updated_at DESC
+     LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+    values
+  );
+  return result.rows.map((row) => {
+    const project = tpProjectFromRow(row);
+    return {
+      id: project.id,
+      ownerUsername: project.ownerUsername,
+      name: project.name,
+      status: project.status,
+      companyName: project.state.companyName,
+      fiscalYear: project.state.fiscalYear,
+      documentCount: project.documents.length,
+      completeness: tpProjectCompleteness(project.state),
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt
+    };
+  });
+}
+
+export async function getTpLocalFileProjectById(id: string): Promise<TpLocalFileProject | null> {
+  await ensureTpLocalFileSchema();
+  const result = await getPool().query(
+    `SELECT id, owner_username, name, status, state, documents, created_at, updated_at
+     FROM tp_local_file_projects WHERE id = $1 LIMIT 1`,
+    [id]
+  );
+  return result.rows[0] ? tpProjectFromRow(result.rows[0]) : null;
+}
+
+export async function upsertTpLocalFileProject(project: TpLocalFileProject) {
+  await ensureTpLocalFileSchema();
+  await getPool().query(
+    `INSERT INTO tp_local_file_projects
+      (id, owner_username, name, status, state, documents, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8)
+     ON CONFLICT (id) DO UPDATE SET
+       owner_username = EXCLUDED.owner_username,
+       name = EXCLUDED.name,
+       status = EXCLUDED.status,
+       state = EXCLUDED.state,
+       documents = EXCLUDED.documents,
+       updated_at = EXCLUDED.updated_at`,
+    [
+      project.id,
+      normalizeUsername(project.ownerUsername),
+      project.name,
+      project.status,
+      JSON.stringify(normalizeTpProjectState(project.state)),
+      JSON.stringify(project.documents || []),
+      project.createdAt,
+      project.updatedAt
+    ]
+  );
+}
+
+export async function deleteTpLocalFileProject(id: string) {
+  await ensureTpLocalFileSchema();
+  await getPool().query(`DELETE FROM tp_local_file_projects WHERE id = $1`, [id]);
+}
+
 export async function ensureAdminSchema() {
   const pool = getPool();
   await pool.query(`
@@ -860,10 +984,12 @@ export async function getAdminTableCounts() {
   await ensureRegulationSchema();
   await ensureReportSchema();
   await ensureAdminSchema();
-  const [decisions, reports, regulations, users, logs] = await Promise.all([
+  await ensureTpLocalFileSchema();
+  const [decisions, reports, regulations, tpLocalFiles, users, logs] = await Promise.all([
     pool.query(`SELECT COUNT(*)::int AS count FROM decision_documents`),
     pool.query(`SELECT COUNT(*)::int AS count FROM tax_reports`),
     pool.query(`SELECT COUNT(*)::int AS count FROM tax_regulations`),
+    pool.query(`SELECT COUNT(*)::int AS count FROM tp_local_file_projects`),
     pool.query(`SELECT COUNT(*)::int AS count FROM app_users`),
     pool.query(`SELECT COUNT(*)::int AS count FROM activity_logs`)
   ]);
@@ -871,6 +997,7 @@ export async function getAdminTableCounts() {
     decisions: Number(decisions.rows[0]?.count || 0),
     reports: Number(reports.rows[0]?.count || 0),
     regulations: Number(regulations.rows[0]?.count || 0),
+    tpLocalFiles: Number(tpLocalFiles.rows[0]?.count || 0),
     users: Number(users.rows[0]?.count || 0),
     logs: Number(logs.rows[0]?.count || 0)
   };

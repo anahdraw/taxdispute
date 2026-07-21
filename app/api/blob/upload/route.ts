@@ -1,11 +1,11 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { requireFeature } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const auth = requireAuth(request, ["admin"]);
+  const auth = await requireFeature(request, "tpLocalFile");
   if ("response" in auth) return auth.response;
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     return NextResponse.json(
@@ -21,12 +21,19 @@ export async function POST(request: Request) {
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         const normalized = pathname.toLowerCase();
-        if (!normalized.startsWith("decisions/") || !normalized.endsWith(".pdf")) {
-          throw new Error("Only PDF decision documents under decisions/ are allowed.");
+        const decisionPdf = normalized.startsWith("decisions/") && normalized.endsWith(".pdf");
+        const tpDocument = normalized.startsWith("tp-local-files/") && /\.(pdf|docx?)$/i.test(normalized);
+        if (!decisionPdf && !tpDocument) {
+          throw new Error("Only decision PDFs or TP Local File PDF/Word documents are allowed.");
+        }
+        if (decisionPdf && auth.session.role !== "admin") {
+          throw new Error("Only administrators can upload decision database documents.");
         }
 
         return {
-          allowedContentTypes: ["application/pdf"],
+          allowedContentTypes: decisionPdf
+            ? ["application/pdf"]
+            : ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"],
           maximumSizeInBytes: 250 * 1024 * 1024,
           addRandomSuffix: true,
           tokenPayload: clientPayload || null

@@ -10,6 +10,7 @@ export type TierFeatureKey =
   | "regulationRead"
   | "regulationWrite"
   | "reports"
+  | "tpLocalFile"
   | "admin";
 
 export type SubscriptionTierConfig = {
@@ -45,6 +46,7 @@ export const subscriptionTierConfigs: Record<SubscriptionTier, SubscriptionTierC
       "regulationRead",
       "regulationWrite",
       "reports",
+      "tpLocalFile",
       "admin"
     ]
   }

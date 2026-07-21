@@ -29,6 +29,7 @@ Catatan lokal: jika `.env` belum diisi, health JSON akan menandai OpenAI, Blob, 
 - **Dispute Analysis**: RAG chatbot untuk bertanya atas database putusan dan peraturan, termasuk visualisasi sederhana untuk distribusi outcome.
 - **Regulations**: import/update peraturan dari input manual, daftar Excel/CSV, serta PDF sumber resmi; smart regulation bot untuk menelaah aturan.
 - **Reports**: satu repository terpusat untuk report yang pernah dibuat agar user bisa membuka, memperbarui, dan mengunduh ulang tanpa analisis ulang.
+- **TP Local File (Platinum)**: workflow native Next.js untuk menyusun Local File dari dokumen sumber, mengekstrak profil dan transaksi afiliasi, melakukan review advisor, lalu mengekspor draft Word terstruktur.
 - **Reference Viewer**: halaman referensi untuk PDF putusan/peraturan dengan pencarian dan smartbot context.
 - **Admin Center**: activity logs, user management, privacy & access control, pengaturan paket, prompt management per fitur, serta API/integration check.
 - **Bilingual UI**: Bahasa Indonesia dan English.
@@ -45,6 +46,19 @@ Browser UI (Next.js)
     -> Local rule-based mode if integrations are not configured
 ```
 
+### TP Local File Native
+
+Modul TP Local File dipindahkan langsung ke framework Next.js yang sama, tanpa service Django/Celery/Redis terpisah. Alur pengguna:
+
+1. Pilih kategori dan unggah dokumen sumber pertama. Profil perusahaan direkomendasikan, tetapi pengguna dapat memulai dari dokumen kepemilikan, laporan keuangan, kebijakan TP, kontrak afiliasi, atau dokumen pendukung lain.
+2. Sistem membuat proyek Local File dan menyimpan file ke Vercel Blob.
+3. LLM mengekstrak fakta terstruktur dan menggabungkan data antar dokumen dengan jejak sumber.
+4. Pengguna mereview profil perusahaan, pihak afiliasi, transaksi terkendali, informasi keuangan, metode, PLI, dan parameter kesebandingan.
+5. Advisor analysis menyusun ringkasan, analisis fungsi-aset-risiko, justifikasi metode, risiko, dan daftar bukti yang masih diperlukan.
+6. Draft Local File dapat diunduh dalam format Word dengan identitas Alpha AI Jurist.
+
+Data proyek disimpan di tabel `tp_local_file_projects`; file sumber tetap berada di Blob. Akses fitur dibatasi untuk paket Platinum melalui server-side feature guard.
+
 Komponen penting:
 
 | Area | File / Folder |
@@ -60,6 +74,9 @@ Komponen penting:
 | Scoring and analysis | `lib/analyze.ts`, `lib/scorecard.ts` |
 | Report generation | `lib/report.ts` |
 | RAG ranking | `lib/smart-chat.ts`, `lib/case-search.ts` |
+| TP Local File UI | `app/tp-local-file-panel.tsx` |
+| TP Local File model/API | `lib/tp-local-file.ts`, `app/api/tp-local-files/*` |
+| TP Local File Word export | `lib/tp-local-file-report.ts` |
 
 ## Privacy & Access Control
 
