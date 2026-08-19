@@ -117,6 +117,57 @@ Untuk production, ganti password awal, set `TDP_AUTH_SECRET`, dan gunakan identi
 
 ## Local Setup
 
+### Workspace dan private storage lokal
+
+Fondasi tenant/client/matter memakai penyimpanan lokal secara default saat development, walaupun `.env.local` berisi `DATABASE_URL` cloud. Metadata persisten disimpan atomik di `data/local-workspace`; file privat berada di `data/private-storage` dengan key ter-scope tenant/client/matter/user dan tidak memiliki URL publik.
+
+```bash
+TDP_WORKSPACE_STORE=local
+TDP_SEARCH_STORE=local
+TDP_DEFAULT_TENANT_AUTO_ENROLL=
+TDP_LOCAL_WORKSPACE_ROOT=
+TDP_PRIVATE_STORAGE_ROOT=
+TDP_PRIVATE_UPLOAD_MAX_MB=50
+```
+
+Set `TDP_WORKSPACE_STORE=database` hanya ketika migrasi PostgreSQL tenant sudah memang ingin digunakan. API lokal yang tersedia: `/api/workspaces`, `/api/clients`, `/api/matters`, `/api/private-files`, dan `/api/research-workspace`. Jalankan pengujian isolasi dan persistence dengan `npm run test:workspace`.
+
+Trusted Search memakai korpus lokal (`TDP_SEARCH_STORE=local`) secara default dan tidak mengakses `DATABASE_URL`. Mode lokal menggabungkan kartu peraturan seed serta putusan demo yang selalu diberi status `review_required`. `TDP_SEARCH_STORE=database` adalah opt-in terpisah setelah schema dimigrasikan; loader search tersebut hanya menjalankan `SELECT`, tetapi implementasi ranking saat ini masih BM25 in-memory untuk pilot lokal—belum index produksi untuk 80 ribu putusan. Jalankan `npm run test:trust` untuk memeriksa hybrid search, isolasi, abstention, dan validasi sitasi.
+
+#### Snapshot peraturan dari pipeline Anahdraw
+
+Pipeline lokal `/Users/sintzu/Anahdraw/peraturan-pipeline` dapat diimpor tanpa menulis ke database sumber:
+
+```bash
+npm run import:regulations
+TDP_LOCAL_REGULATION_SNAPSHOT=data/regulation-pipeline-import/next-regulations.jsonl.gz npm run dev
+```
+
+Snapshot membawa teks pasal/diktum, locator, hash, status temporal, dan relasi yang sudah dinormalisasi. Hanya URL HTTPS pemerintah `*.go.id` dipertahankan sebagai URL sitasi; sumber sekunder tetap searchable tetapi berstatus `review_required`, dan nama situs eksternal disaring dari teks. Graph dan antrean tinjauan dibuat dengan `npm run quality:regulations`; benchmark seed-vs-pipeline tersimpan lewat `npm run eval:regulations:pipeline`. Benchmark ini adalah development gate, bukan sertifikasi akurasi hukum.
+
+Untuk menjalankan seluruh agent lokal berurutan (import → citation/graph review → benchmark), gunakan `npm run pipeline:regulations`; tambahkan `-- --skip-import` bila snapshot sudah ada.
+
+Setelah import lokal selesai, `.env.local` dapat menunjuk ke `data/regulation-pipeline-import/next-regulations.jsonl.gz`; loader membaca snapshot secara read-only dan menyimpannya di cache proses agar tidak decompress ulang pada setiap request. Snapshot ini sengaja tidak masuk Git/deployment artifact.
+
+#### Buku Praktis Pajak sebagai ground truth
+
+Buku referensi yang diberikan pengguna diproyeksikan terpisah dari retrieval
+corpus. Setiap pasangan QA menyimpan kutipan minimum, halaman PDF, dan
+penjelasan tambahan; graph menyimpan jalur sumber → QA → konsep → rujukan
+aturan sebagai navigasi dan evaluasi, bukan sebagai bukti hukum primer.
+
+```bash
+npm run import:book-ground-truth
+npm run eval:book-ground-truth
+```
+
+PDF lokal disajikan melalui `/api/reference-pdfs/buku-praktis-pajak-2025` dan
+dapat diarahkan ke lokasi lain dengan `TDP_BOOK_PDF_PATH`. Untuk deployment,
+unggah PDF ke private/object storage lalu arahkan route tersebut ke storage
+yang diizinkan; jangan mengandalkan path Downloads lokal.
+
+`TDP_DEFAULT_TENANT_AUTO_ENROLL` boleh dikosongkan. Default aman sistem adalah `true` hanya saat store lokal dipakai di non-production, serta `false` pada production atau mode database. Karena itu user production harus memperoleh membership melalui provisioning/admin yang eksplisit; jangan mengaktifkan flag ini di production kecuali memang menghendaki seluruh user masuk tenant default. Tenant yang sudah diarsipkan tetap ditolak walaupun membership lama masih ada. Client bersifat bersama untuk seluruh member yang sah dalam tenant; ACL terpisah diterapkan pada matter, bukan pada client.
+
 Kebutuhan:
 
 - Node.js 20+

@@ -4,7 +4,7 @@ import { comparableDecisions, regulations, type Regulation } from "./mock-data";
 import { DEFAULT_LLM_MODEL_CHOICE, normalizeModelChoice, type LlmModelChoice } from "./model-options";
 import { chooseRegulationContext, localizeRegulationRecord } from "./regulation-knowledge";
 import { tierWorkProfiles, type TierWorkProfile } from "./tier-profiles";
-import { normalizeSmartAnswerMarkdown } from "./answer-format";
+import { normalizeRegulationAnswerMarkdown, normalizeSmartAnswerMarkdown } from "./answer-format";
 
 export type LlmStatus = {
   used: boolean;
@@ -530,14 +530,15 @@ export async function answerRegulationQuestion(
   regulationContext: Regulation[] = regulations,
   tierProfile: TierWorkProfile = tierWorkProfiles.platinum,
   modelChoice: LlmModelChoice = DEFAULT_LLM_MODEL_CHOICE,
-  managedPrompt?: { system?: string; instruction?: string }
+  managedPrompt?: { system?: string; instruction?: string },
+  answerContext?: { diagnostics?: unknown; graphPaths?: unknown }
 ) {
   const runtime = resolveLlmRuntime(modelChoice);
   const model = runtime.model;
   const context = (regulationContext.length ? regulationContext : regulations)
     .slice(0, tierProfile.regulationContextLimit)
     .map((item) => localizeRegulationRecord(item, language));
-  const top = context.slice(0, 3);
+  const top = context.slice(0, 6);
   const localAnswer =
     language === "en"
       ? `## Short answer\n\n- Start with **${top[0]?.title || "the closest regulation"}** (${top[0]?.citation || "local context"}).\n- Compare it with ${top[1]?.title || "supporting rules"}${top[1]?.citation ? ` (${top[1].citation})` : ""} for supporting requirements, evidence, and dispute positioning.`
@@ -564,11 +565,11 @@ export async function answerRegulationQuestion(
 
   const defaultSystem =
     language === "en"
-      ? `You are an Indonesian tax regulation chatbot for tax disputes. Answer only from the provided regulation context. Prefer records whose ingestionStatus is ready and whose extraction was produced from an official PDF. Distinguish seed notes from PDF extraction. State the applicable rule, verified article/page when available, effective date or legal-status uncertainty, and legal relationships such as amends, revokes, or implements. Cite the title/citation and source URL. If context is insufficient, say so and identify the missing official regulation or PDF. ${tierProfile.prompts.en.regulationInstruction}`
-      : `Anda adalah chatbot peraturan pajak Indonesia untuk sengketa pajak. Jawab hanya dari konteks peraturan yang diberikan. Prioritaskan record dengan ingestionStatus ready dan extraction yang berasal dari PDF resmi. Bedakan catatan seed dari hasil ekstraksi PDF. Jelaskan aturan yang berlaku, pasal/halaman terverifikasi jika tersedia, tanggal berlaku atau ketidakpastian status, serta relasi hukum seperti mengubah, mencabut, atau melaksanakan. Cantumkan judul/sitasi dan URL sumber. Jika konteks belum cukup, nyatakan kekurangannya dan sebutkan aturan atau PDF resmi yang masih diperlukan. ${tierProfile.prompts.id.regulationInstruction}`;
+      ? `You are a clear, conversational Indonesian tax regulation assistant. Answer the user's regulation question directly from the supplied sources; do not turn the response into a dispute-case brief unless the user explicitly asks about a case. Explain the ordinary rule first. When the user asks how to calculate, show the variables, formula, assumptions, and one comprehensive numeric example. Mention exceptions only when they materially change the answer. Cite the strongest article and source by title/citation, distinguish current status from historical rules, and say plainly when the context is insufficient. Do not paste long raw URLs into the answer; the interface provides compact source links to the regulation catalog. ${tierProfile.prompts.en.regulationInstruction}`
+      : `Anda adalah asisten peraturan pajak Indonesia yang jelas dan percakapan. Jawab pertanyaan pengguna secara langsung dari sumber yang diberikan; jangan mengubahnya menjadi brief sengketa atau strategi kasus kecuali pengguna memang memintanya. Jelaskan aturan umum terlebih dahulu. Jika pengguna bertanya cara menghitung, tunjukkan variabel, rumus, asumsi, dan contoh angka yang komprehensif. Sebutkan pengecualian hanya jika benar-benar mengubah jawaban. Cantumkan pasal serta judul/sitasi sumber terkuat, bedakan aturan yang berlaku dari aturan historis, dan nyatakan dengan sederhana bila konteks belum cukup. Jangan menempelkan URL mentah yang panjang ke dalam jawaban; antarmuka menyediakan link sumber ringkas menuju katalog peraturan. ${tierProfile.prompts.id.regulationInstruction}`;
   const system = `${managedPrompt?.system?.trim() || defaultSystem}\n\n${language === "en"
-    ? "Return clean Markdown with ## headings, one concise idea per bullet, and no Markdown tables or long prose blocks."
-    : "Kembalikan Markdown rapi dengan heading ##, satu gagasan ringkas per bullet, tanpa tabel Markdown atau paragraf panjang."}`;
+    ? "Return one clean, conversational answer in normal paragraphs. Do not add numbered section labels such as 01 Answer, 02 Formula, or 03 Example, and do not use separate answer cards. Include the formula and a comprehensive worked example naturally in the explanation. Do not use Markdown tables; short bullets are allowed only when they materially improve clarity."
+    : "Kembalikan satu jawaban percakapan yang mengalir dalam paragraf biasa. Jangan menambahkan label bagian bernomor seperti 01 Jawaban, 02 Rumus, atau 03 Contoh dan jangan membuat kartu jawaban terpisah. Masukkan rumus dan contoh perhitungan yang komprehensif secara alami di dalam penjelasan. Jangan gunakan tabel Markdown; bullet pendek hanya bila benar-benar membantu kejelasan."}`;
   const prompt = JSON.stringify(
     {
       question,
@@ -579,6 +580,8 @@ export async function answerRegulationQuestion(
         ruleIntakeStrategy: tierProfile.labels[language].ruleIntake
       },
       regulationContext: context,
+      reranking: answerContext?.diagnostics,
+      graphPaths: answerContext?.graphPaths,
       responseLanguage: language,
       managedInstruction: managedPrompt?.instruction || ""
     },
@@ -587,7 +590,7 @@ export async function answerRegulationQuestion(
   );
 
   try {
-    const answer = normalizeSmartAnswerMarkdown(await callOpenAIText(prompt, system, modelChoice));
+    const answer = normalizeRegulationAnswerMarkdown(await callOpenAIText(prompt, system, modelChoice));
     return {
       answer,
       citations: top,

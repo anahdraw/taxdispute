@@ -1,0 +1,66 @@
+{
+  "schema_version": "aa-jurist-lightrag-index-manifest-v1",
+  "created_at": "2026-08-05T04:32:03Z",
+  "purpose": "Local pilot retrieval benchmark; not a legal-validity certification",
+  "runtime": {
+    "distribution": "lightrag-hku",
+    "version": "1.5.5",
+    "api_version": "0325",
+    "python_version": "3.12.13",
+    "workspace": "aa_jurist_regulations_smoke",
+    "storage": {
+      "kv": "JsonKVStorage",
+      "document_status": "JsonDocStatusStorage",
+      "graph": "NetworkXStorage",
+      "vector": "NanoVectorDBStorage"
+    },
+    "models": {
+      "extraction_and_query": "gpt-5.5",
+      "keyword_extraction": "gpt-5.4-nano",
+      "embedding": "text-embedding-3-small",
+      "embedding_dimension": 1536
+    }
+  },
+  "index_run": {
+    "track_id": "insert_20260805_110050_178d489a",
+    "started_at": "2026-08-05T04:00:50Z",
+    "completed_at": "2026-08-05T04:26:58Z",
+    "documents_total": 58,
+    "documents_processed": 58,
+    "documents_failed": 0,
+    "chunks_total": 116,
+    "chunking": {
+      "strategy": "fixed_token",
+      "chunk_token_size": 1000,
+      "chunk_overlap_token_size": 100,
+      "split_by_character": "\n\n",
+      "split_by_character_only": false
+    }
+  },
+  "corpus_provenance": {
+    "indexed_jsonl_sha256": "fdc01fae3fcccd943f2b75b20394302dc5720f2641671a9a807e03d3bbfbdd8c",
+    "current_metadata_enriched_jsonl_sha256": "dfcc43f5783113e1d88714f43e7d63827404919d923951741eb4969c03edaa82",
+    "index_payload_sha256": "8cf3131dafeec2283c6fd9d3f1b483fccbf25992e0b0e2106da393928f90d84c",
+    "gold_set_sha256": "635cd20628b61bb8df492a4a84b528e1070e85cd69616290529be8359db1bede",
+    "note": "The enriched export adds manifest metadata only; indexed text and file_source payloads are byte-identical to the current export payload."
+  },
+  "source_mapping": {
+    "ingested_file_source_format": "aa-jurist://regulation/{record.id}",
+    "returned_file_path_format": "{record.id}",
+    "graph_multi_source_separator": "<SEP>",
+    "unmapped_references_in_final_mix_run": 0,
+    "unmapped_references_in_final_naive_run": 0
+  },
+  "benchmark": {
+    "gold_cases": 35,
+    "positive_cases": 32,
+    "negative_cases": 3,
+    "top_k": 5,
+    "mix_cache_state": "warm after one complete validation run",
+    "naive_cache_state": "normal local vector retrieval",
+    "cold_mix_observation": {
+      "mean_latency_ms": 2251.15,
+      "p95_latency_ms": 3242.71
+    }
+  }
+}

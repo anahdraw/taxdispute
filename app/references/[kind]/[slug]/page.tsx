@@ -27,6 +27,7 @@ type ReferenceRecord = {
   badges: string[];
   meta: Array<[string, ReactNode]>;
   pdfUrl: string;
+  pdfUrls: string[];
   sourceUrl: string;
   sourceText: string;
   regulation?: Regulation;
@@ -110,6 +111,7 @@ function decisionReference(document: StoredDecisionFile): ReferenceRecord {
       ["Upload", new Date(document.uploadedAt).toLocaleString()]
     ],
     pdfUrl,
+    pdfUrls: pdfUrl ? [pdfUrl] : [],
     sourceUrl: document.downloadUrl || document.url || "",
     sourceText
   };
@@ -161,6 +163,7 @@ function regulationReference(record: Regulation): ReferenceRecord {
       ["Update", record.updatedAt ? new Date(record.updatedAt).toLocaleString() : "-"]
     ],
     pdfUrl,
+    pdfUrls: record.pdfUrls?.length ? record.pdfUrls : pdfUrl ? [pdfUrl] : [],
     sourceUrl,
     sourceText,
     regulation: record
@@ -270,7 +273,7 @@ function RegulationPipeline({ record, metadata, viewer }: { record: Regulation; 
             <DetailRows
               rows={[
                 ["Halaman sumber", record.sourceUrl ? <a href={record.sourceUrl} target="_blank" rel="noreferrer">Buka halaman sumber resmi</a> : "-"],
-                ["PDF resmi", record.officialPdfUrl ? <a href={record.officialPdfUrl} target="_blank" rel="noreferrer">Buka PDF pada sumber resmi</a> : "Belum ditemukan"],
+                ["PDF resmi", record.pdfUrls?.length ? <div className="reference-pdf-links">{record.pdfUrls.map((url, index) => <a key={url} href={url} target="_blank" rel="noreferrer">Buka PDF {index + 1}{record.officialPdfUrl === url ? " pada sumber resmi" : ""}</a>)}</div> : "Belum ditemukan"],
                 ["Salinan Blob", record.storedPdfUrl ? <a href={record.storedPdfUrl} target="_blank" rel="noreferrer">Buka salinan PDF tersimpan</a> : "Belum disimpan"],
                 ["SHA-256", record.fileHash ? <code>{record.fileHash}</code> : "-"],
                 ["Waktu ekstraksi", record.extractedAt ? new Date(record.extractedAt).toLocaleString() : "-"]

@@ -43,6 +43,19 @@ export function isAllowedOfficialRegulationUrl(sourceUrl: string | null | undefi
   }
 }
 
+/** Internal PDF routes are safe to expose in the local catalog but are not
+ * treated as government provenance.  They let supplied reference books and
+ * locally stored PDFs remain clickable without weakening the official URL
+ * allow-list used by citations. */
+export function isAllowedLocalPdfReference(sourceUrl: string | null | undefined) {
+  const value = String(sourceUrl || "").trim();
+  return /^\/(?:api\/reference-pdfs|reference-pdfs)\/[a-z0-9._/-]+(?:#.*)?$/i.test(value);
+}
+
+export function isAllowedPdfReferenceUrl(sourceUrl: string | null | undefined) {
+  return isAllowedOfficialRegulationUrl(sourceUrl) || isAllowedLocalPdfReference(sourceUrl);
+}
+
 export function officialRegulationSourceLabel(sourceUrl: string | null | undefined) {
   const bucket = regulationSourceBucket(sourceUrl);
   if (bucket === "bpk") return "JDIH BPK";

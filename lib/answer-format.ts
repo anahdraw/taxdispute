@@ -91,3 +91,23 @@ export function normalizeSmartAnswerMarkdown(value: string) {
 
   return text;
 }
+
+const REGULATION_ANSWER_LABELS = [
+  "jawaban", "jawaban singkat", "answer", "short answer", "rumus", "formula", "contoh", "example",
+  "cara menghitung", "how to calculate", "alur praktis", "practical flow", "perlu diperhatikan", "important",
+  "catatan", "notes", "dasar aturan", "sources", "sumber", "primary sources", "regulation references"
+];
+
+/** Keep regulation answers conversational instead of rendering numbered section cards. */
+export function normalizeRegulationAnswerMarkdown(value: string) {
+  let text = String(value || "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
+  const labelPattern = REGULATION_ANSWER_LABELS.map(escapeRegExp).join("|");
+  // Remove a heading-only line such as "02 Rumus" or "## Contoh".
+  text = text.replace(new RegExp(`^\\s*(?:#{1,6}\\s*)?(?:0?\\d{1,2}\\s*)?(?:${labelPattern})\\s*[:–—-]?\\s*$`, "gim"), "");
+  // If a model puts content on the same line as the label, retain the content.
+  text = text.replace(new RegExp(`^\\s*(?:#{1,6}\\s*)?(?:0?\\d{1,2}\\s*)?(?:${labelPattern})\\s*[:–—-]\\s*`, "gim"), "");
+  return text.replace(/\n{3,}/g, "\n\n").trim();
+}

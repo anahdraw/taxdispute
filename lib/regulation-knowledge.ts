@@ -1,11 +1,12 @@
 import { regulations, type Regulation, type RegulationRelation, type RegulationRelationType, type RegulationTranslation } from "./mock-data";
-import { isAllowedOfficialRegulationUrl, officialRegulationSourceLabel } from "./regulation-sources";
+import { isAllowedLocalPdfReference, isAllowedOfficialRegulationUrl, officialRegulationSourceLabel } from "./regulation-sources";
 
-export type RegulationTopic = "vat" | "transfer_pricing" | "general";
+export type RegulationTopic = "vat" | "income_tax" | "transfer_pricing" | "general";
 
 export const regulationTopicOptions: Array<{ key: RegulationTopic; id: string; en: string }> = [
   { key: "transfer_pricing", id: "Transfer Pricing", en: "Transfer Pricing" },
   { key: "vat", id: "PPN / VAT", en: "VAT / PPN" },
+  { key: "income_tax", id: "PPh", en: "Income Tax" },
   { key: "general", id: "Umum", en: "General" }
 ];
 
@@ -40,6 +41,12 @@ function removeExternalProductNames(value: unknown) {
 export function canonicalRegulationKey(record: Pick<Regulation, "citation" | "title">) {
   const normalized = normalizeRegulationText(`${record.citation || ""} ${record.title || ""}`)
     .toLowerCase()
+    .replace(/peraturan menteri keuangan/g, "pmk")
+    .replace(/peraturan direktur jenderal pajak/g, "per")
+    .replace(/keputusan direktur jenderal pajak/g, "kep")
+    .replace(/surat edaran direktur jenderal pajak/g, "se")
+    .replace(/peraturan pemerintah/g, "pp")
+    .replace(/undang[ -]undang/g, "uu")
     .replace(/minister(?:ial)? of finance regulation/g, "pmk")
     .replace(/government regulation/g, "pp")
     .replace(/dgt regulation/g, "per")
@@ -50,7 +57,11 @@ export function canonicalRegulationKey(record: Pick<Regulation, "citation" | "ti
     .replace(/[^a-z0-9/.-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  const match = normalized.match(/\b(uu|pp|pmk|per|kep|se)\b[^0-9]*([0-9]+)[^0-9]+(?:[a-z.]+[^0-9]+)?((?:19|20)\d{2})\b/i);
+  // Capture the first regulation number after its type and the first four-digit
+  // year that follows. Older citations such as `141/PMK.03/2015` contain an
+  // internal administrative code (`03`) that must not replace the actual
+  // regulation number (`141`).
+  const match = normalized.match(/\b(uu|pp|pmk|per|kep|se)\b[^0-9]*([0-9]+)[\s\S]*?\b((?:19|20)\d{2})\b/i);
   return match ? `${match[1].toLowerCase()}-${Number(match[2])}-${match[3]}` : normalized || "unknown-regulation";
 }
 
@@ -90,6 +101,9 @@ export function normalizeRegulationTopic(value: string | undefined | null): Regu
   if (["vat", "ppn", "pajak_pertambahan_nilai"].includes(topic)) {
     return "vat";
   }
+  if (["income_tax", "income", "pph", "pajak_penghasilan"].includes(topic)) {
+    return "income_tax";
+  }
   return "general";
 }
 
@@ -108,19 +122,32 @@ function relationTypeFromSentence(sentence: string): RegulationRelationType {
 }
 
 export function deriveRegulationRelations(record: Regulation): RegulationRelation[] {
-  const explicit = record.relations?.length ? record.relations : record.extraction?.relations || [];
-  if (explicit.length) return explicit;
+  // An imported record may deliberately carry an empty relation list after a
+  // graph quality gate.  Treat that as an explicit decision, not as a signal
+  // to rerun the permissive seed regex over a large full-text snapshot.
+  const hasExplicitRelations = Array.isArray(record.relations);
+  const explicit = hasExplicitRelations ? record.relations || [] : record.extraction?.relations || [];
+  if (hasExplicitRelations || explicit.length) return explicit;
   const text = normalizeRegulationText(`${record.focus || ""}\n${record.content || ""}`);
+  // Do not treat the dot in the ubiquitous legal abbreviation `No.` as the
+  // end of a sentence; otherwise the instrument type and its number are split
+  // into different fragments before citation extraction.
+  const sentenceSafeText = text.replace(/\bNo\.\s+/gi, "No ");
   const relations: RegulationRelation[] = [];
   const seen = new Set<string>();
-  const citationPattern = /\b(?:UU|PERPU|PP|PMK|PER|KEP|SE)\s*(?:No\.?|Nomor)?\s*[0-9A-Z][0-9A-Z./-]*(?:\s+Tahun\s+\d{4})?/gi;
-  for (const sentence of text.split(/(?<=[.!?])\s+|\n+/).filter(Boolean)) {
+  const recordKey = record.canonicalKey || canonicalRegulationKey(record);
+  // A legal citation must begin with a digit after the instrument type.
+  // Requiring that digit prevents `PER`/`SE` from matching ordinary words
+  // such as "perubahan", "perpajakan", or "sejak".
+  const citationPattern = /\b(?:UU|PERPU|PP|PMK|PER|KEP|SE)\s*(?:No\.?|Nomor)?\s*\d[0-9A-Z./-]*(?:\s+Tahun\s+\d{4})?/gi;
+  for (const sentence of sentenceSafeText.split(/(?<=[.!?])\s+|\n+/).filter(Boolean)) {
     if (!/mencabut|menggantikan|mengubah|perubahan|melaksanakan|pelaksanaan|berdasarkan|mengingat|merujuk|dicabut|diubah/i.test(sentence)) continue;
     for (const match of sentence.matchAll(citationPattern)) {
-      const citation = normalizeRegulationText(match[0]);
-      if (!citation || citation.toLowerCase() === record.citation.toLowerCase()) continue;
+      const citation = normalizeRegulationText(match[0]).replace(/[.,;:]+$/, "");
+      const citationKey = canonicalRegulationKey({ citation, title: "" });
+      if (!citation || citationKey === recordKey) continue;
       const type = relationTypeFromSentence(sentence);
-      const key = `${type}:${citation.toLowerCase()}`;
+      const key = `${type}:${citationKey}`;
       if (seen.has(key)) continue;
       seen.add(key);
       relations.push({ type, citation, note: sentence, source: "seed" });
@@ -148,6 +175,7 @@ export function mergeRegulationRecords(records: Regulation[]) {
   for (const item of [...regulations, ...records]) {
     const sourceUrl = isAllowedOfficialRegulationUrl(item.sourceUrl) ? String(item.sourceUrl) : "";
     const officialPdfUrl = isAllowedOfficialRegulationUrl(item.officialPdfUrl || item.pdfUrl) ? String(item.officialPdfUrl || item.pdfUrl) : "";
+    const localPdfUrl = isAllowedLocalPdfReference(item.storedPdfUrl || item.pdfUrl) ? String(item.storedPdfUrl || item.pdfUrl) : "";
     const canonicalKey = item.canonicalKey || canonicalRegulationKey(item);
     const normalized: Regulation = {
       ...item,
@@ -161,7 +189,8 @@ export function mergeRegulationRecords(records: Regulation[]) {
       source: sourceUrl || officialPdfUrl ? "official" : item.source === "seed" ? "seed" : "manual",
       sourceUrl,
       officialPdfUrl,
-      pdfUrl: item.storedPdfUrl || officialPdfUrl,
+      pdfUrl: localPdfUrl || item.storedPdfUrl || officialPdfUrl,
+      pdfUrls: Array.from(new Set([...(item.pdfUrls || []), ...(localPdfUrl ? [localPdfUrl] : []), ...(officialPdfUrl ? [officialPdfUrl] : [])])),
       sourceAuthority: officialRegulationSourceLabel(sourceUrl || officialPdfUrl),
       relevance: item.relevance || 70,
       ingestionStatus: item.ingestionStatus || (item.extraction ? "ready" : "seed")
@@ -181,6 +210,7 @@ export function mergeRegulationRecords(records: Regulation[]) {
       pdfUrl: preferred.pdfUrl || fallback.pdfUrl,
       officialPdfUrl: preferred.officialPdfUrl || fallback.officialPdfUrl,
       storedPdfUrl: preferred.storedPdfUrl || fallback.storedPdfUrl,
+      pdfUrls: Array.from(new Set([...(preferred.pdfUrls || []), ...(fallback.pdfUrls || [])])),
       sourceAuthority: preferred.sourceAuthority || fallback.sourceAuthority,
       canonicalKey,
       sourceLanguage: preferred.sourceLanguage || fallback.sourceLanguage,

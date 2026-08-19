@@ -12,16 +12,25 @@ import { canonicalRegulationKey, mergeRegulationRecords, normalizeRegulationText
 import { isAllowedOfficialRegulationUrl, officialRegulationSourceLabel } from "@/lib/regulation-sources";
 import { requireAuth, requireFeature } from "@/lib/auth";
 import { buildPaginationMeta, parsePaginationParams } from "@/lib/pagination";
+import { loadLocalRegulationSnapshot } from "@/lib/regulation-snapshot";
 
 export const runtime = "nodejs";
 
 async function getStoredRegulations() {
-  if (!hasDatabase()) return [];
-  try {
-    return await listTaxRegulations();
-  } catch {
-    return [];
+  if (hasDatabase()) {
+    try {
+      return await listTaxRegulations();
+    } catch {
+      return [];
+    }
   }
+  return loadLocalRegulationSnapshot();
+}
+
+function listRecord(record: Regulation): Regulation {
+  // The list screen needs metadata and a short focus only. Full extraction,
+  // relations, and body text remain available through /api/regulations?id=.
+  return { ...record, content: "", extraction: null, relations: [] };
 }
 
 export async function GET(request: Request) {
@@ -31,14 +40,16 @@ export async function GET(request: Request) {
   const id = url.searchParams.get("id");
   if (id) {
     const record =
-      (hasDatabase() ? await getTaxRegulationById(id).catch(() => null) : null) || regulations.find((item) => item.id === id) || null;
+      (hasDatabase() ? await getTaxRegulationById(id).catch(() => null) : null) ||
+      (await getStoredRegulations()).find((item) => item.id === id) ||
+      regulations.find((item) => item.id === id) || null;
     if (!record) return NextResponse.json({ error: "Regulation not found." }, { status: 404 });
     return NextResponse.json({ record: mergeRegulationRecords([record])[0] || record });
   }
 
   if (url.searchParams.get("detail") === "full") {
     const stored = await getStoredRegulations();
-    const records = mergeRegulationRecords(stored);
+    const records = mergeRegulationRecords(stored.length ? stored : regulations).map(listRecord);
     return NextResponse.json({
       records,
       pagination: buildPaginationMeta({ page: 1, perPage: records.length || 1, offset: 0 }, records.length)
@@ -47,8 +58,8 @@ export async function GET(request: Request) {
 
   const params = parsePaginationParams(request.url, { perPage: 25, maxPerPage: 500 });
   const allParams = { page: 1, perPage: 500, offset: 0 };
-  const stored = hasDatabase() ? await listTaxRegulationSummaries(allParams).catch(() => []) : [];
-  const merged = mergeRegulationRecords(stored);
+  const stored = hasDatabase() ? await listTaxRegulationSummaries(allParams).catch(() => []) : await getStoredRegulations();
+  const merged = mergeRegulationRecords(stored.length ? stored : regulations).map(listRecord);
   const records = merged.slice(params.offset, params.offset + params.perPage);
   return NextResponse.json({ records, pagination: buildPaginationMeta(params, merged.length) });
 }

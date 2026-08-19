@@ -1,0 +1,3 @@
+# Deliberately pinned to a stable LightRAG release. Upgrade only together with
+# an index compatibility review and a full benchmark rerun.
+lightrag-hku[api]==1.5.5

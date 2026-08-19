@@ -7,7 +7,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "tsc -p tsconfig.check.json --noEmit --incremental false",
-    "import:excel": "node scripts/import_excel_decisions.mjs"
+    "test:workspace": "node scripts/run_workspace_unit_tests.mjs",
+    "import:excel": "node scripts/import_excel_decisions.mjs",
+    "test:rag": "node scripts/run_rag_unit_tests.mjs",
+    "test:trust": "node scripts/run_trust_unit_tests.mjs",
+    "eval:regulations:baseline": "node scripts/run_regulation_baseline_eval.mjs",
+    "eval:regulations": "node scripts/evaluate_regulation_retrieval.mjs",
+    "import:regulations": "python3 scripts/import_peraturan_pipeline.py --no-db",
+    "quality:regulations": "python3 scripts/regulation_quality.py --db /Users/sintzu/Anahdraw/peraturan-pipeline/data/peraturan.db",
+    "eval:regulations:pipeline": "python3 scripts/evaluate_regulation_pipeline.py",
+    "pipeline:regulations": "python3 scripts/run_regulation_pipeline.py",
+    "import:book-ground-truth": "python3 scripts/import_buku_saku_pajak.py",
+    "eval:book-ground-truth": "python3 scripts/evaluate_buku_saku_ground_truth.py"
   },
   "dependencies": {
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",

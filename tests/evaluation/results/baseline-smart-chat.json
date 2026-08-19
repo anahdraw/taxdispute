@@ -1,0 +1,2181 @@
+{
+  "schema_version": "regulation-retrieval-results-v1",
+  "engine": "aa-jurist-baseline-smart-chat-hybrid-token-cosine",
+  "corpus": "aa-jurist-next-seed-regulations-2026-07-20",
+  "corpus_document_count": 58,
+  "gold_sha256": "635cd20628b61bb8df492a4a84b528e1070e85cd69616290529be8359db1bede",
+  "corpus_sha256": "532743bd9ee93fb1c9768682498a8ba7d33a43d247ec1fc7313ef5ed66c3198a",
+  "generated_at": "2026-08-05T04:09:13.833Z",
+  "cases": [
+    {
+      "id": "lookup_uu_kup",
+      "latency_ms": 8.107,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-01-uu-no-6-tahun-1983-tentang-kup",
+          "score": 80.8,
+          "citation": "UU No. 6 Tahun 1983 tentang KUP",
+          "title": "UU No. 6 Tahun 1983 tentang KUP"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 69.9,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm",
+          "score": 67.9,
+          "citation": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+          "title": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-12-pp-no-50-tahun-2022",
+          "score": 48.4,
+          "citation": "PP No. 50 Tahun 2022",
+          "title": "PP No. 50 Tahun 2022"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 46.3,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-05-uu-no-6-tahun-2023-tentang-cipta-kerja",
+          "score": 46.1,
+          "citation": "UU No. 6 Tahun 2023 tentang Cipta Kerja",
+          "title": "UU No. 6 Tahun 2023 tentang Cipta Kerja"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-22-pmk-no-118-tahun-2024",
+          "score": 44.7,
+          "citation": "PMK No. 118 Tahun 2024",
+          "title": "PMK No. 118 Tahun 2024"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-06-uu-no-19-tahun-1997-jo-uu-no-19-tahun-2000",
+          "score": 42.9,
+          "citation": "UU No. 19 Tahun 1997 jo. UU No. 19 Tahun 2000",
+          "title": "UU No. 19 Tahun 1997 jo. UU No. 19 Tahun 2000"
+        }
+      ]
+    },
+    {
+      "id": "lookup_pmk_172_2023",
+      "latency_ms": 4.99,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 91.1,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-30-pmk-no-66-tahun-2023",
+          "score": 79.8,
+          "citation": "PMK No. 66 Tahun 2023",
+          "title": "PMK No. 66 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-23-pmk-no-61-tahun-2023",
+          "score": 79.5,
+          "citation": "PMK No. 61 Tahun 2023",
+          "title": "PMK No. 61 Tahun 2023"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-31-pmk-no-72-tahun-2023",
+          "score": 79.1,
+          "citation": "PMK No. 72 Tahun 2023",
+          "title": "PMK No. 72 Tahun 2023"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-29-pmk-no-168-tahun-2023",
+          "score": 78.4,
+          "citation": "PMK No. 168 Tahun 2023",
+          "title": "PMK No. 168 Tahun 2023"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-32-pmk-no-79-tahun-2023",
+          "score": 76.7,
+          "citation": "PMK No. 79 Tahun 2023",
+          "title": "PMK No. 79 Tahun 2023"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-33-pmk-no-164-tahun-2023",
+          "score": 76,
+          "citation": "PMK No. 164 Tahun 2023",
+          "title": "PMK No. 164 Tahun 2023"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-16-pp-no-58-tahun-2023",
+          "score": 74,
+          "citation": "PP No. 58 Tahun 2023",
+          "title": "PP No. 58 Tahun 2023"
+        }
+      ]
+    },
+    {
+      "id": "lookup_pmk_141_2015",
+      "latency_ms": 5.16,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-35-pmk-no-141-pmk-03-2015",
+          "score": 99.6,
+          "citation": "PMK No. 141/PMK.03/2015",
+          "title": "PMK No. 141/PMK.03/2015"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-36-pmk-no-169-pmk-010-2015",
+          "score": 83.5,
+          "citation": "PMK No. 169/PMK.010/2015",
+          "title": "PMK No. 169/PMK.010/2015"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-29-pmk-no-168-tahun-2023",
+          "score": 57.5,
+          "citation": "PMK No. 168 Tahun 2023",
+          "title": "PMK No. 168 Tahun 2023"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-34-pmk-no-51-tahun-2025",
+          "score": 56.1,
+          "citation": "PMK No. 51 Tahun 2025",
+          "title": "PMK No. 51 Tahun 2025"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 53.4,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 52.6,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-45-pmk-no-11-tahun-2025-jo-pmk-no-53-tahun-2025",
+          "score": 52.2,
+          "citation": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025",
+          "title": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-27-pmk-no-44-tahun-2026",
+          "score": 51.4,
+          "citation": "PMK No. 44 Tahun 2026",
+          "title": "PMK No. 44 Tahun 2026"
+        }
+      ]
+    },
+    {
+      "id": "lookup_per_11_2025",
+      "latency_ms": 4.727,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-51-per-11-pj-2025-jo-per-3-pj-2026",
+          "score": 100,
+          "citation": "PER-11/PJ/2025 jo. PER-3/PJ/2026",
+          "title": "PER-11/PJ/2025 jo. PER-3/PJ/2026"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-49-per-7-pj-2025",
+          "score": 91.2,
+          "citation": "PER-7/PJ/2025",
+          "title": "PER-7/PJ/2025"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-50-per-8-pj-2025",
+          "score": 90.3,
+          "citation": "PER-8/PJ/2025",
+          "title": "PER-8/PJ/2025"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-52-per-10-pj-2025",
+          "score": 87.5,
+          "citation": "PER-10/PJ/2025",
+          "title": "PER-10/PJ/2025"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-45-pmk-no-11-tahun-2025-jo-pmk-no-53-tahun-2025",
+          "score": 82.3,
+          "citation": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025",
+          "title": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-19-pmk-no-81-tahun-2024-jo-perubahan-terakhir-pmk-no-1-tahun-2026",
+          "score": 82.1,
+          "citation": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026",
+          "title": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 72.3,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-20-pmk-no-111-tahun-2025",
+          "score": 71.5,
+          "citation": "PMK No. 111 Tahun 2025",
+          "title": "PMK No. 111 Tahun 2025"
+        }
+      ]
+    },
+    {
+      "id": "lookup_pmk_28_2026",
+      "latency_ms": 4.544,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-19-pmk-no-81-tahun-2024-jo-perubahan-terakhir-pmk-no-1-tahun-2026",
+          "score": 89.4,
+          "citation": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026",
+          "title": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-27-pmk-no-44-tahun-2026",
+          "score": 87.4,
+          "citation": "PMK No. 44 Tahun 2026",
+          "title": "PMK No. 44 Tahun 2026"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-24-pmk-no-28-tahun-2026",
+          "score": 83,
+          "citation": "PMK No. 28 Tahun 2026",
+          "title": "PMK No. 28 Tahun 2026"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 80.3,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 75.2,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-13-pp-no-55-tahun-2022-jo-pp-no-20-tahun-2026",
+          "score": 72.8,
+          "citation": "PP No. 55 Tahun 2022 jo. PP No. 20 Tahun 2026",
+          "title": "PP No. 55 Tahun 2022 jo. PP No. 20 Tahun 2026"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-42-pmk-no-136-tahun-2024",
+          "score": 68.3,
+          "citation": "PMK No. 136 Tahun 2024",
+          "title": "PMK No. 136 Tahun 2024"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 66,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        }
+      ]
+    },
+    {
+      "id": "lookup_tax_court_law",
+      "latency_ms": 4.372,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-07-uu-no-14-tahun-2002-tentang-pengadilan-pajak",
+          "score": 62.6,
+          "citation": "UU No. 14 Tahun 2002 tentang Pengadilan Pajak",
+          "title": "UU No. 14 Tahun 2002 tentang Pengadilan Pajak"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 21.1,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-14-pp-no-44-tahun-2022",
+          "score": 20,
+          "citation": "PP No. 44 Tahun 2022",
+          "title": "PP No. 44 Tahun 2022"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 19.9,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-15-pp-no-49-tahun-2022",
+          "score": 19.9,
+          "citation": "PP No. 49 Tahun 2022",
+          "title": "PP No. 49 Tahun 2022"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 19.8,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm",
+          "score": 19.8,
+          "citation": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+          "title": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 19.8,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        }
+      ]
+    },
+    {
+      "id": "concept_tax_collection",
+      "latency_ms": 5.031,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-06-uu-no-19-tahun-1997-jo-uu-no-19-tahun-2000",
+          "score": 40.9,
+          "citation": "UU No. 19 Tahun 1997 jo. UU No. 19 Tahun 2000",
+          "title": "UU No. 19 Tahun 1997 jo. UU No. 19 Tahun 2000"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 34,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 32.2,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 30.7,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-23-pmk-no-61-tahun-2023",
+          "score": 30.3,
+          "citation": "PMK No. 61 Tahun 2023",
+          "title": "PMK No. 61 Tahun 2023"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 29.9,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 27,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 26.9,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        }
+      ]
+    },
+    {
+      "id": "concept_tax_court_procedure",
+      "latency_ms": 5.31,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-07-uu-no-14-tahun-2002-tentang-pengadilan-pajak",
+          "score": 65.6,
+          "citation": "UU No. 14 Tahun 2002 tentang Pengadilan Pajak",
+          "title": "UU No. 14 Tahun 2002 tentang Pengadilan Pajak"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 36.2,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 34,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 30.7,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 29.9,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 27,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 26.9,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-42-pmk-no-136-tahun-2024",
+          "score": 26.9,
+          "citation": "PMK No. 136 Tahun 2024",
+          "title": "PMK No. 136 Tahun 2024"
+        }
+      ]
+    },
+    {
+      "id": "concept_vat_facility",
+      "latency_ms": 5.427,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-15-pp-no-49-tahun-2022",
+          "score": 61.2,
+          "citation": "PP No. 49 Tahun 2022",
+          "title": "PP No. 49 Tahun 2022"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm",
+          "score": 55.8,
+          "citation": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+          "title": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 48,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-45-pmk-no-11-tahun-2025-jo-pmk-no-53-tahun-2025",
+          "score": 41.1,
+          "citation": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025",
+          "title": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-14-pp-no-44-tahun-2022",
+          "score": 36.7,
+          "citation": "PP No. 44 Tahun 2022",
+          "title": "PP No. 44 Tahun 2022"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 36.1,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-51-per-11-pj-2025-jo-per-3-pj-2026",
+          "score": 34.7,
+          "citation": "PER-11/PJ/2025 jo. PER-3/PJ/2026",
+          "title": "PER-11/PJ/2025 jo. PER-3/PJ/2026"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-48-pmk-no-50-tahun-2025",
+          "score": 32.2,
+          "citation": "PMK No. 50 Tahun 2025",
+          "title": "PMK No. 50 Tahun 2025"
+        }
+      ]
+    },
+    {
+      "id": "concept_vat_implementation",
+      "latency_ms": 4.731,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm",
+          "score": 61.5,
+          "citation": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+          "title": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-14-pp-no-44-tahun-2022",
+          "score": 43.6,
+          "citation": "PP No. 44 Tahun 2022",
+          "title": "PP No. 44 Tahun 2022"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 39.4,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 39.3,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 37.1,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 31.9,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 31.9,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-15-pp-no-49-tahun-2022",
+          "score": 30.8,
+          "citation": "PP No. 49 Tahun 2022",
+          "title": "PP No. 49 Tahun 2022"
+        }
+      ]
+    },
+    {
+      "id": "concept_employee_effective_rate",
+      "latency_ms": 5.163,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-42-pmk-no-136-tahun-2024",
+          "score": 61.5,
+          "citation": "PMK No. 136 Tahun 2024",
+          "title": "PMK No. 136 Tahun 2024"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-22-pmk-no-118-tahun-2024",
+          "score": 61.2,
+          "citation": "PMK No. 118 Tahun 2024",
+          "title": "PMK No. 118 Tahun 2024"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-19-pmk-no-81-tahun-2024-jo-perubahan-terakhir-pmk-no-1-tahun-2026",
+          "score": 57.6,
+          "citation": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026",
+          "title": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 53.7,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-46-pmk-no-78-tahun-2024",
+          "score": 52.7,
+          "citation": "PMK No. 78 Tahun 2024",
+          "title": "PMK No. 78 Tahun 2024"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-16-pp-no-58-tahun-2023",
+          "score": 49.3,
+          "citation": "PP No. 58 Tahun 2023",
+          "title": "PP No. 58 Tahun 2023"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-53-per-1-pj-2024",
+          "score": 47.6,
+          "citation": "PER-1/PJ/2024",
+          "title": "PER-1/PJ/2024"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 43,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        }
+      ]
+    },
+    {
+      "id": "concept_benefit_in_kind",
+      "latency_ms": 4.314,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-30-pmk-no-66-tahun-2023",
+          "score": 60,
+          "citation": "PMK No. 66 Tahun 2023",
+          "title": "PMK No. 66 Tahun 2023"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-35-pmk-no-141-pmk-03-2015",
+          "score": 46.4,
+          "citation": "PMK No. 141/PMK.03/2015",
+          "title": "PMK No. 141/PMK.03/2015"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-36-pmk-no-169-pmk-010-2015",
+          "score": 45.9,
+          "citation": "PMK No. 169/PMK.010/2015",
+          "title": "PMK No. 169/PMK.010/2015"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-34-pmk-no-51-tahun-2025",
+          "score": 44.8,
+          "citation": "PMK No. 51 Tahun 2025",
+          "title": "PMK No. 51 Tahun 2025"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-48-pmk-no-50-tahun-2025",
+          "score": 43.7,
+          "citation": "PMK No. 50 Tahun 2025",
+          "title": "PMK No. 50 Tahun 2025"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-29-pmk-no-168-tahun-2023",
+          "score": 43.3,
+          "citation": "PMK No. 168 Tahun 2023",
+          "title": "PMK No. 168 Tahun 2023"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 42.8,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 41.6,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        }
+      ]
+    },
+    {
+      "id": "concept_depreciation",
+      "latency_ms": 4.508,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-31-pmk-no-72-tahun-2023",
+          "score": 47.1,
+          "citation": "PMK No. 72 Tahun 2023",
+          "title": "PMK No. 72 Tahun 2023"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 33.5,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 32.2,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 30.3,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 27.3,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 27.3,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 27,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 24,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        }
+      ]
+    },
+    {
+      "id": "concept_tax_valuation",
+      "latency_ms": 4.352,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 47.3,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 41.4,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-32-pmk-no-79-tahun-2023",
+          "score": 40.7,
+          "citation": "PMK No. 79 Tahun 2023",
+          "title": "PMK No. 79 Tahun 2023"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 34.1,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-01-uu-no-6-tahun-1983-tentang-kup",
+          "score": 34,
+          "citation": "UU No. 6 Tahun 1983 tentang KUP",
+          "title": "UU No. 6 Tahun 1983 tentang KUP"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 31.3,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-12-pp-no-50-tahun-2022",
+          "score": 29.9,
+          "citation": "PP No. 50 Tahun 2022",
+          "title": "PP No. 50 Tahun 2022"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 28.3,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        }
+      ]
+    },
+    {
+      "id": "concept_umkm_gross_turnover",
+      "latency_ms": 4.534,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-33-pmk-no-164-tahun-2023",
+          "score": 39.4,
+          "citation": "PMK No. 164 Tahun 2023",
+          "title": "PMK No. 164 Tahun 2023"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 37.1,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 34.8,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 31.9,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 31.4,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 30.3,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 28.6,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 27,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        }
+      ]
+    },
+    {
+      "id": "concept_tp_documentation",
+      "latency_ms": 5.242,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "pmk-213-tp-doc",
+          "score": 76.1,
+          "citation": "Minister of Finance Regulation No. 213/2016",
+          "title": "Transfer Pricing Documentation"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 48,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 43.7,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 42.8,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 42.8,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 6,
+          "document_id": "per-22-tp-audit",
+          "score": 42.3,
+          "citation": "DGT Regulation No. PER-22/PJ/2013",
+          "title": "Transfer Pricing Audit Guidance"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 41.9,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 40.6,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        }
+      ]
+    },
+    {
+      "id": "concept_tp_audit_far",
+      "latency_ms": 5.225,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 49.2,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 48.7,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 46,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 4,
+          "document_id": "pmk-213-tp-doc",
+          "score": 44.4,
+          "citation": "Minister of Finance Regulation No. 213/2016",
+          "title": "Transfer Pricing Documentation"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 43.2,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 6,
+          "document_id": "per-22-tp-audit",
+          "score": 42.6,
+          "citation": "DGT Regulation No. PER-22/PJ/2013",
+          "title": "Transfer Pricing Audit Guidance"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 42.2,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 41.2,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        }
+      ]
+    },
+    {
+      "id": "concept_apa",
+      "latency_ms": 4.983,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "pmk-22-apa",
+          "score": 85.8,
+          "citation": "Minister of Finance Regulation No. 22/2020",
+          "title": "Advance Pricing Agreement"
+        },
+        {
+          "rank": 2,
+          "document_id": "pmk-213-tp-doc",
+          "score": 55,
+          "citation": "Minister of Finance Regulation No. 213/2016",
+          "title": "Transfer Pricing Documentation"
+        },
+        {
+          "rank": 3,
+          "document_id": "per-22-tp-audit",
+          "score": 53.1,
+          "citation": "DGT Regulation No. PER-22/PJ/2013",
+          "title": "Transfer Pricing Audit Guidance"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 51.9,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 51.6,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 48.8,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 48.5,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 48.4,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        }
+      ]
+    },
+    {
+      "id": "relation_kup_stack",
+      "latency_ms": 4.768,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-12-pp-no-50-tahun-2022",
+          "score": 30.1,
+          "citation": "PP No. 50 Tahun 2022",
+          "title": "PP No. 50 Tahun 2022"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-19-pmk-no-81-tahun-2024-jo-perubahan-terakhir-pmk-no-1-tahun-2026",
+          "score": 29.4,
+          "citation": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026",
+          "title": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-50-per-8-pj-2025",
+          "score": 28.5,
+          "citation": "PER-8/PJ/2025",
+          "title": "PER-8/PJ/2025"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-49-per-7-pj-2025",
+          "score": 27.6,
+          "citation": "PER-7/PJ/2025",
+          "title": "PER-7/PJ/2025"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-51-per-11-pj-2025-jo-per-3-pj-2026",
+          "score": 27.1,
+          "citation": "PER-11/PJ/2025 jo. PER-3/PJ/2026",
+          "title": "PER-11/PJ/2025 jo. PER-3/PJ/2026"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-27-pmk-no-44-tahun-2026",
+          "score": 25.9,
+          "citation": "PMK No. 44 Tahun 2026",
+          "title": "PMK No. 44 Tahun 2026"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-21-pmk-no-15-tahun-2025",
+          "score": 23.2,
+          "citation": "PMK No. 15 Tahun 2025",
+          "title": "PMK No. 15 Tahun 2025"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-25-pmk-no-177-pmk-03-2022",
+          "score": 21.5,
+          "citation": "PMK No. 177/PMK.03/2022",
+          "title": "PMK No. 177/PMK.03/2022"
+        }
+      ]
+    },
+    {
+      "id": "relation_collection_stack",
+      "latency_ms": 4.513,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-23-pmk-no-61-tahun-2023",
+          "score": 41,
+          "citation": "PMK No. 61 Tahun 2023",
+          "title": "PMK No. 61 Tahun 2023"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 25.2,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-06-uu-no-19-tahun-1997-jo-uu-no-19-tahun-2000",
+          "score": 24.1,
+          "citation": "UU No. 19 Tahun 1997 jo. UU No. 19 Tahun 2000",
+          "title": "UU No. 19 Tahun 1997 jo. UU No. 19 Tahun 2000"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-07-uu-no-14-tahun-2002-tentang-pengadilan-pajak",
+          "score": 21.5,
+          "citation": "UU No. 14 Tahun 2002 tentang Pengadilan Pajak",
+          "title": "UU No. 14 Tahun 2002 tentang Pengadilan Pajak"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-12-pp-no-50-tahun-2022",
+          "score": 20.4,
+          "citation": "PP No. 50 Tahun 2022",
+          "title": "PP No. 50 Tahun 2022"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 20.1,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-29-pmk-no-168-tahun-2023",
+          "score": 19.1,
+          "citation": "PMK No. 168 Tahun 2023",
+          "title": "PMK No. 168 Tahun 2023"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-46-pmk-no-78-tahun-2024",
+          "score": 19.1,
+          "citation": "PMK No. 78 Tahun 2024",
+          "title": "PMK No. 78 Tahun 2024"
+        }
+      ]
+    },
+    {
+      "id": "relation_stamp_duty_stack",
+      "latency_ms": 4.454,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-09-uu-no-10-tahun-2020-tentang-bea-meterai",
+          "score": 62.1,
+          "citation": "UU No. 10 Tahun 2020 tentang Bea Meterai",
+          "title": "UU No. 10 Tahun 2020 tentang Bea Meterai"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-46-pmk-no-78-tahun-2024",
+          "score": 42.3,
+          "citation": "PMK No. 78 Tahun 2024",
+          "title": "PMK No. 78 Tahun 2024"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 33.9,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 33.9,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 31.9,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-51-per-11-pj-2025-jo-per-3-pj-2026",
+          "score": 31.8,
+          "citation": "PER-11/PJ/2025 jo. PER-3/PJ/2026",
+          "title": "PER-11/PJ/2025 jo. PER-3/PJ/2026"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 30.9,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 30.9,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        }
+      ]
+    },
+    {
+      "id": "relation_local_tax_stack",
+      "latency_ms": 4.72,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-10-uu-no-1-tahun-2022-tentang-hkpd",
+          "score": 37.4,
+          "citation": "UU No. 1 Tahun 2022 tentang HKPD",
+          "title": "UU No. 1 Tahun 2022 tentang HKPD"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-17-pp-no-35-tahun-2023",
+          "score": 37.3,
+          "citation": "PP No. 35 Tahun 2023",
+          "title": "PP No. 35 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 34.6,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 34.6,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 34.5,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 32.2,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 31.6,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 31.6,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        }
+      ]
+    },
+    {
+      "id": "relation_financial_information",
+      "latency_ms": 4.837,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 47.5,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-11-uu-no-9-tahun-2017",
+          "score": 42,
+          "citation": "UU No. 9 Tahun 2017",
+          "title": "UU No. 9 Tahun 2017"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-28-pmk-no-108-tahun-2025",
+          "score": 35.4,
+          "citation": "PMK No. 108 Tahun 2025",
+          "title": "PMK No. 108 Tahun 2025"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 32.3,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 31,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 29.2,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 29,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 27,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        }
+      ]
+    },
+    {
+      "id": "relation_tax_crime_preliminary_evidence",
+      "latency_ms": 4.58,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 38.2,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 35.3,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-01-uu-no-6-tahun-1983-tentang-kup",
+          "score": 34.5,
+          "citation": "UU No. 6 Tahun 1983 tentang KUP",
+          "title": "UU No. 6 Tahun 1983 tentang KUP"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-25-pmk-no-177-pmk-03-2022",
+          "score": 32.4,
+          "citation": "PMK No. 177/PMK.03/2022",
+          "title": "PMK No. 177/PMK.03/2022"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-53-per-1-pj-2024",
+          "score": 31.6,
+          "citation": "PER-1/PJ/2024",
+          "title": "PER-1/PJ/2024"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 29.6,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 29.6,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 27,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        }
+      ]
+    },
+    {
+      "id": "relation_vat_2025_tax_base",
+      "latency_ms": 5.432,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-45-pmk-no-11-tahun-2025-jo-pmk-no-53-tahun-2025",
+          "score": 98.2,
+          "citation": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025",
+          "title": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-48-pmk-no-50-tahun-2025",
+          "score": 80.9,
+          "citation": "PMK No. 50 Tahun 2025",
+          "title": "PMK No. 50 Tahun 2025"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 71.6,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-51-per-11-pj-2025-jo-per-3-pj-2026",
+          "score": 71.4,
+          "citation": "PER-11/PJ/2025 jo. PER-3/PJ/2026",
+          "title": "PER-11/PJ/2025 jo. PER-3/PJ/2026"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm",
+          "score": 67,
+          "citation": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+          "title": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-47-pmk-no-37-tahun-2025",
+          "score": 64.8,
+          "citation": "PMK No. 37 Tahun 2025",
+          "title": "PMK No. 37 Tahun 2025"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-34-pmk-no-51-tahun-2025",
+          "score": 64.5,
+          "citation": "PMK No. 51 Tahun 2025",
+          "title": "PMK No. 51 Tahun 2025"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 61.8,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        }
+      ]
+    },
+    {
+      "id": "relation_modern_transfer_pricing",
+      "latency_ms": 4.775,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 59.2,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 2,
+          "document_id": "per-32-alp",
+          "score": 48.3,
+          "citation": "DGT Regulation No. PER-32/PJ/2011",
+          "title": "Arm's Length Principle Application"
+        },
+        {
+          "rank": 3,
+          "document_id": "pmk-213-tp-doc",
+          "score": 44.8,
+          "citation": "Minister of Finance Regulation No. 213/2016",
+          "title": "Transfer Pricing Documentation"
+        },
+        {
+          "rank": 4,
+          "document_id": "per-22-tp-audit",
+          "score": 42.9,
+          "citation": "DGT Regulation No. PER-22/PJ/2013",
+          "title": "Transfer Pricing Audit Guidance"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 38.6,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 38.5,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 35.6,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 33.5,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        }
+      ]
+    },
+    {
+      "id": "relation_cfc_foreign_income",
+      "latency_ms": 4.841,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 41.1,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 32.5,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-36-pmk-no-169-pmk-010-2015",
+          "score": 27.5,
+          "citation": "PMK No. 169/PMK.010/2015",
+          "title": "PMK No. 169/PMK.010/2015"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 25.7,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 20.7,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-27-pmk-no-44-tahun-2026",
+          "score": 18,
+          "citation": "PMK No. 44 Tahun 2026",
+          "title": "PMK No. 44 Tahun 2026"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 17.8,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-34-pmk-no-51-tahun-2025",
+          "score": 16.9,
+          "citation": "PMK No. 51 Tahun 2025",
+          "title": "PMK No. 51 Tahun 2025"
+        }
+      ]
+    },
+    {
+      "id": "concept_global_minimum_tax",
+      "latency_ms": 4.36,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-42-pmk-no-136-tahun-2024",
+          "score": 71.2,
+          "citation": "PMK No. 136 Tahun 2024",
+          "title": "PMK No. 136 Tahun 2024"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 58.9,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 57.6,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+          "score": 57,
+          "citation": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019",
+          "title": "PMK No. 107/PMK.03/2017 jo. PMK No. 93/PMK.03/2019"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 52.9,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 49.7,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-19-pmk-no-81-tahun-2024-jo-perubahan-terakhir-pmk-no-1-tahun-2026",
+          "score": 44.7,
+          "citation": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026",
+          "title": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-46-pmk-no-78-tahun-2024",
+          "score": 43.8,
+          "citation": "PMK No. 78 Tahun 2024",
+          "title": "PMK No. 78 Tahun 2024"
+        }
+      ]
+    },
+    {
+      "id": "concept_crypto_tax",
+      "latency_ms": 4.425,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-48-pmk-no-50-tahun-2025",
+          "score": 49.6,
+          "citation": "PMK No. 50 Tahun 2025",
+          "title": "PMK No. 50 Tahun 2025"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm",
+          "score": 46.1,
+          "citation": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+          "title": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 34.8,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 32.7,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 30.3,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 28.6,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 28.6,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 28.3,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        }
+      ]
+    },
+    {
+      "id": "english_arms_length",
+      "latency_ms": 4.805,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "per-32-alp",
+          "score": 65.7,
+          "citation": "DGT Regulation No. PER-32/PJ/2011",
+          "title": "Arm's Length Principle Application"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 62.2,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 48.6,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 4,
+          "document_id": "per-22-tp-audit",
+          "score": 46.8,
+          "citation": "DGT Regulation No. PER-22/PJ/2013",
+          "title": "Transfer Pricing Audit Guidance"
+        },
+        {
+          "rank": 5,
+          "document_id": "pmk-213-tp-doc",
+          "score": 44.7,
+          "citation": "Minister of Finance Regulation No. 213/2016",
+          "title": "Transfer Pricing Documentation"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 44.3,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 43.7,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 43.6,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        }
+      ]
+    },
+    {
+      "id": "english_vat_exemption",
+      "latency_ms": 4.721,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm",
+          "score": 56.5,
+          "citation": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+          "title": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM"
+        },
+        {
+          "rank": 2,
+          "document_id": "per-faktur",
+          "score": 49.6,
+          "citation": "DGT regulation on tax invoices",
+          "title": "Tax Invoice Regulation"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 40.5,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-15-pp-no-49-tahun-2022",
+          "score": 39.8,
+          "citation": "PP No. 49 Tahun 2022",
+          "title": "PP No. 49 Tahun 2022"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-14-pp-no-44-tahun-2022",
+          "score": 38.8,
+          "citation": "PP No. 44 Tahun 2022",
+          "title": "PP No. 44 Tahun 2022"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-45-pmk-no-11-tahun-2025-jo-pmk-no-53-tahun-2025",
+          "score": 38.2,
+          "citation": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025",
+          "title": "PMK No. 11 Tahun 2025 jo. PMK No. 53 Tahun 2025"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 38.1,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-51-per-11-pj-2025-jo-per-3-pj-2026",
+          "score": 36.7,
+          "citation": "PER-11/PJ/2025 jo. PER-3/PJ/2026",
+          "title": "PER-11/PJ/2025 jo. PER-3/PJ/2026"
+        }
+      ]
+    },
+    {
+      "id": "english_employee_withholding",
+      "latency_ms": 5.416,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 67.7,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-46-pmk-no-78-tahun-2024",
+          "score": 67.7,
+          "citation": "PMK No. 78 Tahun 2024",
+          "title": "PMK No. 78 Tahun 2024"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-22-pmk-no-118-tahun-2024",
+          "score": 67.2,
+          "citation": "PMK No. 118 Tahun 2024",
+          "title": "PMK No. 118 Tahun 2024"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-19-pmk-no-81-tahun-2024-jo-perubahan-terakhir-pmk-no-1-tahun-2026",
+          "score": 65.8,
+          "citation": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026",
+          "title": "PMK No. 81 Tahun 2024 jo. perubahan terakhir PMK No. 1 Tahun 2026"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-53-per-1-pj-2024",
+          "score": 65.1,
+          "citation": "PER-1/PJ/2024",
+          "title": "PER-1/PJ/2024"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-42-pmk-no-136-tahun-2024",
+          "score": 65,
+          "citation": "PMK No. 136 Tahun 2024",
+          "title": "PMK No. 136 Tahun 2024"
+        },
+        {
+          "rank": 7,
+          "document_id": "per-faktur",
+          "score": 40.4,
+          "citation": "DGT regulation on tax invoices",
+          "title": "Tax Invoice Regulation"
+        },
+        {
+          "rank": 8,
+          "document_id": "pmk-213-tp-doc",
+          "score": 38.6,
+          "citation": "Minister of Finance Regulation No. 213/2016",
+          "title": "Transfer Pricing Documentation"
+        }
+      ]
+    },
+    {
+      "id": "negative_labor_minimum_wage",
+      "latency_ms": 4.412,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-05-uu-no-6-tahun-2023-tentang-cipta-kerja",
+          "score": 36.9,
+          "citation": "UU No. 6 Tahun 2023 tentang Cipta Kerja",
+          "title": "UU No. 6 Tahun 2023 tentang Cipta Kerja"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 32.2,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-42-pmk-no-136-tahun-2024",
+          "score": 29.2,
+          "citation": "PMK No. 136 Tahun 2024",
+          "title": "PMK No. 136 Tahun 2024"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 27,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 27,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 27,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-39-pmk-no-35-pmk-03-2019",
+          "score": 24,
+          "citation": "PMK No. 35/PMK.03/2019",
+          "title": "PMK No. 35/PMK.03/2019"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-40-pmk-no-192-pmk-03-2018",
+          "score": 24,
+          "citation": "PMK No. 192/PMK.03/2018",
+          "title": "PMK No. 192/PMK.03/2018"
+        }
+      ]
+    },
+    {
+      "id": "negative_customs_hs_classification",
+      "latency_ms": 4.543,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-09-uu-no-10-tahun-2020-tentang-bea-meterai",
+          "score": 42.8,
+          "citation": "UU No. 10 Tahun 2020 tentang Bea Meterai",
+          "title": "UU No. 10 Tahun 2020 tentang Bea Meterai"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm",
+          "score": 22.4,
+          "citation": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+          "title": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-16-pp-no-58-tahun-2023",
+          "score": 21.6,
+          "citation": "PP No. 58 Tahun 2023",
+          "title": "PP No. 58 Tahun 2023"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-46-pmk-no-78-tahun-2024",
+          "score": 21.4,
+          "citation": "PMK No. 78 Tahun 2024",
+          "title": "PMK No. 78 Tahun 2024"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 20,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-44-pmk-no-131-tahun-2024",
+          "score": 20,
+          "citation": "PMK No. 131 Tahun 2024",
+          "title": "PMK No. 131 Tahun 2024"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 19.9,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-51-per-11-pj-2025-jo-per-3-pj-2026",
+          "score": 19.7,
+          "citation": "PER-11/PJ/2025 jo. PER-3/PJ/2026",
+          "title": "PER-11/PJ/2025 jo. PER-3/PJ/2026"
+        }
+      ]
+    },
+    {
+      "id": "negative_divorce_law",
+      "latency_ms": 4.338,
+      "retrieved": [
+        {
+          "rank": 1,
+          "document_id": "essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan",
+          "score": 13,
+          "citation": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan",
+          "title": "UU No. 7 Tahun 1983 tentang Pajak Penghasilan"
+        },
+        {
+          "rank": 2,
+          "document_id": "essential-37-pmk-no-172-tahun-2023",
+          "score": 13,
+          "citation": "PMK No. 172 Tahun 2023",
+          "title": "PMK No. 172 Tahun 2023"
+        },
+        {
+          "rank": 3,
+          "document_id": "essential-38-pmk-no-112-tahun-2025",
+          "score": 13,
+          "citation": "PMK No. 112 Tahun 2025",
+          "title": "PMK No. 112 Tahun 2025"
+        },
+        {
+          "rank": 4,
+          "document_id": "essential-43-p3b-indonesia-protokol-dan-mli",
+          "score": 13,
+          "citation": "P3B Indonesia, Protokol, dan MLI",
+          "title": "P3B Indonesia, Protokol, dan MLI"
+        },
+        {
+          "rank": 5,
+          "document_id": "essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm",
+          "score": 13,
+          "citation": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+          "title": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM"
+        },
+        {
+          "rank": 6,
+          "document_id": "essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan",
+          "score": 13,
+          "citation": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan",
+          "title": "UU No. 7 Tahun 2021 tentang Harmonisasi Peraturan Perpajakan"
+        },
+        {
+          "rank": 7,
+          "document_id": "essential-14-pp-no-44-tahun-2022",
+          "score": 13,
+          "citation": "PP No. 44 Tahun 2022",
+          "title": "PP No. 44 Tahun 2022"
+        },
+        {
+          "rank": 8,
+          "document_id": "essential-15-pp-no-49-tahun-2022",
+          "score": 13,
+          "citation": "PP No. 49 Tahun 2022",
+          "title": "PP No. 49 Tahun 2022"
+        }
+      ]
+    }
+  ]
+}

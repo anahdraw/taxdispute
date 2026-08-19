@@ -1,42 +1,168 @@
 import { NextResponse } from "next/server";
 import { hasDatabase, listTaxRegulations } from "@/lib/db";
-import { answerRegulationQuestion } from "@/lib/openai";
-import { mergeRegulationRecords, chooseRegulationContext } from "@/lib/regulation-knowledge";
+import { answerRegulationQuestion, hasRemoteLlm, missingKeyStatus } from "@/lib/openai";
+import { mergeRegulationRecords } from "@/lib/regulation-knowledge";
+import { rerankRegulationContext } from "@/lib/regulation-answer";
 import { requireAuth } from "@/lib/auth";
 import { getActiveTierWorkProfile } from "@/lib/tier-profiles";
 import { modelChoiceFromRequest } from "@/lib/model-options";
 import { resolveRequestTier, TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 import { getManagedPrompt } from "@/lib/server-settings";
+import {
+  lightRagConfigFromEnv,
+  matchLightRagReferencesToRegulations,
+  queryLightRag
+} from "@/lib/lightrag-client";
+import { ragProviderModeFromEnv, runRagProvider, type RagProviderAttempt } from "@/lib/rag-provider";
+import type { Regulation } from "@/lib/mock-data";
+import { loadLocalRegulationSnapshot } from "@/lib/regulation-snapshot";
+import { generateLocalRegulationAnswer } from "@/lib/regulation-answer";
 
 export const runtime = "nodejs";
+
+type RegulationRetrieval = {
+  records: Regulation[];
+  canonicalIds: string[];
+  engine: "baseline" | "lightrag";
+  queryMode?: string;
+  referenceCount?: number;
+  retrievalLatencyMs?: number;
+};
+
+function canonicalIds(records: Regulation[]) {
+  return records.map((record) => record.canonicalKey || record.id);
+}
+
+function compareRetrieval(baseline: RegulationRetrieval, lightrag: RegulationRetrieval) {
+  const baselineIds = baseline.canonicalIds;
+  const lightRagIds = lightrag.canonicalIds;
+  const lightRagSet = new Set(lightRagIds);
+  const commonIds = baselineIds.filter((id) => lightRagSet.has(id));
+  return {
+    baselineIds,
+    lightRagIds,
+    commonIds,
+    retrievalJaccardAt8:
+      baselineIds.length || lightRagIds.length ? commonIds.length / new Set([...baselineIds, ...lightRagIds]).size : 1,
+    sameTop1: Boolean(baselineIds[0] && baselineIds[0] === lightRagIds[0])
+  };
+}
+
+function attemptTelemetry(attempt: RagProviderAttempt<RegulationRetrieval> | undefined) {
+  if (!attempt) return undefined;
+  return attempt.ok
+    ? { provider: attempt.provider, ok: true, latencyMs: attempt.latencyMs, resultCount: attempt.value.records.length }
+    : { provider: attempt.provider, ok: false, latencyMs: attempt.latencyMs, errorCode: "provider_failed" };
+}
 
 export async function POST(request: Request) {
   const auth = requireAuth(request);
   if ("response" in auth) return auth.response;
   const modelChoice = modelChoiceFromRequest(request);
+  let body: { question?: string; language?: "id" | "en"; topic?: string };
   try {
-    const body = (await request.json()) as { question?: string; language?: "id" | "en"; topic?: string };
-    const question = (body.question || "").trim();
-    const language = body.language === "id" ? "id" : "en";
-    if (!question) {
-      return NextResponse.json({ error: language === "id" ? "Pertanyaan belum diisi." : "Question is required." }, { status: 400 });
+    const rawBody: unknown = await request.json();
+    if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+      return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
     }
+    body = rawBody as typeof body;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
+  }
+  const question = typeof body.question === "string" ? body.question.trim() : "";
+  const language = body.language === "id" ? "id" : "en";
+  if (!question) {
+    return NextResponse.json({ error: language === "id" ? "Pertanyaan belum diisi." : "Question is required." }, { status: 400 });
+  }
+  try {
     const stored = hasDatabase() ? await listTaxRegulations().catch(() => []) : [];
-    const records = mergeRegulationRecords(stored);
-    return NextResponse.json(
-      await answerRegulationQuestion(
-        question,
-        language,
-        chooseRegulationContext(records, question, body.topic),
-        getActiveTierWorkProfile(resolveRequestTier(auth.session, request.headers.get(TIER_PREVIEW_HEADER))),
-        modelChoice,
-        await getManagedPrompt("regulationBot", language)
-      )
-    );
+    const localSnapshot = loadLocalRegulationSnapshot();
+    const records = mergeRegulationRecords([...localSnapshot, ...stored]);
+    const providerMode = ragProviderModeFromEnv();
+    const baselineContext = rerankRegulationContext(records, question, 12);
+    const baselineRecords = baselineContext.records;
+    const retrieval = await runRagProvider<RegulationRetrieval, ReturnType<typeof compareRetrieval>>({
+      mode: providerMode,
+      baseline: async () => ({
+        records: baselineRecords,
+        canonicalIds: canonicalIds(baselineRecords),
+        engine: "baseline"
+      }),
+      lightrag:
+        providerMode === "baseline"
+          ? undefined
+          : async () => {
+              if (stored.length || localSnapshot.length) throw new Error("LightRAG pilot index does not include the enriched regulation snapshot");
+              const config = lightRagConfigFromEnv();
+              if (!config) throw new Error("LIGHTRAG_BASE_URL is not configured");
+              const result = await queryLightRag(config, { query: question, includeChunkContent: false });
+              const matched = matchLightRagReferencesToRegulations(result.references, records, 8);
+              if (!result.hasContext || !matched.length) {
+                throw new Error("LightRAG returned no canonical regulation references");
+              }
+              return {
+                records: matched,
+                canonicalIds: canonicalIds(matched),
+                engine: "lightrag",
+                queryMode: result.queryMode,
+                referenceCount: result.references.length,
+                retrievalLatencyMs: result.clientLatencyMs
+              };
+            },
+      compare: compareRetrieval
+    });
+    const answerContext = rerankRegulationContext(retrieval.value.records, question, 8);
+    const answer = hasRemoteLlm(modelChoice)
+      ? await answerRegulationQuestion(
+          question,
+          language,
+          answerContext.records,
+          getActiveTierWorkProfile(resolveRequestTier(auth.session, request.headers.get(TIER_PREVIEW_HEADER))),
+          modelChoice,
+          await getManagedPrompt("regulationBot", language),
+          answerContext
+        )
+      : (() => {
+          const local = generateLocalRegulationAnswer(question, language, answerContext);
+          const status = missingKeyStatus(language, modelChoice);
+          return {
+            answer: local.answer,
+            // Keep the strongest sources in ranked order so the UI can show
+            // the primary references before rendering the conversational answer.
+            citations: answerContext.records.slice(0, 6),
+            answerMeta: { abstained: local.abstained, matchedProvisions: local.matchedProvisions },
+            llmStatus: { ...status, message: `${status.message} Reranker + graph evidence formatter applied.` }
+          };
+        })();
+    return NextResponse.json({
+      ...answer,
+      retrieval: {
+        requestedProvider: retrieval.requestedMode,
+        servedBy: retrieval.servedBy,
+        fallbackUsed: retrieval.fallbackUsed,
+        totalCorpus: records.length,
+        resultCount: retrieval.value.records.length,
+        canonicalIds: retrieval.value.canonicalIds,
+        queryMode: retrieval.value.queryMode,
+        referenceCount: retrieval.value.referenceCount,
+        retrievalLatencyMs: retrieval.value.retrievalLatencyMs,
+        baseline: attemptTelemetry(retrieval.baseline),
+        lightrag: attemptTelemetry(retrieval.lightrag),
+        comparison: retrieval.comparison
+      },
+      reranking: answerContext.diagnostics,
+      graphPaths: answerContext.graphPaths
+    });
   } catch (error) {
+    console.error("Regulation chat request failed", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Invalid regulation chat request" },
-      { status: 400 }
+      {
+        error:
+          language === "id"
+            ? "Layanan analisis peraturan sedang tidak tersedia. Silakan coba kembali."
+            : "The regulation analysis service is temporarily unavailable. Please try again."
+      },
+      { status: 503 }
     );
   }
 }

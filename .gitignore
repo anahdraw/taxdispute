@@ -7,6 +7,9 @@
 # Local runtime data
 data/
 uploads/
+outputs/
+docs/render_user_manual/
+docs/user_manual_assets/
 *.sqlite
 *.sqlite3
 *.db

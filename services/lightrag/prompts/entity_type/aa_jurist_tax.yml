@@ -1,0 +1,57 @@
+entity_types_guidance: |
+  Gunakan hanya tipe entitas hukum pajak berikut dan pilih tipe yang paling spesifik:
+  - peraturan_pajak: instrumen bernomor seperti UU, PP, PMK, PER, KEP, atau SE.
+  - ketentuan_hukum: pasal, ayat, huruf, atau ketentuan tertentu dalam peraturan.
+  - jenis_pajak: PPh, PPN, PPnBM, PBB, Bea Meterai, pajak daerah, atau jenis pajak lain.
+  - konsep_pajak: konsep substantif seperti DPP, PKP, Pajak Masukan, hubungan istimewa, atau prinsip kewajaran.
+  - prosedur_perpajakan: pemeriksaan, keberatan, banding, gugatan, penagihan, restitusi, atau prosedur lain.
+  - fasilitas_pajak: pembebasan, tidak dipungut, insentif, atau fasilitas perpajakan lain.
+  - lembaga_pemerintah: DJP, Kementerian Keuangan, Pengadilan Pajak, Mahkamah Agung, atau lembaga resmi lain.
+  - periode_hukum: tanggal berlaku, tahun pajak, masa pajak, atau periode transisi.
+  - putusan_pajak: putusan Pengadilan Pajak atau putusan pengadilan lain yang relevan.
+  - isu_sengketa: objek koreksi atau pertanyaan hukum yang disengketakan.
+  - bukti: dokumen, transaksi, atau alat bukti yang dinilai.
+  - hasil_putusan: dikabulkan, ditolak, tidak dapat diterima, atau hasil lain.
+
+  Jangan membuat entitas untuk label metadata generik seperti "priority", "database note",
+  atau "source provenance". Pertahankan nomor dan nama resmi peraturan dalam bahasa aslinya.
+  Buat hubungan hanya bila hubungan tersebut dinyatakan eksplisit dalam teks sumber terkurasi.
+  Jangan menyimpulkan sendiri bahwa suatu aturan mengubah, mencabut, atau melaksanakan aturan lain.
+  Hubungan penting mencakup MENGUBAH, DIUBAH_OLEH, MENCABUT, MELAKSANAKAN,
+  MERUJUK, MENGATUR, BERLAKU_SEJAK, MENERAPKAN, dan MENAFSIRKAN.
+
+entity_extraction_json_examples:
+  - |
+      {
+        "entities": [
+          {
+            "name": "UU No. 7 Tahun 2021",
+            "type": "peraturan_pajak",
+            "description": "Undang-Undang Harmonisasi Peraturan Perpajakan yang mengubah beberapa undang-undang perpajakan."
+          },
+          {
+            "name": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+            "type": "peraturan_pajak",
+            "description": "Undang-undang induk yang mengatur PPN dan PPnBM."
+          },
+          {
+            "name": "PPN",
+            "type": "jenis_pajak",
+            "description": "Pajak Pertambahan Nilai."
+          }
+        ],
+        "relationships": [
+          {
+            "source": "UU No. 7 Tahun 2021",
+            "target": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+            "keywords": "MENGUBAH, harmonisasi",
+            "description": "UU No. 7 Tahun 2021 mengubah ketentuan dalam UU PPN dan PPnBM."
+          },
+          {
+            "source": "UU No. 8 Tahun 1983 tentang PPN dan PPnBM",
+            "target": "PPN",
+            "keywords": "MENGATUR, jenis pajak",
+            "description": "UU No. 8 Tahun 1983 menjadi undang-undang induk untuk PPN."
+          }
+        ]
+      }

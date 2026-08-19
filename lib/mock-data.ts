@@ -66,7 +66,7 @@ export type RegulationTranslation = {
 
 export type Regulation = {
   id: string;
-  topic?: "vat" | "transfer_pricing" | "general";
+  topic?: "vat" | "income_tax" | "transfer_pricing" | "general";
   title: string;
   citation: string;
   focus: string;
@@ -74,6 +74,7 @@ export type Regulation = {
   source?: "seed" | "official" | "manual";
   sourceUrl?: string;
   pdfUrl?: string;
+  pdfUrls?: string[];
   officialPdfUrl?: string;
   storedPdfUrl?: string;
   sourceAuthority?: string;

@@ -1,0 +1,356 @@
+{
+  "schema_version": "regulation-retrieval-gold-v1",
+  "corpus": "aa-jurist-next-seed-regulations-2026-07-20",
+  "description": "Gold set berbasis kartu peraturan yang tersedia di lib/mock-data.ts dan lib/essential-regulations.ts. Untuk pertanyaan yang meminta aturan saat ini, kartu yang ditandai berlaku pada registry diprioritaskan dan kartu yang menurut registry telah dicabut hanya boleh menjadi konteks historis. Gold ini menguji retrieval, bukan mensertifikasi kebenaran hukum materiil kartu seed.",
+  "default_k": 5,
+  "cases": [
+    {
+      "id": "lookup_uu_kup",
+      "kind": "lookup",
+      "language": "id",
+      "query": "Tampilkan UU Nomor 6 Tahun 1983 tentang KUP.",
+      "required_document_ids": ["essential-01-uu-no-6-tahun-1983-tentang-kup"],
+      "supporting_document_ids": [],
+      "tags": ["exact-citation", "kup"]
+    },
+    {
+      "id": "lookup_pmk_172_2023",
+      "kind": "lookup",
+      "language": "id",
+      "query": "Cari PMK Nomor 172 Tahun 2023.",
+      "required_document_ids": ["essential-37-pmk-no-172-tahun-2023"],
+      "supporting_document_ids": [],
+      "tags": ["exact-citation", "transfer-pricing"]
+    },
+    {
+      "id": "lookup_pmk_141_2015",
+      "kind": "lookup",
+      "language": "id",
+      "query": "Tampilkan PMK 141/PMK.03/2015 mengenai jasa lain PPh Pasal 23.",
+      "required_document_ids": ["essential-35-pmk-no-141-pmk-03-2015"],
+      "supporting_document_ids": [],
+      "tags": ["exact-citation", "legacy-number-format", "pph-23"]
+    },
+    {
+      "id": "lookup_per_11_2025",
+      "kind": "lookup",
+      "language": "id",
+      "query": "Cari PER-11/PJ/2025 jo. PER-3/PJ/2026.",
+      "required_document_ids": ["essential-51-per-11-pj-2025-jo-per-3-pj-2026"],
+      "supporting_document_ids": [],
+      "tags": ["exact-citation", "vat", "amendment"]
+    },
+    {
+      "id": "lookup_pmk_28_2026",
+      "kind": "lookup",
+      "language": "id",
+      "query": "Apa kartu aturan PMK Nomor 28 Tahun 2026?",
+      "required_document_ids": ["essential-24-pmk-no-28-tahun-2026"],
+      "supporting_document_ids": [],
+      "tags": ["exact-citation", "refund"]
+    },
+    {
+      "id": "lookup_tax_court_law",
+      "kind": "lookup",
+      "language": "en",
+      "query": "Find Law Number 14 of 2002 on the Tax Court.",
+      "required_document_ids": ["essential-07-uu-no-14-tahun-2002-tentang-pengadilan-pajak"],
+      "supporting_document_ids": [],
+      "tags": ["exact-citation", "cross-language", "tax-court"]
+    },
+    {
+      "id": "concept_tax_collection",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Aturan apa yang menjadi dasar penagihan pajak dengan Surat Paksa, penyitaan, pencegahan, dan penyanderaan?",
+      "required_document_ids": ["essential-06-uu-no-19-tahun-1997-jo-uu-no-19-tahun-2000"],
+      "supporting_document_ids": ["essential-23-pmk-no-61-tahun-2023"],
+      "tags": ["collection", "concept"]
+    },
+    {
+      "id": "concept_tax_court_procedure",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Dasar hukum banding, gugatan, pembuktian, dan pemeriksaan persidangan di Pengadilan Pajak apa?",
+      "required_document_ids": ["essential-07-uu-no-14-tahun-2002-tentang-pengadilan-pajak"],
+      "supporting_document_ids": [],
+      "tags": ["procedure", "tax-court"]
+    },
+    {
+      "id": "concept_vat_facility",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Peraturan mana yang mengatur PPN dibebaskan atau tidak dipungut atas impor dan penyerahan tertentu?",
+      "required_document_ids": ["essential-15-pp-no-49-tahun-2022"],
+      "supporting_document_ids": ["essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm"],
+      "tags": ["vat", "facility"]
+    },
+    {
+      "id": "concept_vat_implementation",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "PP pelaksana utama untuk penerapan PPN dan PPnBM setelah UU HPP apa?",
+      "required_document_ids": ["essential-14-pp-no-44-tahun-2022"],
+      "supporting_document_ids": ["essential-04-uu-no-7-tahun-2021-tentang-harmonisasi-peraturan-perpajakan"],
+      "tags": ["vat", "implementation"]
+    },
+    {
+      "id": "concept_employee_effective_rate",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Aturan tarif efektif rata-rata untuk pemotongan PPh Pasal 21 pegawai sejak 2024 apa?",
+      "required_document_ids": ["essential-16-pp-no-58-tahun-2023"],
+      "supporting_document_ids": ["essential-29-pmk-no-168-tahun-2023"],
+      "tags": ["pph-21", "payroll"]
+    },
+    {
+      "id": "concept_benefit_in_kind",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "PMK mana yang mengatur perlakuan PPh atas natura dan kenikmatan?",
+      "required_document_ids": ["essential-30-pmk-no-66-tahun-2023"],
+      "supporting_document_ids": ["essential-13-pp-no-55-tahun-2022-jo-pp-no-20-tahun-2026"],
+      "tags": ["income-tax", "benefit-in-kind"]
+    },
+    {
+      "id": "concept_depreciation",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Aturan penyusutan harta berwujud dan amortisasi harta tak berwujud untuk pajak apa?",
+      "required_document_ids": ["essential-31-pmk-no-72-tahun-2023"],
+      "supporting_document_ids": [],
+      "tags": ["income-tax", "depreciation"]
+    },
+    {
+      "id": "concept_tax_valuation",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Apa aturan tata cara penilaian untuk tujuan perpajakan?",
+      "required_document_ids": ["essential-32-pmk-no-79-tahun-2023"],
+      "supporting_document_ids": [],
+      "tags": ["valuation"]
+    },
+    {
+      "id": "concept_umkm_gross_turnover",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Aturan PPh untuk usaha dengan peredaran bruto tertentu dan kewajiban administrasinya apa?",
+      "required_document_ids": ["essential-33-pmk-no-164-tahun-2023"],
+      "supporting_document_ids": ["essential-13-pp-no-55-tahun-2022-jo-pp-no-20-tahun-2026"],
+      "tags": ["income-tax", "umkm"]
+    },
+    {
+      "id": "concept_tp_documentation",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Aturan yang berlaku saat ini untuk dokumentasi transfer pricing, termasuk master file, local file, dan country-by-country report, apa?",
+      "required_document_ids": ["essential-37-pmk-no-172-tahun-2023"],
+      "supporting_document_ids": [],
+      "historical_context_document_ids": ["pmk-213-tp-doc"],
+      "tags": ["transfer-pricing", "documentation", "temporal"]
+    },
+    {
+      "id": "concept_tp_audit_far",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Aturan utama yang berlaku saat ini untuk pemeriksaan transfer pricing, termasuk analisis fungsi-aset-risiko, metode, dan pembanding, apa?",
+      "required_document_ids": ["essential-37-pmk-no-172-tahun-2023"],
+      "supporting_document_ids": [],
+      "historical_context_document_ids": ["per-22-tp-audit"],
+      "tags": ["transfer-pricing", "audit", "temporal"]
+    },
+    {
+      "id": "concept_apa",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Aturan yang berlaku saat ini untuk prosedur Advance Pricing Agreement guna mencegah sengketa transfer pricing apa?",
+      "required_document_ids": ["essential-37-pmk-no-172-tahun-2023"],
+      "supporting_document_ids": [],
+      "historical_context_document_ids": ["pmk-22-apa"],
+      "tags": ["transfer-pricing", "apa", "temporal"]
+    },
+    {
+      "id": "relation_kup_stack",
+      "kind": "multi_hop",
+      "language": "id",
+      "query": "Susun dasar aturan dari UU sampai aturan pelaksana untuk administrasi hak dan kewajiban pajak serta sistem inti DJP.",
+      "required_document_ids": [
+        "essential-01-uu-no-6-tahun-1983-tentang-kup",
+        "essential-12-pp-no-50-tahun-2022",
+        "essential-19-pmk-no-81-tahun-2024-jo-perubahan-terakhir-pmk-no-1-tahun-2026"
+      ],
+      "supporting_document_ids": ["essential-49-per-7-pj-2025", "essential-50-per-8-pj-2025"],
+      "tags": ["kup", "hierarchy", "implementation"]
+    },
+    {
+      "id": "relation_collection_stack",
+      "kind": "multi_hop",
+      "language": "id",
+      "query": "Hubungkan undang-undang penagihan dengan aturan teknis pelaksanaan penagihan pajak yang masih harus dibayar.",
+      "required_document_ids": [
+        "essential-06-uu-no-19-tahun-1997-jo-uu-no-19-tahun-2000",
+        "essential-23-pmk-no-61-tahun-2023"
+      ],
+      "supporting_document_ids": [],
+      "tags": ["collection", "legal-chain"]
+    },
+    {
+      "id": "relation_stamp_duty_stack",
+      "kind": "multi_hop",
+      "language": "id",
+      "query": "Apa rangkaian aturan utama dan pelaksana untuk Bea Meterai, termasuk meterai elektronik?",
+      "required_document_ids": [
+        "essential-09-uu-no-10-tahun-2020-tentang-bea-meterai",
+        "essential-18-pp-no-86-tahun-2021",
+        "essential-46-pmk-no-78-tahun-2024"
+      ],
+      "supporting_document_ids": [],
+      "tags": ["stamp-duty", "legal-chain"]
+    },
+    {
+      "id": "relation_local_tax_stack",
+      "kind": "multi_hop",
+      "language": "id",
+      "query": "Apa undang-undang dan PP pelaksana utama untuk pajak daerah dan retribusi daerah?",
+      "required_document_ids": [
+        "essential-10-uu-no-1-tahun-2022-tentang-hkpd",
+        "essential-17-pp-no-35-tahun-2023"
+      ],
+      "supporting_document_ids": [],
+      "tags": ["local-tax", "legal-chain"]
+    },
+    {
+      "id": "relation_financial_information",
+      "kind": "multi_hop",
+      "language": "id",
+      "query": "Apa dasar undang-undang dan petunjuk teknis terbaru akses informasi keuangan untuk kepentingan perpajakan?",
+      "required_document_ids": [
+        "essential-11-uu-no-9-tahun-2017",
+        "essential-28-pmk-no-108-tahun-2025"
+      ],
+      "supporting_document_ids": [],
+      "tags": ["aeoi", "legal-chain"]
+    },
+    {
+      "id": "relation_tax_crime_preliminary_evidence",
+      "kind": "multi_hop",
+      "language": "id",
+      "query": "Aturan apa saja yang saling terkait untuk pemeriksaan bukti permulaan dan penyidikan tindak pidana perpajakan?",
+      "required_document_ids": [
+        "essential-25-pmk-no-177-pmk-03-2022",
+        "essential-26-pmk-no-17-tahun-2025",
+        "essential-53-per-1-pj-2024"
+      ],
+      "supporting_document_ids": ["essential-01-uu-no-6-tahun-1983-tentang-kup"],
+      "tags": ["tax-crime", "procedure", "legal-chain"]
+    },
+    {
+      "id": "relation_vat_2025_tax_base",
+      "kind": "multi_hop",
+      "language": "id",
+      "query": "Untuk transaksi PPN tahun 2025, aturan mana yang perlu dibaca mengenai perlakuan impor/penyerahan dan nilai lain sebagai DPP?",
+      "required_document_ids": [
+        "essential-44-pmk-no-131-tahun-2024",
+        "essential-45-pmk-no-11-tahun-2025-jo-pmk-no-53-tahun-2025"
+      ],
+      "supporting_document_ids": ["essential-14-pp-no-44-tahun-2022"],
+      "tags": ["vat", "tax-base", "temporal"]
+    },
+    {
+      "id": "relation_modern_transfer_pricing",
+      "kind": "multi_hop",
+      "language": "id",
+      "query": "Aturan utama transfer pricing modern apa yang menghubungkan prinsip kewajaran, dokumentasi, corresponding adjustment, APA, dan MAP?",
+      "required_document_ids": ["essential-37-pmk-no-172-tahun-2023"],
+      "supporting_document_ids": ["essential-38-pmk-no-112-tahun-2025"],
+      "tags": ["transfer-pricing", "multi-concept"]
+    },
+    {
+      "id": "relation_cfc_foreign_income",
+      "kind": "multi_hop",
+      "language": "id",
+      "query": "Aturan mana yang relevan untuk deemed dividend atas penyertaan pada badan usaha luar negeri nonbursa dan kredit pajak luar negeri?",
+      "required_document_ids": [
+        "essential-41-pmk-no-107-pmk-03-2017-jo-pmk-no-93-pmk-03-2019",
+        "essential-40-pmk-no-192-pmk-03-2018"
+      ],
+      "supporting_document_ids": ["essential-02-uu-no-7-tahun-1983-tentang-pajak-penghasilan"],
+      "tags": ["international-tax", "cfc", "foreign-tax-credit"]
+    },
+    {
+      "id": "concept_global_minimum_tax",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "PMK apa yang mengatur pajak minimum global berdasarkan ketentuan GloBE?",
+      "required_document_ids": ["essential-42-pmk-no-136-tahun-2024"],
+      "supporting_document_ids": [],
+      "tags": ["international-tax", "globe"]
+    },
+    {
+      "id": "concept_crypto_tax",
+      "kind": "single_hop",
+      "language": "id",
+      "query": "Aturan perlakuan PPN dan PPh atas transaksi perdagangan aset kripto apa?",
+      "required_document_ids": ["essential-48-pmk-no-50-tahun-2025"],
+      "supporting_document_ids": [],
+      "tags": ["crypto", "vat", "income-tax"]
+    },
+    {
+      "id": "english_arms_length",
+      "kind": "single_hop",
+      "language": "en",
+      "query": "Which current regulation covers the arm's-length principle, comparability, corresponding adjustment, APA and MAP?",
+      "required_document_ids": ["essential-37-pmk-no-172-tahun-2023"],
+      "supporting_document_ids": [],
+      "tags": ["cross-language", "transfer-pricing"]
+    },
+    {
+      "id": "english_vat_exemption",
+      "kind": "single_hop",
+      "language": "en",
+      "query": "Which government regulation covers VAT that is exempt or not collected for specified imports and supplies?",
+      "required_document_ids": ["essential-15-pp-no-49-tahun-2022"],
+      "supporting_document_ids": ["essential-03-uu-no-8-tahun-1983-tentang-ppn-dan-ppnbm"],
+      "tags": ["cross-language", "vat", "facility"]
+    },
+    {
+      "id": "english_employee_withholding",
+      "kind": "multi_hop",
+      "language": "en",
+      "query": "Find the government regulation and implementing ministerial regulation for the average effective rate used in employee income-tax withholding from 2024.",
+      "required_document_ids": [
+        "essential-16-pp-no-58-tahun-2023",
+        "essential-29-pmk-no-168-tahun-2023"
+      ],
+      "supporting_document_ids": [],
+      "tags": ["cross-language", "pph-21", "legal-chain"]
+    },
+    {
+      "id": "negative_labor_minimum_wage",
+      "kind": "negative",
+      "language": "id",
+      "query": "Berapa upah minimum provinsi dan aturan ketenagakerjaan untuk pemutusan hubungan kerja?",
+      "required_document_ids": [],
+      "supporting_document_ids": [],
+      "tags": ["out-of-corpus", "abstention"]
+    },
+    {
+      "id": "negative_customs_hs_classification",
+      "kind": "negative",
+      "language": "id",
+      "query": "Tentukan klasifikasi HS code dan tarif bea masuk untuk mesin turbin impor.",
+      "required_document_ids": [],
+      "supporting_document_ids": [],
+      "tags": ["out-of-corpus", "abstention"]
+    },
+    {
+      "id": "negative_divorce_law",
+      "kind": "negative",
+      "language": "en",
+      "query": "What are the legal grounds and court procedure for filing a divorce petition?",
+      "required_document_ids": [],
+      "supporting_document_ids": [],
+      "tags": ["out-of-corpus", "abstention"]
+    }
+  ]
+}

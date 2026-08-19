@@ -76,6 +76,16 @@ export async function ensureDecisionSchema() {
 
 export async function listDecisionDocuments(): Promise<StoredDecisionFile[]> {
   await ensureDecisionSchema();
+  return listDecisionDocumentsReadOnly();
+}
+
+/**
+ * Read-only search loader. Unlike listDecisionDocuments, this function never
+ * creates, migrates, or updates a schema. Call it only after the operator has
+ * explicitly opted the search subsystem into database mode.
+ */
+export async function listDecisionDocumentsReadOnly(limit = 1000): Promise<StoredDecisionFile[]> {
+  const safeLimit = Math.max(1, Math.min(5000, Math.trunc(Number(limit) || 1000)));
   const result = await getPool().query(`
     SELECT
       d.id,
@@ -90,8 +100,8 @@ export async function listDecisionDocuments(): Promise<StoredDecisionFile[]> {
     FROM decision_documents d
     LEFT JOIN decision_extractions e ON e.document_id = d.id
     ORDER BY d.uploaded_at DESC
-    LIMIT 1000;
-  `);
+    LIMIT $1;
+  `, [safeLimit]);
   return result.rows.map((row) => ({
     id: String(row.id),
     filename: String(row.filename),
@@ -417,13 +427,20 @@ function regulationFromRow(row: Record<string, unknown>, includeExtraction = tru
 
 export async function listTaxRegulations(): Promise<Regulation[]> {
   await ensureRegulationSchema();
+  return listTaxRegulationsReadOnly();
+}
+
+/** Search-only SELECT path; deliberately performs no schema preparation. */
+export async function listTaxRegulationsReadOnly(limit = 5000): Promise<Regulation[]> {
+  const safeLimit = Math.max(1, Math.min(10_000, Math.trunc(Number(limit) || 5000)));
   const result = await getPool().query(`
     SELECT id, topic, title, citation, focus, relevance, source, source_url, pdf_url,
            official_pdf_url, stored_pdf_url, source_authority, canonical_key, source_language, translations, content, ingestion_status,
            ingestion_message, file_hash, extraction, relations, extracted_at, updated_at
     FROM tax_regulations
-    ORDER BY topic ASC, updated_at DESC, relevance DESC;
-  `);
+    ORDER BY topic ASC, updated_at DESC, relevance DESC
+    LIMIT $1;
+  `, [safeLimit]);
   return result.rows.map((row) => regulationFromRow(row));
 }
 

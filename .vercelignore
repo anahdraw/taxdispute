@@ -1,3 +1,23 @@
+# Local corpora, generated artifacts, and runtime state must never be uploaded
+# by a local Vercel CLI deployment. Production data is provisioned separately.
+data/
+uploads/
+outputs/
+services/lightrag/storage/
+
+# Rendered/manual artifacts are development evidence, not application assets.
+docs/render_user_manual/
+docs/user_manual_assets/
+
+# Source documents can contain confidential taxpayer or client information.
+*.pdf
+*.doc
+*.docx
+*.pptx
+*.xlsx
+*.zip
+
+# Local secrets and caches.
 .env
 .env.*
 !.env.example
@@ -8,20 +28,14 @@ node_modules/
 out/
 .turbo/
 tsconfig.tsbuildinfo
-data/
-uploads/
 render_llm_architecture/
 __pycache__/
-api/*.py
 *.pyc
 *.sqlite
 *.sqlite3
 *.db
-*.pdf
-*.docx
-*.doc
-*.pptx
-*.xlsx
-*.zip
+
+# Development-only test and evaluation sources are retained in Git but are
+# excluded from the serverless upload bundle.
 test_*
 tests/

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "buku-praktis-pajak-ground-truth-eval-v1",
+  "cases": 260,
+  "minimum_answer_coverage": 1.0,
+  "pdf_link_coverage": 1.0,
+  "page_locator_coverage": 1.0,
+  "by_topic": {
+    "administrasi": 6,
+    "pph21": 30,
+    "pph22": 18,
+    "pph23": 29,
+    "pph25": 31,
+    "pph42": 38,
+    "pph_umkm": 28,
+    "ppn": 58,
+    "spt": 22
+  },
+  "failed_cases": []
+}

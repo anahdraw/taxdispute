@@ -45,6 +45,7 @@ import { normalizeSmartAnswerMarkdown } from "@/lib/answer-format";
 import TpLocalFilePanel from "@/app/tp-local-file-panel";
 import { extractionCompleteness, extractionQuality } from "@/lib/extraction-quality";
 import { structuredTextItems } from "@/lib/text-presentation";
+import { readActiveWorkspaceContext } from "@/lib/workspace-client-context";
 
 type Language = "id" | "en";
 type ThemeMode = "dark" | "light";
@@ -97,6 +98,16 @@ function modelRequestHeaders(modelChoice: LlmModelChoice, previewTier?: Subscrip
 
 function jsonRequestHeaders(modelChoice: LlmModelChoice, previewTier?: SubscriptionTier) {
   return { "Content-Type": "application/json", ...modelRequestHeaders(modelChoice, previewTier) };
+}
+
+function activeWorkspaceRequestHeaders() {
+  const context = readActiveWorkspaceContext();
+  if (!context) return {};
+  return {
+    "x-aaj-tenant-id": context.tenantId,
+    ...(context.clientId ? { "x-aaj-client-id": context.clientId } : {}),
+    ...(context.matterId ? { "x-aaj-matter-id": context.matterId } : {})
+  };
 }
 
 const evidenceOptions = {
@@ -247,7 +258,7 @@ const copy = {
     regulationBotTitle: "Regulatory RAG Bot",
     regulationBotIntro: "Tanya peraturan dengan konteks sumber, status, dan batasan penggunaan yang terlihat.",
     regulationQuestion: "Pertanyaan aturan",
-    regulationQuestionPlaceholder: "Contoh: aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?",
+    regulationQuestionPlaceholder: "Ketik pertanyaan peraturan di sini, misalnya: bagaimana menghitung PPN?",
     askRegulationBot: "Kirim pertanyaan",
     askingRegulationBot: "Menelaah aturan...",
     regulationBotAnswer: "Jawaban berbasis sumber",
@@ -574,7 +585,7 @@ const copy = {
     regulationBotTitle: "Regulatory RAG Bot",
     regulationBotIntro: "Ask regulations with visible source context, status notes, and usage limits.",
     regulationQuestion: "Regulation question",
-    regulationQuestionPlaceholder: "Example: which rules govern transfer pricing documentation and the arm's length principle?",
+    regulationQuestionPlaceholder: "Type your regulation question here, for example: how is VAT calculated?",
     askRegulationBot: "Send question",
     askingRegulationBot: "Reviewing regulations...",
     regulationBotAnswer: "Source-grounded answer",
@@ -1677,7 +1688,9 @@ function printCaseDetail() {
 }
 
 export default function Home() {
-  const [language, setLanguage] = useState<Language>("en");
+  // Indonesian is the default during local testing; users can still switch
+  // to English from the language control when needed.
+  const [language, setLanguage] = useState<Language>("id");
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [modelChoice, setModelChoice] = useState<LlmModelChoice>(DEFAULT_LLM_MODEL_CHOICE);
   const [runtimeSettings, setRuntimeSettings] = useState<AdminRuntimeSettings>(() => defaultAdminRuntimeSettings());
@@ -1717,7 +1730,7 @@ export default function Home() {
   const [activeReportId, setActiveReportId] = useState("");
   const [exportLoading, setExportLoading] = useState<"docx" | "pdf" | "">("");
   const [exportError, setExportError] = useState("");
-  const [smartQuestion, setSmartQuestion] = useState("For transfer pricing disputes, how many matched decisions were won or lost and what rules are relevant?");
+  const [smartQuestion, setSmartQuestion] = useState("Untuk sengketa transfer pricing, berapa putusan relevan yang menang atau kalah dan aturan apa yang relevan?");
   const [smartMode, setSmartMode] = useState<SmartChatSourceMode>("all");
   const [smartResponse, setSmartResponse] = useState<SmartChatResponse | null>(null);
   const [smartStatus, setSmartStatus] = useState("");
@@ -1760,11 +1773,8 @@ export default function Home() {
   const [regulationImportLoading, setRegulationImportLoading] = useState(false);
   const [sourceEnrichLoading, setSourceEnrichLoading] = useState(false);
   const [enrichingRegulationId, setEnrichingRegulationId] = useState("");
-  const [regulationQuestion, setRegulationQuestion] = useState(
-    language === "en"
-      ? "Which regulations govern transfer pricing documentation and the arm's length principle?"
-      : "Aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?"
-  );
+  // Keep the input empty so the user immediately knows where to type.
+  const [regulationQuestion, setRegulationQuestion] = useState("");
   const [regulationBotResponse, setRegulationBotResponse] = useState<SmartChatResponse | null>(null);
   const [regulationBotStatus, setRegulationBotStatus] = useState("");
   const [regulationBotError, setRegulationBotError] = useState("");
@@ -1973,7 +1983,10 @@ export default function Home() {
     let cancelled = false;
     async function loadRegulations() {
       try {
-        const response = await fetch("/api/regulations?perPage=500");
+        // Local pipeline snapshots can contain 10k+ rules. The API returns a
+        // lightweight metadata projection here; full evidence is fetched only
+        // when a single regulation is opened.
+        const response = await fetch("/api/regulations?detail=full");
         if (!response.ok) return;
         const data = (await response.json()) as { records?: Regulation[] };
         if (!cancelled && Array.isArray(data.records) && data.records.length) {
@@ -2228,13 +2241,7 @@ export default function Home() {
           : "Untuk sengketa transfer pricing, berapa putusan relevan yang menang atau kalah dan aturan apa yang relevan?"
       );
     }
-    if (!regulationBotResponse) {
-      setRegulationQuestion(
-        nextLanguage === "en"
-          ? "Which regulations govern transfer pricing documentation and the arm's length principle?"
-          : "Aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?"
-      );
-    }
+    if (!regulationBotResponse) setRegulationQuestion("");
     if (caseSearchText || caseSearchExtraction) {
       const query = [caseSearchText, extractionToSearchText(caseSearchExtraction)].filter(Boolean).join("\n");
       setCaseSearchResults(searchSimilarCases(query, nextLanguage));
@@ -2967,7 +2974,7 @@ export default function Home() {
     try {
       const response = await fetch("/api/smart-chat", {
         method: "POST",
-        headers: jsonRequestHeaders(modelChoice, requestPreviewTier),
+        headers: { ...jsonRequestHeaders(modelChoice, requestPreviewTier), ...activeWorkspaceRequestHeaders() },
         body: JSON.stringify({ question: smartQuestion, language, mode: smartMode })
       });
       const data = await response.json();
@@ -2992,16 +2999,55 @@ export default function Home() {
     setRegulationBotStatus("");
     setRegulationBotError("");
     try {
-      const response = await fetch("/api/smart-chat", {
+      // Regulation questions use the dedicated answer layer.  It keeps the
+      // regulation bot conversational (answer → calculation/steps → sources)
+      // while still exposing the same source cards that this page already
+      // renders.  The dispute Smart Chat route intentionally keeps its
+      // case-oriented response contract.
+      const response = await fetch("/api/regulation-chat", {
         method: "POST",
-        headers: jsonRequestHeaders(modelChoice, requestPreviewTier),
+        headers: { ...jsonRequestHeaders(modelChoice, requestPreviewTier), ...activeWorkspaceRequestHeaders() },
         body: JSON.stringify({ question: regulationQuestion, language, mode: "regulations" })
       });
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Regulation chatbot request failed.");
       }
-      setRegulationBotResponse(data as SmartChatResponse);
+      const scoreByKey = new Map<string, number>(
+        (Array.isArray(data.reranking?.topScores) ? data.reranking.topScores : []).map((item: { canonicalKey?: string; score?: number }) => [String(item.canonicalKey || ""), Number(item.score || 0)])
+      );
+      const ruleHits = (Array.isArray(data.citations) ? data.citations : [])
+        .map((item: Regulation) => ({
+          id: item.id,
+          title: item.title,
+          citation: item.citation,
+          topic: item.topic || "general",
+          source: item.sourceAuthority || item.source || "local",
+          sourceUrl: item.sourceUrl || item.officialPdfUrl || "",
+          score: scoreByKey.get(String(item.canonicalKey || item.id)) || 0,
+          snippet: item.extraction?.summary || item.focus || item.content?.slice(0, 900) || ""
+        }))
+        .sort((a: { score: number; citation: string }, b: { score: number; citation: string }) => b.score - a.score || a.citation.localeCompare(b.citation));
+      const retrieval = data.retrieval || {};
+      const compatibleResponse: SmartChatResponse = {
+        answer: String(data.answer || ""),
+        decisionHits: [],
+        ruleHits,
+        charts: [],
+        llmStatus: data.llmStatus || { used: false, model: "local-rules", message: "Jawaban lokal berbasis sumber." },
+        retrieval: {
+          mode: "regulations",
+          totalDecisions: 0,
+          totalRegulations: Number(retrieval.totalCorpus || retrieval.resultCount || ruleHits.length),
+          usedDecisions: 0,
+          usedRegulations: Number(retrieval.resultCount || ruleHits.length),
+          tier: String(effectiveTier),
+          analysisDepth: "regulation-answer",
+          regulationDepth: "regulation-answer",
+          modelChoice: modelChoice
+        }
+      };
+      setRegulationBotResponse(compatibleResponse);
       setRegulationBotStatus(data.llmStatus?.message || "");
       void recordActivity("Ask regulation bot", "Regulations", "success", regulationQuestion.slice(0, 160));
     } catch (error) {
@@ -3289,6 +3335,17 @@ export default function Home() {
             <AppIcon name={sidebarCollapsed ? "expand" : "collapse"} />
           </button>
           <ThemeToggle labels={labels} value={themeMode} onChange={changeTheme} compact iconOnly />
+          <a className="toolbar-app-link" href="/search">
+            {language === "en" ? "Trusted Search" : "Pencarian Tepercaya"}
+          </a>
+          <a className="toolbar-app-link" href="/workspace">
+            {language === "en" ? "Workspace" : "Ruang Kerja"}
+          </a>
+          {session?.role === "admin" && (
+            <a className="toolbar-app-link" href="/review">
+              {language === "en" ? "Review Queue" : "Review Peraturan"}
+            </a>
+          )}
           <label className="toolbar-language" htmlFor="language">
             <span>{language === "en" ? "Language" : "Bahasa"}</span>
             <select id="language" value={language} onChange={(event) => changeLanguage(event.target.value as Language)}>
@@ -3655,70 +3712,52 @@ export default function Home() {
                             </div>
                           </div>
 
-                          {!regulationBotResponse && (
-                            <div className="reg-prompt-grid">
-                              {(language === "en"
-                                ? [
-                                    "Which regulations govern transfer pricing documentation and the arm's length principle?",
-                                    "What should be checked before crediting input VAT?",
-                                    "Where is a tax objection and appeal procedure regulated?",
-                                    "Which source should be updated first for current VAT rules?"
-                                  ]
-                                : [
-                                    "Aturan apa saja yang mengatur dokumentasi transfer pricing dan prinsip kewajaran?",
-                                    "Apa yang harus dicek sebelum mengkreditkan Pajak Masukan?",
-                                    "Di mana prosedur keberatan dan banding pajak diatur?",
-                                    "Sumber mana yang perlu diupdate dulu untuk aturan PPN terbaru?"
-                                  ]).map((prompt) => (
-                                <button key={prompt} type="button" onClick={() => setRegulationQuestion(prompt)}>
-                                  {prompt}
-                                  <span>→</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
                           <div className="regulation-bot-answer">
-                            <div className="regulation-answer-heading">
-                              <div>
-                                <span>{language === "en" ? "Structured regulation review" : "Telaah peraturan terstruktur"}</span>
-                                <h3>{labels.regulationBotAnswer}</h3>
-                              </div>
-                            </div>
                             {!regulationBotResponse ? (
-                              <div className="reg-empty-chat">
-                                <b>{labels.noRegulationBotAnswer}</b>
-                                <span>
-                                  {language === "en"
-                                    ? "Use one of the starter questions or ask about a rule, article, tax type, effective period, or source location."
-                                    : "Gunakan pertanyaan awal atau tanyakan aturan, pasal, jenis pajak, masa berlaku, atau lokasi sumber."}
-                                </span>
-                              </div>
-                            ) : (
                               <>
-                                <MarkdownText text={regulationBotResponse.answer} structured />
-                                <div className="regulation-retrieval-summary">
-                                  <b>{language === "en" ? "Sources reviewed" : "Sumber ditelaah"}</b>
+                                <div className="regulation-answer-heading">
+                                  <div>
+                                    <span>{language === "en" ? "Regulation answer" : "Jawaban peraturan"}</span>
+                                    <h3>{labels.regulationBotAnswer}</h3>
+                                  </div>
+                                </div>
+                                <div className="reg-empty-chat">
+                                  <b>{labels.noRegulationBotAnswer}</b>
                                   <span>
-                                    {regulationBotResponse.retrieval.usedRegulations}/{regulationBotResponse.retrieval.totalRegulations} {language === "en" ? "regulations" : "peraturan"}
+                                    {language === "en"
+                                      ? "Type your question in the field below. Ask about a rule, article, tax type, effective period, or source location."
+                                      : "Ketik pertanyaan Anda pada kolom di bawah. Anda dapat menanyakan aturan, pasal, jenis pajak, masa berlaku, atau lokasi sumber."}
                                   </span>
                                 </div>
-                                <h4 className="regulation-source-title">{language === "en" ? "Regulation references" : "Referensi peraturan"}</h4>
-                                <div className="source-list compact-source-list">
-                                  {regulationBotResponse.ruleHits.slice(0, 6).map((item) => (
-                                    <ExpandableSourceCard
+                              </>
+                            ) : (
+                              <>
+                                <h4 className="regulation-source-title">{language === "en" ? "Primary sources" : "Sumber utama"}</h4>
+                                <div className="regulation-source-compact-list">
+                                  {regulationBotResponse.ruleHits.slice(0, 6).map((item, index) => (
+                                    <a
                                       key={item.id}
-                                      title={item.title}
-                                      meta={`${item.citation} · ${item.topic}`}
-                                      excerpt={item.snippet}
-                                      score={item.score}
-                                      source={item.source}
+                                      className="regulation-source-compact"
                                       href={referenceDetailPath("regulation", item.id, regulationQuestion)}
-                                      openLabel={labels.openReference}
-                                      detailsLabel={language === "en" ? "Retrieved regulation context" : "Konteks aturan hasil retrieval"}
-                                    />
+                                      title={item.title}
+                                      aria-label={`${language === "en" ? "Open regulation" : "Buka peraturan"}: ${item.citation}`}
+                                    >
+                                      <span className="regulation-source-rank">{String(index + 1).padStart(2, "0")}</span>
+                                      <span className="regulation-source-compact-copy">
+                                        <b>{item.citation}</b>
+                                        <small>{compactRegulationTitle(item.title, item.citation)} · {item.topic}</small>
+                                      </span>
+                                      <span className="regulation-source-open" aria-hidden="true">↗</span>
+                                    </a>
                                   ))}
                                 </div>
+                                <div className="regulation-answer-heading">
+                                  <div>
+                                    <span>{language === "en" ? "Regulation answer" : "Jawaban peraturan"}</span>
+                                    <h3>{labels.regulationBotAnswer}</h3>
+                                  </div>
+                                </div>
+                                <MarkdownText text={regulationBotResponse.answer} />
                               </>
                             )}
                           </div>
@@ -4205,6 +4244,15 @@ function MarkdownText({ text, structured = false }: { text: string; structured?:
       })}
     </div>
   );
+}
+
+function compactRegulationTitle(title: string, citation: string) {
+  let value = normalizeRegulationText(title).trim();
+  const normalizedCitation = normalizeRegulationText(citation).trim();
+  if (normalizedCitation && value.toLocaleLowerCase().startsWith(normalizedCitation.toLocaleLowerCase())) {
+    value = value.slice(normalizedCitation.length).replace(/^[\s:–—-]+/, "").trim();
+  }
+  return value.length > 108 ? `${value.slice(0, 105).trimEnd()}…` : value;
 }
 
 function ExpandableSourceCard({
@@ -5740,6 +5788,11 @@ function SmartChatPanel({
       {activeTab === "chat" ? (
         <section className={`smart-chat-layout ${captureMode ? "answer-focus-mode" : ""}`}>
           <Panel title={labels.smartChatTitle} className="smart-question-panel">
+            <div className="trust-pilot-notice">
+              <b>{isEnglish ? "Citation-grade check is a separate pilot" : "Pemeriksaan citation-grade masih berupa pilot terpisah"}</b>
+              <span>{isEnglish ? "This assistant has not yet been blocked by the new abstention gate." : "Jawaban asisten ini belum diblokir oleh abstention gate baru."}</span>
+              <a href="/search">{isEnglish ? "Open Trusted Search" : "Buka Pencarian Tepercaya"}</a>
+            </div>
             <div className="ask-entry-heading">
               <span className="ask-entry-icon"><AppIcon name="smartchat" /></span>
               <div>
