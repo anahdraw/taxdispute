@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "aa-jurist-official-knowledge-v1",
+  "generatedAt": "2026-08-21T07:43:59.751Z",
+  "offline": true,
+  "skipDownloads": false,
+  "sources": {
+    "treaty": {
+      "url": "https://www.pajak.go.id/id/taxtreaty-mli",
+      "sourceHash": "889e44f21ce3b2080e25d17e830a77f50fcc0d69533bd7e2bb69f301b5781186",
+      "fetched": false,
+      "fetchError": ""
+    },
+    "coretax": {
+      "url": "https://www.pajak.go.id/coretaxpedia/buku-panduan-coretax-djp",
+      "sourceHash": "c4664ab49034e317d92966f0243bb2ecc5c9ad9b0becdd2fb3e2a271defd6bca",
+      "fetched": false,
+      "fetchError": ""
+    },
+    "forms": {
+      "url": "https://www.pajak.go.id/id/formulir-page",
+      "sourceHash": "be9ceddf5a2825d63a978ab45951b73f3c0b2c6f2765c29018ea54a20d0d3a2e",
+      "fetched": false,
+      "fetchError": ""
+    },
+    "rates": {
+      "url": "https://fiskal.kemenkeu.go.id/informasi-publik/kurs-pajak",
+      "sourceHash": "8c1c53059e50d92004eed9abde5e18315d5a5fc177908a4748f22d240e706332",
+      "fetched": false,
+      "fetchError": ""
+    }
+  },
+  "counts": {
+    "treaties": 72,
+    "coretaxManuals": 21,
+    "coretaxPages": 1346,
+    "formFiles": 85,
+    "rateRows": 25,
+    "items": 203,
+    "failures": 0
+  },
+  "hashes": {
+    "items": "dfd2ae59c34413cbd340374b6f892a69477166e7fc3c55700867304d3b0ac7e4",
+    "chunks": "5c9be412eecfcc6e839c13e4ffdd648fad9c3e3f29ad7e9e379e1ebc00f7250e"
+  },
+  "failures": []
+}

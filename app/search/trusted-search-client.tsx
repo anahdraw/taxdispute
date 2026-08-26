@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CitationIssue, TrustDecision } from "@/lib/citation-trust";
-import type { HybridSearchResult, SearchCorpus, SearchHit, SearchLocator } from "@/lib/search-contracts";
+import type { HybridSearchResult, SearchCorpus, SearchFacetFilters, SearchHit, SearchLocator } from "@/lib/search-contracts";
 import type { WorkspaceClient, WorkspaceMatter, WorkspaceMembership, WorkspaceTenant } from "@/lib/workspace";
 import {
   readActiveWorkspaceContext,
@@ -29,6 +29,7 @@ type SearchRequestSnapshot = {
   corpora: SearchCorpus[];
   asOf: string;
   answer: string;
+  facets: SearchFacetFilters;
 };
 
 const PAGE_SIZE = 10;
@@ -79,7 +80,10 @@ function reasonLabel(reason: CitationIssue) {
     UNSUPPORTED_CLAIM: "Klaim belum didukung",
     UNKNOWN_CITATION: "ID sitasi tidak dikenal",
     INELIGIBLE_CITATION: "Sumber sitasi belum memenuhi syarat",
-    MALFORMED_CITATION: "Format sitasi salah"
+    MALFORMED_CITATION: "Format sitasi salah",
+    OUT_OF_SCOPE: "Pertanyaan di luar cakupan",
+    TEMPORAL_MISMATCH: "Masa berlaku sumber tidak sesuai",
+    TEMPORAL_UNCERTAINTY: "Metadata masa berlaku belum lengkap"
   };
   return labels[reason.code];
 }
@@ -111,6 +115,11 @@ export function TrustedSearchClient({
   const [useRegulations, setUseRegulations] = useState(canSearchRegulations);
   const [asOf, setAsOf] = useState("");
   const [answer, setAnswer] = useState("");
+  const [topicFacet, setTopicFacet] = useState("");
+  const [statusFacet, setStatusFacet] = useState("");
+  const [legalStatusFacet, setLegalStatusFacet] = useState("");
+  const [authorityFacet, setAuthorityFacet] = useState("");
+  const [yearFacet, setYearFacet] = useState("");
   const [result, setResult] = useState<SearchResponse | null>(null);
   const [lastRequest, setLastRequest] = useState<SearchRequestSnapshot | null>(null);
   const [offset, setOffset] = useState(0);
@@ -265,6 +274,7 @@ export function TrustedSearchClient({
           offset: nextOffset,
           asOf: snapshot.asOf || undefined,
           answer: snapshot.answer || undefined,
+          facets: snapshot.facets,
           language: "id"
         })
       });
@@ -296,7 +306,16 @@ export function TrustedSearchClient({
       setStatus("Pilih minimal satu korpus.");
       return;
     }
-    void performSearch({ query: query.trim(), corpora, asOf, answer: answer.trim() }, 0);
+    void performSearch({
+      query: query.trim(), corpora, asOf, answer: answer.trim(),
+      facets: {
+        topics: topicFacet ? [topicFacet] : undefined,
+        statuses: statusFacet ? [statusFacet as "verified" | "review_required" | "unknown"] : undefined,
+        legalStatuses: legalStatusFacet ? [legalStatusFacet] : undefined,
+        authorities: authorityFacet ? [authorityFacet] : undefined,
+        years: yearFacet ? [Number(yearFacet)] : undefined
+      }
+    }, 0);
   }
 
   async function copyCitation(hit: SearchHit) {
@@ -313,7 +332,7 @@ export function TrustedSearchClient({
     if (!context) return;
     setSaveStatus((current) => ({ ...current, [hit.id]: "Menyimpan..." }));
     try {
-      const sourceUrl = safeHref(hit.sourceUrl);
+      const sourceUrl = hit.detailUrl || safeHref(hit.sourceUrl);
       const response = await fetch(`/api/research-workspace${queryString(context)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -338,6 +357,26 @@ export function TrustedSearchClient({
       setSaveStatus((current) => ({ ...current, [hit.id]: "Tersimpan" }));
     } catch (error) {
       setSaveStatus((current) => ({ ...current, [hit.id]: error instanceof Error ? error.message : "Gagal menyimpan" }));
+    }
+  }
+
+  async function highlightHit(hit: SearchHit) {
+    if (!context || !hit.snippet) return;
+    setSaveStatus((current) => ({ ...current, [hit.id]: "Menyimpan highlight..." }));
+    try {
+      const response = await fetch(`/api/research-workspace${queryString(context)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entity: "highlight", resourceType: hit.corpus, resourceId: hit.id, title: hit.title,
+          url: hit.detailUrl || safeHref(hit.sourceUrl), quote: hit.snippet,
+          anchor: hit.locator ? { page: hit.locator.page } : {},
+          metadata: { citation: hit.citation, machineCitation: machineCitation(hit), sourceHash: hit.sourceHash }
+        })
+      });
+      await jsonResponse(response);
+      setSaveStatus((current) => ({ ...current, [hit.id]: "Highlight tersimpan" }));
+    } catch (error) {
+      setSaveStatus((current) => ({ ...current, [hit.id]: error instanceof Error ? error.message : "Gagal menyimpan highlight" }));
     }
   }
 
@@ -370,6 +409,14 @@ export function TrustedSearchClient({
           <legend>Korpus</legend>
           <label><input checked={useDecisions} disabled={!canSearchDecisions} onChange={(event) => setUseDecisions(event.target.checked)} type="checkbox" /> Putusan sengketa{!canSearchDecisions ? " (tidak termasuk paket)" : ""}</label>
           <label><input checked={useRegulations} disabled={!canSearchRegulations} onChange={(event) => setUseRegulations(event.target.checked)} type="checkbox" /> Peraturan{!canSearchRegulations ? " (tidak termasuk paket)" : ""}</label>
+        </fieldset>
+        <fieldset className="trusted-search-facets">
+          <legend>Facet</legend>
+          <label>Topik<select onChange={(event) => setTopicFacet(event.target.value)} value={topicFacet}><option value="">Semua topik</option>{result?.facets.topics.map((item) => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}</select></label>
+          <label>Kesiapan sumber<select onChange={(event) => setStatusFacet(event.target.value)} value={statusFacet}><option value="">Semua kesiapan</option>{result?.facets.statuses.map((item) => <option key={item.value} value={item.value}>{statusLabel(item.value as SearchHit["status"])} ({item.count})</option>)}</select></label>
+          <label>Status hukum<select onChange={(event) => setLegalStatusFacet(event.target.value)} value={legalStatusFacet}><option value="">Semua status hukum</option>{result?.facets.legalStatuses.map((item) => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}</select></label>
+          <label>Otoritas<select onChange={(event) => setAuthorityFacet(event.target.value)} value={authorityFacet}><option value="">Semua otoritas</option>{result?.facets.authorities.slice(0, 30).map((item) => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}</select></label>
+          <label>Tahun<select onChange={(event) => setYearFacet(event.target.value)} value={yearFacet}><option value="">Semua tahun</option>{result?.facets.years.map((item) => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}</select></label>
         </fieldset>
         <label className="trusted-search-date">Berlaku per tanggal<input onChange={(event) => setAsOf(event.target.value)} type="date" value={asOf} /><small>Opsional; mengaktifkan pemeriksaan status hukum.</small></label>
         <details className="trusted-search-validator" open={Boolean(answer)}>
@@ -428,7 +475,7 @@ export function TrustedSearchClient({
                       <span className={`verification-${hit.status}`}>{statusLabel(hit.status)}</span>
                       <span>Skor {hit.score}</span>
                     </div>
-                    <h3>{hit.title}</h3>
+                    <h3>{hit.detailUrl ? <a href={hit.detailUrl}>{hit.title}</a> : hit.title}</h3>
                     <p>{[hit.citation, hit.authority, locatorLabel(hit.locator)].filter(Boolean).join(" · ")}</p>
                   </header>
                   <p className="trusted-search-snippet">{hit.snippet || "Cuplikan belum tersedia."}</p>
@@ -438,7 +485,7 @@ export function TrustedSearchClient({
                   </div>
                   {hit.matchedTerms.length > 0 && <p className="trusted-search-terms">Term cocok: {hit.matchedTerms.join(", ")}</p>}
                   <footer>
-                    <div>{href && <a href={href} rel={href.startsWith("http") ? "noreferrer" : undefined} target={href.startsWith("http") ? "_blank" : undefined}>Buka sumber</a>}<button disabled={saveStatus[hit.id] === "Menyimpan..."} onClick={() => void saveHit(hit)} type="button">Simpan ke workspace</button></div>
+                    <div>{hit.detailUrl && <a href={hit.detailUrl}>Detail katalog</a>}{href && <a href={href} rel={href.startsWith("http") ? "noreferrer" : undefined} target={href.startsWith("http") ? "_blank" : undefined}>Sumber resmi</a>}<button disabled={saveStatus[hit.id]?.startsWith("Menyimpan")} onClick={() => void saveHit(hit)} type="button">Simpan</button><button disabled={!hit.snippet || saveStatus[hit.id]?.startsWith("Menyimpan")} onClick={() => void highlightHit(hit)} type="button">Highlight</button></div>
                     {saveStatus[hit.id] && <small role="status">{saveStatus[hit.id]}</small>}
                   </footer>
                 </article>

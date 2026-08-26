@@ -28,10 +28,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
+from regulation_pipeline_path import default_regulation_pipeline_db
+
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parent
-DEFAULT_DB = Path("/Users/sintzu/Anahdraw/peraturan-pipeline/data/peraturan.db")
+DEFAULT_DB = default_regulation_pipeline_db()
 DEFAULT_SPEC = REPO_ROOT / "tests/evaluation/pipeline_regulation_benchmark.json"
 DEFAULT_BASELINE = REPO_ROOT / "tests/evaluation/results/baseline-smart-chat.json"
 DEFAULT_OUTPUT = REPO_ROOT / "tests/evaluation/results/pipeline-imported.json"

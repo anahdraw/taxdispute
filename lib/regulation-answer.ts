@@ -38,6 +38,10 @@ type GraphIndex = {
   adjacency: Map<string, GraphPath[]>;
 };
 
+export function graphEdgeEligibleForAnswer(edge: Pick<GraphEdge, "eligibleForAnswer" | "verified" | "flags">) {
+  return edge.eligibleForAnswer === true && edge.verified === true && !(edge.flags || []).length;
+}
+
 export type RegulationRerankDiagnostics = {
   explicitCitationKeys: string[];
   inferredTopic: string;
@@ -67,8 +71,8 @@ const metadataTextCache = new WeakMap<Regulation, string>();
 function graphFiles() {
   const root = process.env.TDP_REGULATION_QUALITY_ROOT || "outputs/regulation-quality";
   return [
-    path.resolve(root, "regulation-graph.json"),
-    path.resolve("data/reference-knowledge/buku-praktis-pajak-graph.json")
+    path.resolve(/* turbopackIgnore: true */ root, "regulation-graph.json"),
+    path.resolve(/* turbopackIgnore: true */ "data/reference-knowledge/buku-praktis-pajak-graph.json")
   ];
 }
 
@@ -110,7 +114,8 @@ function loadGraphIndex(): GraphIndex | null {
         const source = graphKey(edge.source);
         const target = graphKey(edge.target);
         if (!source || !target) continue;
-        const pathValue = { from: source, to: target, relation: String(edge.type || "related"), confidence: Number.isFinite(edge.confidence) ? Number(edge.confidence) : null, eligibleForAnswer: edge.eligibleForAnswer === true && edge.verified === true && !(edge.flags || []).length, navigationOnly: !(edge.eligibleForAnswer === true && edge.verified === true && !(edge.flags || []).length) };
+        const eligibleForAnswer = graphEdgeEligibleForAnswer(edge);
+        const pathValue = { from: source, to: target, relation: String(edge.type || "related"), confidence: Number.isFinite(edge.confidence) ? Number(edge.confidence) : null, eligibleForAnswer, navigationOnly: !eligibleForAnswer };
         add(source, pathValue);
         add(target, { ...pathValue, from: target, to: source, relation: `${pathValue.relation} (incoming)` });
       }
@@ -175,7 +180,26 @@ function intentPhrases(question: string) {
     phrases.push("bendaharawan", "pemungut pajak pertambahan nilai", "instansi pemerintah", "dpp", "tarif", "dipungut");
   }
   if (/status|berlaku|dicabut|diubah|effective|revoked/i.test(question)) phrases.push("status", "berlaku", "dicabut", "diubah");
+  if (/surat\s+paksa|penagihan\s+pajak|penyitaan|penyanderaan/i.test(question)) phrases.push("penagihan pajak dengan surat paksa", "surat paksa", "penyitaan", "penyanderaan");
+  if (/pengadilan\s+pajak|banding\s+pajak|gugatan\s+pajak|tax\s+court/i.test(question)) phrases.push("pengadilan pajak", "banding", "gugatan");
+  if (/natura|kenikmatan|benefit\s+in\s+kind/i.test(question)) phrases.push("natura", "kenikmatan");
+  if (/penyusutan|amortisasi|depreciation|amortization/i.test(question)) phrases.push("penyusutan", "amortisasi");
+  if (/pajak\s+daerah|retribusi\s+daerah|local\s+tax/i.test(question)) phrases.push("pajak daerah", "retribusi daerah");
+  if (/bea\s+meterai|meterai\s+elektronik|stamp\s+duty/i.test(question)) phrases.push("bea meterai", "meterai elektronik");
   return [...new Set(phrases)];
+}
+
+function priorityCanonicalKeys(question: string) {
+  const keys: string[] = [];
+  if (/surat\s+paksa|penagihan\s+pajak|penyitaan|penyanderaan/i.test(question)) keys.push("uu-19-1997", "uu-19-2000", "pmk-61-2023");
+  if (/pengadilan\s+pajak|banding\s+pajak|gugatan\s+pajak|tax\s+court/i.test(question)) keys.push("uu-14-2002");
+  if (/natura|kenikmatan|benefit\s+in\s+kind/i.test(question)) keys.push("pmk-66-2023", "pp-55-2022");
+  if (/penyusutan|amortisasi|depreciation|amortization/i.test(question)) keys.push("pmk-72-2023");
+  if (/pajak\s+daerah|retribusi\s+daerah|local\s+tax/i.test(question)) keys.push("uu-1-2022", "pp-35-2023");
+  if (/bea\s+meterai|meterai\s+elektronik|stamp\s+duty/i.test(question)) keys.push("uu-10-2020", "pp-86-2021", "pmk-78-2024");
+  if (/transfer[-\s]+pricing|harga\s+transfer|arm'?s[-\s]+length|kewajaran\s+dan\s+kelaziman|documentation|cbcr/i.test(question)) keys.push("pmk-172-2023");
+  if (/pph\s*(?:pasal)?\s*21|employee\s+income[-\s]+tax|employee\s+withholding|tarif\s+efektif\s+rata/i.test(question)) keys.push("pp-58-2023", "pmk-168-2023");
+  return keys;
 }
 
 function evidenceText(item: Regulation) {
@@ -249,6 +273,7 @@ function scoreRecord(item: Regulation, question: string, inferredTopic: string, 
   let score = bodyCoverage * 55 + titleHits * 13 + provisionHits * 18 + phraseHits * 15 + Number(item.relevance || 0) * 0.12;
   const reasons: string[] = [];
   if (explicitKeys.has(itemKey)) { score += 280; reasons.push("exact citation"); }
+  if (priorityCanonicalKeys(question).includes(itemKey)) { score += 460; reasons.push("controlling-rule intent"); }
   if ((item.topic || "general") === inferredTopic) { score += 28; reasons.push("topic match"); }
   const cachedMetadataText = metadataTextCache.get(item);
   const metadata = cachedMetadataText || normalizeSearch([item.title, item.focus, item.extraction?.summary, item.extraction?.keywords?.join(" ")].filter(Boolean).join(" "));
@@ -358,6 +383,7 @@ function graphPathsFor(records: Regulation[], graph: GraphIndex | null) {
   const paths: GraphPath[] = [];
   for (const key of keys) {
     for (const pathValue of graph.adjacency.get(key) || []) {
+      if (!pathValue.eligibleForAnswer) continue;
       if (!keys.has(pathValue.to)) continue;
       if (paths.some((item) => item.from === pathValue.from && item.to === pathValue.to && item.relation === pathValue.relation)) continue;
       paths.push(pathValue);
@@ -396,6 +422,7 @@ export function rerankRegulationContext(records: Regulation[], question: string,
     for (const candidate of initial.slice(0, 4)) {
       const key = graphKey(candidate.item.canonicalKey || canonicalRegulationKey(candidate.item));
       for (const pathValue of graph.adjacency.get(key) || []) {
+        if (!pathValue.eligibleForAnswer) continue;
         if (!recordByKey.has(pathValue.to) || graphExpandedKeys.includes(pathValue.to)) continue;
         graphExpandedKeys.push(pathValue.to);
       }

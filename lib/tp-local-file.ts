@@ -27,6 +27,16 @@ export type TpExtractionCoverage = {
   note: string;
 };
 
+export type TpDocumentEvidence = {
+  id: string;
+  fieldPaths: string[];
+  page?: number;
+  section?: string;
+  table?: string;
+  excerpt: string;
+  confidence: number;
+};
+
 export type TpProjectStatus = "draft" | "extracted" | "analyzed" | "ready";
 
 export type TpSourceDocument = {
@@ -43,6 +53,7 @@ export type TpSourceDocument = {
   requestedScopes?: TpExtractionScope[];
   detectedScopes?: TpExtractionScope[];
   coverage?: TpExtractionCoverage[];
+  evidence?: TpDocumentEvidence[];
 };
 
 export type TpNamedItem = {
@@ -113,6 +124,27 @@ export type TpRejectionMatrixRow = {
   accepted: boolean;
 };
 
+export type TpFarAnalysis = {
+  functionsPerformed: string;
+  assetsUsed: string;
+  risksAssumed: string;
+  contractualTerms: string;
+  economicCircumstances: string;
+  intangiblesUsed: string;
+  serviceBenefitTest: string;
+};
+
+export type TpManualEvidence = {
+  id: string;
+  title: string;
+  sourceKind: "management_interview" | "ledger_reference" | "agreement_reference" | "manual_calculation" | "other";
+  reference: string;
+  locator: string;
+  excerpt: string;
+  fieldPaths: string[];
+  createdAt: string;
+};
+
 export type TpProjectAnalysis = {
   executiveSummary: string;
   industryAnalysis: string;
@@ -163,6 +195,17 @@ export type TpExternalComparableCandidate = {
   limitation: string;
 };
 
+export type TpMergeConflict = {
+  id: string;
+  path: string;
+  entityKey: string;
+  field: string;
+  existingValue: string;
+  incomingValue: string;
+  sourceDocumentIds: string[];
+  status: "unresolved" | "resolved_existing" | "resolved_incoming";
+};
+
 export type TpProjectState = {
   companyName: string;
   companyShortName: string;
@@ -205,8 +248,11 @@ export type TpProjectState = {
   nonFinancialEvents: string;
   backgroundTransaction: string;
   supplyChainManagement: string;
+  farAnalysis: TpFarAnalysis;
+  manualEvidence: TpManualEvidence[];
   analysis: TpProjectAnalysis;
   fieldSources: Record<string, string[]>;
+  mergeConflicts: TpMergeConflict[];
 };
 
 export type TpLocalFileProject = {
@@ -333,13 +379,29 @@ export function emptyTpProjectState(): TpProjectState {
     nonFinancialEvents: "",
     backgroundTransaction: "",
     supplyChainManagement: "",
+    farAnalysis: {
+      functionsPerformed: "",
+      assetsUsed: "",
+      risksAssumed: "",
+      contractualTerms: "",
+      economicCircumstances: "",
+      intangiblesUsed: "",
+      serviceBenefitTest: ""
+    },
+    manualEvidence: [],
     analysis: emptyTpProjectAnalysis(),
-    fieldSources: {}
+    fieldSources: {},
+    mergeConflicts: []
   };
 }
 
 function text(value: unknown) {
   return value === null || value === undefined ? "" : String(value).trim();
+}
+
+function normalizeMergeConflictStatus(value: unknown): TpMergeConflict["status"] {
+  const status = text(value);
+  return status === "resolved_existing" || status === "resolved_incoming" ? status : "unresolved";
 }
 
 function arrayOf<T>(value: unknown, map: (entry: Record<string, unknown>) => T): T[] {
@@ -353,6 +415,7 @@ export function normalizeTpProjectState(value: unknown): TpProjectState {
   const financial = source.financialData && typeof source.financialData === "object" ? source.financialData as Record<string, unknown> : {};
   const financialPrior = source.financialDataPrior && typeof source.financialDataPrior === "object" ? source.financialDataPrior as Record<string, unknown> : {};
   const quartiles = source.quartileRange && typeof source.quartileRange === "object" ? source.quartileRange as Record<string, unknown> : {};
+  const farAnalysis = source.farAnalysis && typeof source.farAnalysis === "object" ? source.farAnalysis as Record<string, unknown> : {};
   const analysisSource = source.analysis && typeof source.analysis === "object" ? source.analysis as Record<string, unknown> : {};
   return {
     ...base,
@@ -423,6 +486,27 @@ export function normalizeTpProjectState(value: unknown): TpProjectState {
     nonFinancialEvents: text(source.nonFinancialEvents),
     backgroundTransaction: text(source.backgroundTransaction),
     supplyChainManagement: text(source.supplyChainManagement),
+    farAnalysis: {
+      functionsPerformed: text(farAnalysis.functionsPerformed),
+      assetsUsed: text(farAnalysis.assetsUsed),
+      risksAssumed: text(farAnalysis.risksAssumed),
+      contractualTerms: text(farAnalysis.contractualTerms),
+      economicCircumstances: text(farAnalysis.economicCircumstances),
+      intangiblesUsed: text(farAnalysis.intangiblesUsed),
+      serviceBenefitTest: text(farAnalysis.serviceBenefitTest)
+    },
+    manualEvidence: arrayOf(source.manualEvidence, (entry) => ({
+      id: text(entry.id),
+      title: text(entry.title),
+      sourceKind: ["management_interview", "ledger_reference", "agreement_reference", "manual_calculation", "other"].includes(text(entry.sourceKind))
+        ? text(entry.sourceKind) as TpManualEvidence["sourceKind"]
+        : "other",
+      reference: text(entry.reference),
+      locator: text(entry.locator),
+      excerpt: text(entry.excerpt),
+      fieldPaths: Array.isArray(entry.fieldPaths) ? Array.from(new Set(entry.fieldPaths.map(text).filter(Boolean))) : [],
+      createdAt: text(entry.createdAt)
+    })).filter((entry) => entry.id && entry.title && entry.fieldPaths.length),
     analysis: {
       executiveSummary: text(analysisSource.executiveSummary),
       industryAnalysis: text(analysisSource.industryAnalysis),
@@ -480,7 +564,17 @@ export function normalizeTpProjectState(value: unknown): TpProjectState {
         limitation: text(entry.limitation)
       }))
     },
-    fieldSources: normalizeFieldSources(source.fieldSources)
+    fieldSources: normalizeFieldSources(source.fieldSources),
+    mergeConflicts: arrayOf(source.mergeConflicts, (entry) => ({
+      id: text(entry.id),
+      path: text(entry.path),
+      entityKey: text(entry.entityKey),
+      field: text(entry.field),
+      existingValue: text(entry.existingValue),
+      incomingValue: text(entry.incomingValue),
+      sourceDocumentIds: Array.isArray(entry.sourceDocumentIds) ? entry.sourceDocumentIds.map(text).filter(Boolean) : [],
+      status: normalizeMergeConflictStatus(entry.status)
+    })).filter((entry) => entry.id && entry.path && entry.field)
   };
 }
 
@@ -539,6 +633,7 @@ export const tpLocalFileRequirements: TpLocalFileRequirement[] = [
   { id: "prior-financials", section: "Financial", category: "additional", en: "Prior-year financial information for comparison", idLabel: "Informasi keuangan tahun sebelumnya untuk perbandingan", paths: ["financialDataPrior.revenue", "financialDataPrior.operatingProfit"], expectedSources: ["financial_prior"], requiredBeforeFinal: false },
   { id: "legal-support", section: "Source evidence", category: "additional", en: "Deed, shareholder register, organization chart, and management evidence", idLabel: "Akta, daftar pemegang saham, bagan organisasi, dan bukti manajemen", paths: ["establishmentInfo", "shareholdersSource", "managementSource", "organizationStructure"], expectedSources: ["identity", "ownership_management", "organization"], requiredBeforeFinal: false },
   { id: "transaction-support", section: "Source evidence", category: "additional", en: "Agreements, invoices, ledger, allocation schedules, and benefit evidence", idLabel: "Perjanjian, invoice, ledger, alokasi, dan bukti manfaat", paths: ["backgroundTransaction", "supplyChainManagement", "pricingPolicy"], expectedSources: ["controlled_transactions", "tp_policy"], requiredBeforeFinal: true },
+  { id: "far-analysis", section: "Functions, assets, and risks", category: "advisor", en: "Functions performed, assets used, and risks assumed", idLabel: "Fungsi yang dilakukan, aset yang digunakan, dan risiko yang ditanggung", paths: ["farAnalysis.functionsPerformed", "farAnalysis.assetsUsed", "farAnalysis.risksAssumed"], expectedSources: [], requiredBeforeFinal: true },
   { id: "benchmark-support", section: "Comparability", category: "additional", en: "Search strategy, rejection matrix, and comparable-company data", idLabel: "Strategi pencarian, matriks penolakan, dan data perusahaan pembanding", paths: ["searchCriteriaResults", "rejectionMatrix", "comparableCompanies"], expectedSources: ["comparables"], requiredBeforeFinal: true },
   { id: "transaction-delineation", section: "Advisor decisions", category: "advisor", en: "Confirm transaction delineation and materiality", idLabel: "Konfirmasi delineasi transaksi dan materialitas", paths: ["transactionType", "transactionDetails"], expectedSources: [], requiredBeforeFinal: true },
   { id: "tested-party", section: "Advisor decisions", category: "advisor", en: "Select and justify the tested party", idLabel: "Pilih dan justifikasi pihak yang diuji", paths: ["testedParty"], expectedSources: [], requiredBeforeFinal: true },
@@ -568,7 +663,8 @@ export function tpGenerationReadiness(state: TpProjectState) {
     return { category, ready: entries.filter((item) => item.status === "ready").length, total: entries.length };
   });
   const blockers = requirements.filter((item) => item.requiredBeforeFinal && item.status !== "ready");
-  return { requirements, summary, blockers };
+  const dataConflicts = state.mergeConflicts.filter((conflict) => conflict.status === "unresolved");
+  return { requirements, summary, blockers, dataConflicts };
 }
 
 export function tpProjectCompleteness(state: TpProjectState) {
@@ -576,6 +672,7 @@ export function tpProjectCompleteness(state: TpProjectState) {
     [state.companyName, 8], [state.fiscalYear, 5], [state.companyAddress, 3], [state.shareholders, 6],
     [state.management, 4], [state.affiliatedParties, 8], [state.businessActivities, 8], [state.products, 4],
     [state.affiliatedTransactions, 12], [state.transactionDetails, 8], [state.pricingPolicy, 5],
+    [state.farAnalysis, 6],
     [state.financialData.revenue, 5], [state.financialData.operatingProfit, 5], [state.selectedMethod, 4],
     [state.testedParty, 4], [state.analysisPeriod, 3], [state.comparableCompanies, 5], [state.analysis.executiveSummary, 3]
   ];
@@ -584,18 +681,155 @@ export function tpProjectCompleteness(state: TpProjectState) {
   return Math.round((achieved / total) * 100);
 }
 
+export function tpProjectStatusAfterAnalysis(state: TpProjectState): Extract<TpProjectStatus, "analyzed" | "ready"> {
+  const completeness = tpProjectCompleteness(state);
+  const readiness = tpGenerationReadiness(state);
+  return completeness >= 80 && readiness.blockers.length === 0 && readiness.dataConflicts.length === 0 ? "ready" : "analyzed";
+}
+
+type ArrayMergeRule = {
+  identityFields: string[];
+};
+
+const arrayMergeRules: Record<string, ArrayMergeRule> = {
+  shareholders: { identityFields: ["name"] },
+  management: { identityFields: ["name", "position"] },
+  affiliatedParties: { identityFields: ["name", "country"] },
+  products: { identityFields: ["name"] },
+  organizationDepartments: { identityFields: ["name"] },
+  affiliatedTransactions: { identityFields: ["counterparty", "country", "transactionType", "currency"] },
+  independentTransactions: { identityFields: ["counterparty", "country", "transactionType", "currency"] },
+  searchCriteriaResults: { identityFields: ["step"] },
+  rejectionMatrix: { identityFields: ["name"] },
+  comparableCompanies: { identityFields: ["name", "country"] }
+};
+
+function normalizedIdentityPart(value: unknown) {
+  return text(value).toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function entityIdentity(value: unknown, rule: ArrayMergeRule) {
+  if (!value || typeof value !== "object") return "";
+  const entry = value as Record<string, unknown>;
+  const parts = rule.identityFields.map((field) => normalizedIdentityPart(entry[field]));
+  return parts.some(Boolean) ? parts.join("|") : "";
+}
+
+function stableHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function mergeSources(target: Record<string, string[]>, path: string, sources: string[]) {
+  const normalized = sources.map(text).filter(Boolean);
+  if (normalized.length) target[path] = Array.from(new Set([...(target[path] || []), ...normalized]));
+}
+
+function mergeEntityArrays(
+  current: unknown[],
+  incoming: unknown[],
+  path: string,
+  merged: TpProjectState,
+  patchSources: Record<string, string[]>,
+  sourceDocumentId?: string
+) {
+  const rule = arrayMergeRules[path];
+  if (!rule) {
+    const result = [...current];
+    const seen = new Set(result.map((entry) => JSON.stringify(entry)));
+    incoming.forEach((entry) => {
+      const signature = JSON.stringify(entry);
+      if (!seen.has(signature)) {
+        result.push(entry);
+        seen.add(signature);
+      }
+    });
+    return result;
+  }
+
+  const result = current.map((entry) => entry && typeof entry === "object" ? { ...(entry as Record<string, unknown>) } : entry);
+  const indexes = new Map<string, number>();
+  result.forEach((entry, index) => {
+    const identity = entityIdentity(entry, rule);
+    if (identity && !indexes.has(identity)) indexes.set(identity, index);
+  });
+
+  for (const incomingEntry of incoming) {
+    const identity = entityIdentity(incomingEntry, rule);
+    const existingIndex = identity ? indexes.get(identity) : undefined;
+    if (existingIndex === undefined) {
+      const signature = JSON.stringify(incomingEntry);
+      if (!result.some((entry) => JSON.stringify(entry) === signature)) {
+        result.push(incomingEntry);
+        if (identity) indexes.set(identity, result.length - 1);
+      }
+      if (identity) mergeSources(merged.fieldSources, `${path}#${stableHash(identity)}`, [sourceDocumentId || "", ...(patchSources[path] || [])]);
+      continue;
+    }
+
+    const existingEntry = result[existingIndex];
+    if (!existingEntry || typeof existingEntry !== "object" || !incomingEntry || typeof incomingEntry !== "object") continue;
+    const existingRecord = existingEntry as Record<string, unknown>;
+    const incomingRecord = incomingEntry as Record<string, unknown>;
+    const entitySourcePath = `${path}#${stableHash(identity)}`;
+    const entitySources = [
+      ...(merged.fieldSources[entitySourcePath] || []),
+      ...(merged.fieldSources[path] || []),
+      ...(patchSources[path] || []),
+      sourceDocumentId || ""
+    ].map(text).filter(Boolean);
+    mergeSources(merged.fieldSources, entitySourcePath, entitySources);
+
+    for (const [field, incomingValue] of Object.entries(incomingRecord)) {
+      const existingValue = existingRecord[field];
+      const incomingPresent = typeof incomingValue === "boolean" || hasValue(incomingValue);
+      const existingPresent = typeof existingValue === "boolean" || hasValue(existingValue);
+      if (!incomingPresent) continue;
+      if (!existingPresent) {
+        existingRecord[field] = incomingValue;
+        continue;
+      }
+      if (JSON.stringify(existingValue) === JSON.stringify(incomingValue)) continue;
+      if (rule.identityFields.includes(field)) continue;
+      const conflictId = stableHash(`${path}|${identity}|${field}|${JSON.stringify(existingValue)}|${JSON.stringify(incomingValue)}`);
+      const existingConflict = merged.mergeConflicts.find((conflict) => conflict.id === conflictId);
+      if (existingConflict) {
+        existingConflict.sourceDocumentIds = Array.from(new Set([...existingConflict.sourceDocumentIds, ...entitySources]));
+      } else {
+        merged.mergeConflicts.push({
+          id: conflictId,
+          path,
+          entityKey: identity,
+          field,
+          existingValue: text(existingValue),
+          incomingValue: text(incomingValue),
+          sourceDocumentIds: Array.from(new Set(entitySources)),
+          status: "unresolved"
+        });
+      }
+    }
+  }
+  return result;
+}
+
 export function mergeTpProjectState(currentValue: unknown, patchValue: unknown, sourceDocumentId?: string) {
   const current = normalizeTpProjectState(currentValue);
   const patch = normalizeTpProjectState(patchValue);
   const merged = structuredClone(current);
+  Object.entries(patch.fieldSources).forEach(([path, sources]) => mergeSources(merged.fieldSources, path, sources));
   const mergeRecord = (target: Record<string, unknown>, incoming: Record<string, unknown>, prefix = "") => {
     for (const [key, value] of Object.entries(incoming)) {
-      if (key === "fieldSources" || key === "analysis") continue;
+      if (key === "fieldSources" || key === "analysis" || key === "mergeConflicts") continue;
       const path = prefix ? `${prefix}.${key}` : key;
       if (Array.isArray(value)) {
         if (value.length) {
-          target[key] = value;
-          if (sourceDocumentId) merged.fieldSources[path] = Array.from(new Set([...(merged.fieldSources[path] || []), sourceDocumentId]));
+          const existing = Array.isArray(target[key]) ? target[key] as unknown[] : [];
+          target[key] = mergeEntityArrays(existing, value, path, merged, patch.fieldSources, sourceDocumentId);
+          mergeSources(merged.fieldSources, path, [sourceDocumentId || "", ...(patch.fieldSources[path] || [])]);
         }
       } else if (value && typeof value === "object") {
         const nextTarget = target[key] && typeof target[key] === "object" ? target[key] as Record<string, unknown> : {};

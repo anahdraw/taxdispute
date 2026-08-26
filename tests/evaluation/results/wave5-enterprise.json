@@ -1,0 +1,1656 @@
+{
+  "schemaVersion": "aa-jurist-wave5-enterprise-v1",
+  "generatedAt": "2026-08-21T17:31:46.176Z",
+  "summary": {
+    "cases": 120,
+    "exactLookupTop1": 1,
+    "hitAt5": 1,
+    "p50LatencyMs": 9.19,
+    "p95LatencyMs": 26.17,
+    "maxHydratedCandidateDocuments": 265,
+    "sourceDocumentCount": 157924,
+    "persistentProjectionCount": 10829,
+    "sourceLoadMs": 5641.46,
+    "indexBytes": 73338594,
+    "lightRagManifestDocuments": 10822,
+    "lightRagCitationReady": 9861,
+    "lightRagGraphRelations": 2086
+  },
+  "gates": {
+    "benchmarkSize": true,
+    "exactLookupTop1": true,
+    "hitAt5": true,
+    "candidateBound": true,
+    "fullManifestLargerThanPilot": true,
+    "stalePilotRejected": true
+  },
+  "implementationPassed": true,
+  "claims": {
+    "persistentSearch": "Local durable candidate index with full-corpus hydration; not a distributed production backend.",
+    "lightrag": "Full-corpus manifest/export contract built; 58-document pilot is rejected and full ingestion is not claimed.",
+    "queue": "Local durable queue; not a multi-node broker.",
+    "dr": "Local backup verification/rehearsal; not cross-region failover."
+  },
+  "cases": [
+    {
+      "id": "lookup-1",
+      "query": "KEP-1/PJ/1995",
+      "expected": "kep-1-pj-1995",
+      "retrieved": [
+        "kep-1-pj-1995",
+        "kep-1-pj-24-1995"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 11.77,
+      "candidateDocuments": 28
+    },
+    {
+      "id": "lookup-2",
+      "query": "KEP-117/PJ/2021",
+      "expected": "kep-117-pj-2021",
+      "retrieved": [
+        "kep-117-pj-2021"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 12.15,
+      "candidateDocuments": 9
+    },
+    {
+      "id": "lookup-3",
+      "query": "KEP-146/PJ/2021",
+      "expected": "kep-146-pj-2021",
+      "retrieved": [
+        "kep-146-pj-2021"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.97,
+      "candidateDocuments": 10
+    },
+    {
+      "id": "lookup-4",
+      "query": "KEP-17/PJ/2019",
+      "expected": "kep-17-pj-2019",
+      "retrieved": [
+        "kep-17-pj-2019"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 11.33,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-5",
+      "query": "KEP-20/PJ/2011",
+      "expected": "kep-20-pj-2011",
+      "retrieved": [
+        "kep-20-pj-2011"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.74,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-6",
+      "query": "KEP-238/PJ/2015",
+      "expected": "kep-238-pj-2015",
+      "retrieved": [
+        "kep-238-pj-2015"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.83,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-7",
+      "query": "KEP-29/PJ/1995",
+      "expected": "kep-29-pj-1995",
+      "retrieved": [
+        "kep-29-pj-1995"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.68,
+      "candidateDocuments": 9
+    },
+    {
+      "id": "lookup-8",
+      "query": "KEP-35/PJ/2001",
+      "expected": "kep-35-pj-2001",
+      "retrieved": [
+        "kep-35-pj-2001"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.68,
+      "candidateDocuments": 7
+    },
+    {
+      "id": "lookup-9",
+      "query": "KEP-4/PJ.51/1994",
+      "expected": "kep-4-pj-51-1994",
+      "retrieved": [
+        "kep-4-pj-51-1994",
+        "kep-4-pj-6-1994"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.43,
+      "candidateDocuments": 26
+    },
+    {
+      "id": "lookup-10",
+      "query": "KEP-5/PJ/2007",
+      "expected": "kep-5-pj-2007",
+      "retrieved": [
+        "kep-5-pj-2007",
+        "kep-5-pj-031-2007"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.71,
+      "candidateDocuments": 18
+    },
+    {
+      "id": "lookup-11",
+      "query": "KEP-545/PJ/2000",
+      "expected": "kep-545-pj-2000",
+      "retrieved": [
+        "kep-545-pj-2000"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 11.07,
+      "candidateDocuments": 22
+    },
+    {
+      "id": "lookup-12",
+      "query": "KEP-667/PJ/2001",
+      "expected": "kep-667-pj-2001",
+      "retrieved": [
+        "kep-667-pj-2001"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.88,
+      "candidateDocuments": 9
+    },
+    {
+      "id": "lookup-13",
+      "query": "KEP-87/PJ/1995",
+      "expected": "kep-87-pj-1995",
+      "retrieved": [
+        "kep-87-pj-1995"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.84,
+      "candidateDocuments": 11
+    },
+    {
+      "id": "lookup-14",
+      "query": "1071/KMK.00/1992",
+      "expected": "kmk-1071-kmk-00-1992",
+      "retrieved": [
+        "kmk-1071-kmk-00-1992"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.02,
+      "candidateDocuments": 11
+    },
+    {
+      "id": "lookup-15",
+      "query": "125/KMK.017/1998",
+      "expected": "kmk-125-kmk-017-1998",
+      "retrieved": [
+        "kmk-125-kmk-017-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.29,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-16",
+      "query": "139/KMK.05/1997",
+      "expected": "kmk-139-kmk-05-1997",
+      "retrieved": [
+        "kmk-139-kmk-05-1997"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.5,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-17",
+      "query": "163/KMK.04/1995",
+      "expected": "kmk-163-kmk-04-1995",
+      "retrieved": [
+        "kmk-163-kmk-04-1995"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.62,
+      "candidateDocuments": 16
+    },
+    {
+      "id": "lookup-18",
+      "query": "189/KMK.06/2004",
+      "expected": "kmk-189-kmk-06-2004",
+      "retrieved": [
+        "kmk-189-kmk-06-2004"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.65,
+      "candidateDocuments": 19
+    },
+    {
+      "id": "lookup-19",
+      "query": "221/KMK.011/2002",
+      "expected": "kmk-221-kmk-011-2002",
+      "retrieved": [
+        "kmk-221-kmk-011-2002"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.56,
+      "candidateDocuments": 6
+    },
+    {
+      "id": "lookup-20",
+      "query": "255/KMK.01/1998",
+      "expected": "kmk-255-kmk-01-1998",
+      "retrieved": [
+        "kmk-255-kmk-01-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.11,
+      "candidateDocuments": 7
+    },
+    {
+      "id": "lookup-21",
+      "query": "297/KMK.03/2003",
+      "expected": "kmk-297-kmk-03-2003",
+      "retrieved": [
+        "kmk-297-kmk-03-2003"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.17,
+      "candidateDocuments": 25
+    },
+    {
+      "id": "lookup-22",
+      "query": "331/KMK.011/2002",
+      "expected": "kmk-331-kmk-011-2002",
+      "retrieved": [
+        "kmk-331-kmk-011-2002"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.42,
+      "candidateDocuments": 6
+    },
+    {
+      "id": "lookup-23",
+      "query": "362/KMK.01/1998",
+      "expected": "kmk-362-kmk-01-1998",
+      "retrieved": [
+        "kmk-362-kmk-01-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.19,
+      "candidateDocuments": 17
+    },
+    {
+      "id": "lookup-24",
+      "query": "391/KMK.04/2002",
+      "expected": "kmk-391-kmk-04-2002",
+      "retrieved": [
+        "kmk-391-kmk-04-2002"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.24,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-25",
+      "query": "418/KMK.014/2000",
+      "expected": "kmk-418-kmk-014-2000",
+      "retrieved": [
+        "kmk-418-kmk-014-2000"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.36,
+      "candidateDocuments": 13
+    },
+    {
+      "id": "lookup-26",
+      "query": "449/KMK.01/2003",
+      "expected": "kmk-449-kmk-01-2003",
+      "retrieved": [
+        "kmk-449-kmk-01-2003"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.03,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-27",
+      "query": "469/KMK.04/1998",
+      "expected": "kmk-469-kmk-04-1998",
+      "retrieved": [
+        "kmk-469-kmk-04-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.99,
+      "candidateDocuments": 9
+    },
+    {
+      "id": "lookup-28",
+      "query": "493/KMK.03/2006",
+      "expected": "kmk-493-kmk-03-2006",
+      "retrieved": [
+        "kmk-493-kmk-03-2006"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 6,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-29",
+      "query": "520/KMK.04/1998",
+      "expected": "kmk-520-kmk-04-1998",
+      "retrieved": [
+        "kmk-520-kmk-04-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.92,
+      "candidateDocuments": 9
+    },
+    {
+      "id": "lookup-30",
+      "query": "546/KMK.03/2004",
+      "expected": "kmk-546-kmk-03-2004",
+      "retrieved": [
+        "kmk-546-kmk-03-2004"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.52,
+      "candidateDocuments": 7
+    },
+    {
+      "id": "lookup-31",
+      "query": "57/KMK.014/1999",
+      "expected": "kmk-57-kmk-014-1999",
+      "retrieved": [
+        "kmk-57-kmk-014-1999"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.38,
+      "candidateDocuments": 13
+    },
+    {
+      "id": "lookup-32",
+      "query": "600/KMK.03/2016",
+      "expected": "kmk-600-kmk-03-2016",
+      "retrieved": [
+        "kmk-600-kmk-03-2016"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.29,
+      "candidateDocuments": 10
+    },
+    {
+      "id": "lookup-33",
+      "query": "638/KMK.04/1997",
+      "expected": "kmk-638-kmk-04-1997",
+      "retrieved": [
+        "kmk-638-kmk-04-1997"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.94,
+      "candidateDocuments": 11
+    },
+    {
+      "id": "lookup-34",
+      "query": "702/KMK.04/1996",
+      "expected": "kmk-702-kmk-04-1996",
+      "retrieved": [
+        "kmk-702-kmk-04-1996"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.07,
+      "candidateDocuments": 13
+    },
+    {
+      "id": "lookup-35",
+      "query": "835/KMK.03/2006",
+      "expected": "kmk-835-kmk-03-2006",
+      "retrieved": [
+        "kmk-835-kmk-03-2006"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.87,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-36",
+      "query": "94/KMK.01/1994",
+      "expected": "kmk-94-kmk-01-1994",
+      "retrieved": [
+        "kmk-94-kmk-01-1994"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 6.15,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-37",
+      "query": "PER-10/PJ/2018",
+      "expected": "per-10-pj-2018",
+      "retrieved": [
+        "per-10-pj-2018"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 12.32,
+      "candidateDocuments": 52
+    },
+    {
+      "id": "lookup-38",
+      "query": "PER-14/PJ/2021",
+      "expected": "per-14-pj-2021",
+      "retrieved": [
+        "per-14-pj-2021"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.55,
+      "candidateDocuments": 10
+    },
+    {
+      "id": "lookup-39",
+      "query": "PER-177/PJ/2005",
+      "expected": "per-177-pj-2005",
+      "retrieved": [
+        "per-177-pj-2005"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.45,
+      "candidateDocuments": 21
+    },
+    {
+      "id": "lookup-40",
+      "query": "PER-21/PJ/2025",
+      "expected": "per-21-pj-2025",
+      "retrieved": [
+        "per-21-pj-2025"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.92,
+      "candidateDocuments": 52
+    },
+    {
+      "id": "lookup-41",
+      "query": "PER-27/PJ/2015",
+      "expected": "per-27-pj-2015",
+      "retrieved": [
+        "per-27-pj-2015"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.28,
+      "candidateDocuments": 7
+    },
+    {
+      "id": "lookup-42",
+      "query": "PER-33/PJ/2013",
+      "expected": "per-33-pj-2013",
+      "retrieved": [
+        "per-33-pj-2013"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.86,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-43",
+      "query": "PER-42/PJ/2015",
+      "expected": "per-42-pj-2015",
+      "retrieved": [
+        "per-42-pj-2015"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.05,
+      "candidateDocuments": 42
+    },
+    {
+      "id": "lookup-44",
+      "query": "PER-53/PJ/2008",
+      "expected": "per-53-pj-2008",
+      "retrieved": [
+        "per-53-pj-2008"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 11.17,
+      "candidateDocuments": 29
+    },
+    {
+      "id": "lookup-45",
+      "query": "PER-71/PJ/2006",
+      "expected": "per-71-pj-2006",
+      "retrieved": [
+        "per-71-pj-2006"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.04,
+      "candidateDocuments": 28
+    },
+    {
+      "id": "lookup-46",
+      "query": "21/M-DAG/PER/5/2006",
+      "expected": "permendag-21-m-dag-per-5-2006",
+      "retrieved": [
+        "permendag-21-m-dag-per-5-2006"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.37,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-47",
+      "query": "7/M-DAG/PER/2/2007",
+      "expected": "permendag-7-m-dag-per-2-2007",
+      "retrieved": [
+        "permendag-7-m-dag-per-2-2007"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.73,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-48",
+      "query": "PERPU 2 TAHUN 2022",
+      "expected": "perpu-2-2022",
+      "retrieved": [
+        "perpu-2-2022"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 86.76,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-49",
+      "query": "11/PMK.03/2007",
+      "expected": "pmk-11-pmk-03-2007",
+      "retrieved": [
+        "pmk-11-pmk-03-2007"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.28,
+      "candidateDocuments": 15
+    },
+    {
+      "id": "lookup-50",
+      "query": "121/PMK.011/2013",
+      "expected": "pmk-121-pmk-011-2013",
+      "retrieved": [
+        "pmk-121-pmk-011-2013"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.61,
+      "candidateDocuments": 14
+    },
+    {
+      "id": "lookup-51",
+      "query": "134/PMK.010/2017",
+      "expected": "pmk-134-pmk-010-2017",
+      "retrieved": [
+        "pmk-134-pmk-010-2017"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.22,
+      "candidateDocuments": 23
+    },
+    {
+      "id": "lookup-52",
+      "query": "147/PMK.04/2011",
+      "expected": "pmk-147-pmk-04-2011",
+      "retrieved": [
+        "pmk-147-pmk-04-2011"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 26.17,
+      "candidateDocuments": 265
+    },
+    {
+      "id": "lookup-53",
+      "query": "160/PMK.01/2008",
+      "expected": "pmk-160-pmk-01-2008",
+      "retrieved": [
+        "pmk-160-pmk-01-2008"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 11.11,
+      "candidateDocuments": 39
+    },
+    {
+      "id": "lookup-54",
+      "query": "18/PMK.01/2020",
+      "expected": "pmk-18-pmk-01-2020",
+      "retrieved": [
+        "pmk-18-pmk-01-2020"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.21,
+      "candidateDocuments": 16
+    },
+    {
+      "id": "lookup-55",
+      "query": "199/PMK.011/2009",
+      "expected": "pmk-199-pmk-011-2009",
+      "retrieved": [
+        "pmk-199-pmk-011-2009"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.31,
+      "candidateDocuments": 7
+    },
+    {
+      "id": "lookup-56",
+      "query": "215/PMK.03/2008",
+      "expected": "pmk-215-pmk-03-2008",
+      "retrieved": [
+        "pmk-215-pmk-03-2008"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.15,
+      "candidateDocuments": 13
+    },
+    {
+      "id": "lookup-57",
+      "query": "239/PMK.03/2014",
+      "expected": "pmk-239-pmk-03-2014",
+      "retrieved": [
+        "pmk-239-pmk-03-2014"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 17.62,
+      "candidateDocuments": 147
+    },
+    {
+      "id": "lookup-58",
+      "query": "26/PMK.08/2007",
+      "expected": "pmk-26-pmk-08-2007",
+      "retrieved": [
+        "pmk-26-pmk-08-2007"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 12.24,
+      "candidateDocuments": 47
+    },
+    {
+      "id": "lookup-59",
+      "query": "35/PMK.010/2017",
+      "expected": "pmk-35-pmk-010-2017",
+      "retrieved": [
+        "pmk-35-pmk-010-2017"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.19,
+      "candidateDocuments": 11
+    },
+    {
+      "id": "lookup-60",
+      "query": "43/PMK.04/2005",
+      "expected": "pmk-43-pmk-04-2005",
+      "retrieved": [
+        "pmk-43-pmk-04-2005"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.21,
+      "candidateDocuments": 45
+    },
+    {
+      "id": "lookup-61",
+      "query": "54/PMK.011/2010",
+      "expected": "pmk-54-pmk-011-2010",
+      "retrieved": [
+        "pmk-54-pmk-011-2010"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.11,
+      "candidateDocuments": 21
+    },
+    {
+      "id": "lookup-62",
+      "query": "620/PMK.03/2004",
+      "expected": "pmk-620-pmk-03-2004",
+      "retrieved": [
+        "pmk-620-pmk-03-2004"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.93,
+      "candidateDocuments": 15
+    },
+    {
+      "id": "lookup-63",
+      "query": "70/PMK.04/2006",
+      "expected": "pmk-70-pmk-04-2006",
+      "retrieved": [
+        "pmk-70-pmk-04-2006"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.88,
+      "candidateDocuments": 12
+    },
+    {
+      "id": "lookup-64",
+      "query": "82/PMK.03/2011",
+      "expected": "pmk-82-pmk-03-2011",
+      "retrieved": [
+        "pmk-82-pmk-03-2011"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 12.4,
+      "candidateDocuments": 63
+    },
+    {
+      "id": "lookup-65",
+      "query": "91/PMK.02/2009",
+      "expected": "pmk-91-pmk-02-2009",
+      "retrieved": [
+        "pmk-91-pmk-02-2009"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.37,
+      "candidateDocuments": 32
+    },
+    {
+      "id": "lookup-66",
+      "query": "PP 13 TAHUN 2001",
+      "expected": "pp-13-2001",
+      "retrieved": [
+        "pp-13-2001"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.55,
+      "candidateDocuments": 12
+    },
+    {
+      "id": "lookup-67",
+      "query": "PP 27 TAHUN 1998",
+      "expected": "pp-27-1998",
+      "retrieved": [
+        "pp-27-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 18.04,
+      "candidateDocuments": 134
+    },
+    {
+      "id": "lookup-68",
+      "query": "PP 41 TAHUN 2005",
+      "expected": "pp-41-2005",
+      "retrieved": [
+        "pp-41-2005"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.79,
+      "candidateDocuments": 37
+    },
+    {
+      "id": "lookup-69",
+      "query": "PP 56 TAHUN 1996",
+      "expected": "pp-56-1996",
+      "retrieved": [
+        "pp-56-1996"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 14.85,
+      "candidateDocuments": 81
+    },
+    {
+      "id": "lookup-70",
+      "query": "PP 85 TAHUN 2001",
+      "expected": "pp-85-2001",
+      "retrieved": [
+        "pp-85-2001"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.79,
+      "candidateDocuments": 13
+    },
+    {
+      "id": "lookup-71",
+      "query": "SE-1/PJ.24/2006",
+      "expected": "se-1-pj-24-2006",
+      "retrieved": [
+        "se-1-pj-24-2006",
+        "se-1-pj-3-2006",
+        "se-1-pj-52-2006",
+        "se-1-pj-7-2006"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 13.02,
+      "candidateDocuments": 4
+    },
+    {
+      "id": "lookup-72",
+      "query": "SE-1/PJ.8/2000",
+      "expected": "se-1-pj-8-2000",
+      "retrieved": [
+        "se-1-pj-8-2000",
+        "se-1-pj-143-2000",
+        "se-1-pj-24-2000",
+        "se-1-pj-32-2000",
+        "se-1-pj-41-2000"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 16.14,
+      "candidateDocuments": 9
+    },
+    {
+      "id": "lookup-73",
+      "query": "SE-10/PJ.51/1997",
+      "expected": "se-10-pj-51-1997",
+      "retrieved": [
+        "se-10-pj-51-1997",
+        "se-10-pj-1997",
+        "se-10-pj-43-1997",
+        "se-10-pj-6-1997"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 12.13,
+      "candidateDocuments": 4
+    },
+    {
+      "id": "lookup-74",
+      "query": "SE-11/PJ/2016",
+      "expected": "se-11-pj-2016",
+      "retrieved": [
+        "se-11-pj-2016"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.9,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-75",
+      "query": "SE-113/PJ/2009",
+      "expected": "se-113-pj-2009",
+      "retrieved": [
+        "se-113-pj-2009"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 33.03,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-76",
+      "query": "SE-12/PJ.52/2006",
+      "expected": "se-12-pj-52-2006",
+      "retrieved": [
+        "se-12-pj-52-2006"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 29.24,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-77",
+      "query": "SE-13/PJ.34/1985",
+      "expected": "se-13-pj-34-1985",
+      "retrieved": [
+        "se-13-pj-34-1985",
+        "se-13-pj-22-1985"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 23.07,
+      "candidateDocuments": 2
+    },
+    {
+      "id": "lookup-78",
+      "query": "SE-14/PJ/2018",
+      "expected": "se-14-pj-2018",
+      "retrieved": [
+        "se-14-pj-2018"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 23.14,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-79",
+      "query": "SE-15/PJ/2009",
+      "expected": "se-15-pj-2009",
+      "retrieved": [
+        "se-15-pj-2009"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 28.94,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-80",
+      "query": "SE-158/PJ.1/1998",
+      "expected": "se-158-pj-1-1998",
+      "retrieved": [
+        "se-158-pj-1-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 27.17,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-81",
+      "query": "SE-17/PJ/2009",
+      "expected": "se-17-pj-2009",
+      "retrieved": [
+        "se-17-pj-2009"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 16.08,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-82",
+      "query": "SE-18/PJ/2012",
+      "expected": "se-18-pj-2012",
+      "retrieved": [
+        "se-18-pj-2012"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.72,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-83",
+      "query": "SE-19/PJ/2008",
+      "expected": "se-19-pj-2008",
+      "retrieved": [
+        "se-19-pj-2008"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 11.74,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-84",
+      "query": "SE-2/PJ.10/2001",
+      "expected": "se-2-pj-10-2001",
+      "retrieved": [
+        "se-2-pj-10-2001",
+        "se-2-pj-12-2001",
+        "se-2-pj-13-2001",
+        "se-2-pj-24-2001",
+        "se-2-pj-33-2001"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 27.3,
+      "candidateDocuments": 9
+    },
+    {
+      "id": "lookup-85",
+      "query": "SE-2/PJ.42/1990",
+      "expected": "se-2-pj-42-1990",
+      "retrieved": [
+        "se-2-pj-42-1990",
+        "se-2-pj-32-1990",
+        "se-2-pj-74-1990"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 16.96,
+      "candidateDocuments": 3
+    },
+    {
+      "id": "lookup-86",
+      "query": "SE-20/PJ/2020",
+      "expected": "se-20-pj-2020",
+      "retrieved": [
+        "se-20-pj-2020"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 14.33,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-87",
+      "query": "SE-21/PJ.313/1993",
+      "expected": "se-21-pj-313-1993",
+      "retrieved": [
+        "se-21-pj-313-1993",
+        "se-21-pj-45-1993",
+        "se-21-pj-51-1993"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.25,
+      "candidateDocuments": 3
+    },
+    {
+      "id": "lookup-88",
+      "query": "SE-22/PJ.42/1990",
+      "expected": "se-22-pj-42-1990",
+      "retrieved": [
+        "se-22-pj-42-1990",
+        "se-22-pj-24-1990",
+        "se-22-pj-31-1990"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.59,
+      "candidateDocuments": 3
+    },
+    {
+      "id": "lookup-89",
+      "query": "SE-23/PJ.6/1994",
+      "expected": "se-23-pj-6-1994",
+      "retrieved": [
+        "se-23-pj-6-1994",
+        "se-23-pj-51-1994"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.21,
+      "candidateDocuments": 2
+    },
+    {
+      "id": "lookup-90",
+      "query": "SE-25/PJ/2012",
+      "expected": "se-25-pj-2012",
+      "retrieved": [
+        "se-25-pj-2012"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.4,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-91",
+      "query": "SE-26/PJ.22/1985",
+      "expected": "se-26-pj-22-1985",
+      "retrieved": [
+        "se-26-pj-22-1985"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.37,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-92",
+      "query": "SE-27/PJ.52/1998",
+      "expected": "se-27-pj-52-1998",
+      "retrieved": [
+        "se-27-pj-52-1998",
+        "se-27-pj-42-1998",
+        "se-27-pj-6-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.5,
+      "candidateDocuments": 3
+    },
+    {
+      "id": "lookup-93",
+      "query": "SE-29/PJ/2011",
+      "expected": "se-29-pj-2011",
+      "retrieved": [
+        "se-29-pj-2011"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 11.51,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-94",
+      "query": "SE-3/PJ/2020",
+      "expected": "se-3-pj-2020",
+      "retrieved": [
+        "se-3-pj-2020"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.69,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-95",
+      "query": "SE-3/PJ.7/1996",
+      "expected": "se-3-pj-7-1996",
+      "retrieved": [
+        "se-3-pj-7-1996",
+        "se-3-pj-101-1996",
+        "se-3-pj-112-1996",
+        "se-3-pj-32-1996",
+        "se-3-pj-4-1996"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 15.22,
+      "candidateDocuments": 7
+    },
+    {
+      "id": "lookup-96",
+      "query": "SE-304/PJ/1999",
+      "expected": "se-304-pj-1999",
+      "retrieved": [
+        "se-304-pj-1999"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.73,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-97",
+      "query": "SE-32/PJ.42/1989",
+      "expected": "se-32-pj-42-1989",
+      "retrieved": [
+        "se-32-pj-42-1989"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.12,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-98",
+      "query": "SE-339/PJ/2002",
+      "expected": "se-339-pj-2002",
+      "retrieved": [
+        "se-339-pj-2002"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.89,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-99",
+      "query": "SE-35/PJ.53/2003",
+      "expected": "se-35-pj-53-2003",
+      "retrieved": [
+        "se-35-pj-53-2003",
+        "se-35-pj-2003"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.38,
+      "candidateDocuments": 2
+    },
+    {
+      "id": "lookup-100",
+      "query": "SE-37/PJ.6/1991",
+      "expected": "se-37-pj-6-1991",
+      "retrieved": [
+        "se-37-pj-6-1991"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.99,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-101",
+      "query": "SE-39/PJ.531/1996",
+      "expected": "se-39-pj-531-1996",
+      "retrieved": [
+        "se-39-pj-531-1996",
+        "se-39-pj-41-1996",
+        "se-39-pj-6-1996"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.34,
+      "candidateDocuments": 3
+    },
+    {
+      "id": "lookup-102",
+      "query": "SE-4/PJ.33/1998",
+      "expected": "se-4-pj-33-1998",
+      "retrieved": [
+        "se-4-pj-33-1998",
+        "se-4-pj-13-1998",
+        "se-4-pj-24-1998",
+        "se-4-pj-43-1998",
+        "se-4-pj-53-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 12.6,
+      "candidateDocuments": 8
+    },
+    {
+      "id": "lookup-103",
+      "query": "SE-40/PJ/2021",
+      "expected": "se-40-pj-2021",
+      "retrieved": [
+        "se-40-pj-2021"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.19,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-104",
+      "query": "SE-42/PJ/2017",
+      "expected": "se-42-pj-2017",
+      "retrieved": [
+        "se-42-pj-2017"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.81,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-105",
+      "query": "SE-44/PJ.71/1989",
+      "expected": "se-44-pj-71-1989",
+      "retrieved": [
+        "se-44-pj-71-1989"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 11.74,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-106",
+      "query": "SE-47/PJ.22/1985",
+      "expected": "se-47-pj-22-1985",
+      "retrieved": [
+        "se-47-pj-22-1985"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 9.61,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-107",
+      "query": "SE-5/PJ.1/2006",
+      "expected": "se-5-pj-1-2006",
+      "retrieved": [
+        "se-5-pj-1-2006",
+        "se-5-pj-12-2006",
+        "se-5-pj-2006",
+        "se-5-pj-22-2006",
+        "se-5-pj-34-2006"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 14.19,
+      "candidateDocuments": 7
+    },
+    {
+      "id": "lookup-108",
+      "query": "SE-5/PJ.51/1991",
+      "expected": "se-5-pj-51-1991",
+      "retrieved": [
+        "se-5-pj-51-1991",
+        "se-5-pj-31-1991",
+        "se-5-pj-43-1991"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 12.71,
+      "candidateDocuments": 3
+    },
+    {
+      "id": "lookup-109",
+      "query": "SE-51/PJ.3/1985",
+      "expected": "se-51-pj-3-1985",
+      "retrieved": [
+        "se-51-pj-3-1985"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.33,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-110",
+      "query": "SE-55/PJ/2007",
+      "expected": "se-55-pj-2007",
+      "retrieved": [
+        "se-55-pj-2007"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 16.32,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-111",
+      "query": "SE-58/PJ.6/1999",
+      "expected": "se-58-pj-6-1999",
+      "retrieved": [
+        "se-58-pj-6-1999"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.95,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-112",
+      "query": "SE-6/PJ.43/2000",
+      "expected": "se-6-pj-43-2000",
+      "retrieved": [
+        "se-6-pj-43-2000",
+        "se-6-pj-10-2000",
+        "se-6-pj-52-2000",
+        "se-6-pj-6-2000",
+        "se-6-pj-71-2000"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 11.71,
+      "candidateDocuments": 5
+    },
+    {
+      "id": "lookup-113",
+      "query": "SE-61/PJ.51/1995",
+      "expected": "se-61-pj-51-1995",
+      "retrieved": [
+        "se-61-pj-51-1995"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 7.67,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-114",
+      "query": "SE-68/PJ/1993",
+      "expected": "se-68-pj-1993",
+      "retrieved": [
+        "se-68-pj-1993"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.2,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-115",
+      "query": "SE-7/PJ.411/1994",
+      "expected": "se-7-pj-411-1994",
+      "retrieved": [
+        "se-7-pj-411-1994",
+        "se-7-pj-10-1994",
+        "se-7-pj-24-1994",
+        "se-7-pj-54-1994",
+        "se-7-pj-6-1994"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 13.07,
+      "candidateDocuments": 6
+    },
+    {
+      "id": "lookup-116",
+      "query": "SE-73/PJ/2015",
+      "expected": "se-73-pj-2015",
+      "retrieved": [
+        "se-73-pj-2015"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.41,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-117",
+      "query": "SE-8/PJ.24/1998",
+      "expected": "se-8-pj-24-1998",
+      "retrieved": [
+        "se-8-pj-24-1998",
+        "se-8-pj-311-1998",
+        "se-8-pj-42-1998",
+        "se-8-pj-53-1998",
+        "se-8-pj-6-1998"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 13.52,
+      "candidateDocuments": 6
+    },
+    {
+      "id": "lookup-118",
+      "query": "SE-82/PJ.12/1985",
+      "expected": "se-82-pj-12-1985",
+      "retrieved": [
+        "se-82-pj-12-1985"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.3,
+      "candidateDocuments": 1
+    },
+    {
+      "id": "lookup-119",
+      "query": "SE-9/PJ.23/2001",
+      "expected": "se-9-pj-23-2001",
+      "retrieved": [
+        "se-9-pj-23-2001",
+        "se-9-pj-34-2001",
+        "se-9-pj-45-2001",
+        "se-9-pj-51-2001",
+        "se-9-pj-6-2001"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 10.37,
+      "candidateDocuments": 6
+    },
+    {
+      "id": "lookup-120",
+      "query": "SE-90/PJ.6/1991",
+      "expected": "se-90-pj-6-1991",
+      "retrieved": [
+        "se-90-pj-6-1991"
+      ],
+      "rank": 1,
+      "top1": true,
+      "hitAt5": true,
+      "latencyMs": 8.21,
+      "candidateDocuments": 1
+    }
+  ]
+}

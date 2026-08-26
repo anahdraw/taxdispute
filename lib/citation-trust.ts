@@ -1,6 +1,8 @@
 import { isAllowedOfficialRegulationUrl } from "./regulation-sources";
 import { normalizeSearchText, searchTokens } from "./hybrid-search";
 import type { SearchHit } from "./search-contracts";
+import { assessTaxQueryDomain, type QueryDomainDecision } from "./query-domain";
+import { validateTemporalSources, type TemporalValidation } from "./temporal-validation";
 
 export type CitationIssueCode =
   | "NO_EVIDENCE"
@@ -11,7 +13,10 @@ export type CitationIssueCode =
   | "UNSUPPORTED_CLAIM"
   | "UNKNOWN_CITATION"
   | "INELIGIBLE_CITATION"
-  | "MALFORMED_CITATION";
+  | "MALFORMED_CITATION"
+  | "OUT_OF_SCOPE"
+  | "TEMPORAL_MISMATCH"
+  | "TEMPORAL_UNCERTAINTY";
 
 export type CitationIssue = {
   code: CitationIssueCode;
@@ -37,6 +42,8 @@ export type TrustDecision = {
   summary: string;
   reasons: CitationIssue[];
   citationValidation?: CitationValidation;
+  domain?: QueryDomainDecision;
+  temporal?: TemporalValidation;
   evidence: {
     retrieved: number;
     verified: number;
@@ -200,11 +207,13 @@ export function validateCitations(answer: string, sources: readonly SearchHit[],
 
 export function assessTrust(
   sources: readonly SearchHit[],
-  options: { answer?: string; asksCurrentLaw?: boolean; policy?: Partial<TrustPolicy>; language?: "id" | "en" } = {}
+  options: { answer?: string; asksCurrentLaw?: boolean; asOf?: string; question?: string; policy?: Partial<TrustPolicy>; language?: "id" | "en" } = {}
 ): TrustDecision {
   const policy = { ...DEFAULT_TRUST_POLICY, ...(options.policy || {}) };
   const language = options.language === "en" ? "en" : "id";
   const reasons: CitationIssue[] = [];
+  const domain = options.question ? assessTaxQueryDomain(options.question) : undefined;
+  if (domain && !domain.inScope) reasons.push({ code: "OUT_OF_SCOPE", message: domain.reason });
   const relevant = sources.filter((source) => source.score >= policy.minimumRetrievalScore);
   const verified = relevant.filter((source) => sourceIsCitationEligible(source, policy.minimumRetrievalScore));
   const located = relevant.filter(sourceHasLocator);
@@ -222,6 +231,13 @@ export function assessTrust(
   if (options.asksCurrentLaw && policy.requireKnownRegulationStatus) {
     const knownStatus = verified.some((source) => source.corpus === "regulation" && currentLawStatusIsEligible(source));
     if (!knownStatus) reasons.push({ code: "UNKNOWN_LEGAL_STATUS", message: "Belum ada peraturan berstatus berlaku yang terverifikasi dari sumber resmi." });
+  }
+  const temporal = validateTemporalSources(options.question || (options.asksCurrentLaw ? "berlaku saat ini" : ""), sources, { asOf: options.asOf });
+  if (temporal.intent.required && !temporal.valid) {
+    reasons.push({ code: "TEMPORAL_MISMATCH", message: temporal.reasons[0] || "Masa berlaku sumber tidak sesuai pertanyaan." });
+  }
+  if (temporal.intent.required && temporal.uncertainSourceIds.length && !temporal.eligibleSourceIds.length) {
+    reasons.push({ code: "TEMPORAL_UNCERTAINTY", message: temporal.reasons.at(-1) || "Metadata temporal sumber belum lengkap." });
   }
 
   let citationValidation: CitationValidation | undefined;
@@ -259,6 +275,8 @@ export function assessTrust(
     summary,
     reasons: uniqueReasons,
     ...(citationValidation ? { citationValidation } : {}),
+    ...(domain ? { domain } : {}),
+    ...(temporal.intent.required ? { temporal } : {}),
     evidence: { retrieved: relevant.length, verified: verified.length, located: located.length, officialRegulations: officialRegulations.length }
   };
 }

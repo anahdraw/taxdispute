@@ -46,6 +46,8 @@ pnpm-debug.log*
 .DS_Store
 .vscode/
 .idea/
+.codex-review/
+tmp/
 
 # Vercel local metadata
 .vercel/

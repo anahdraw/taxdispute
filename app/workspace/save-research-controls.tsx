@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ResearchResourceType } from "@/lib/research-workspace";
+import { readActiveWorkspaceContext } from "@/lib/workspace-client-context";
 
 type SaveResearchControlsProps = {
   resourceType: ResearchResourceType;
@@ -13,6 +14,8 @@ type SaveResearchControlsProps = {
   tenantId?: string;
   clientId?: string;
   matterId?: string;
+  /** Records a scoped view event once when rendered on a source detail page. */
+  recordView?: boolean;
 };
 
 /** Reusable controls for decision/regulation/reference screens. Scope is always revalidated by the API. */
@@ -20,14 +23,32 @@ export function SaveResearchControls(props: SaveResearchControlsProps) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
 
+  function endpoint() {
+    const active = readActiveWorkspaceContext();
+    const params = new URLSearchParams();
+    const tenantId = props.tenantId || active?.tenantId;
+    const clientId = props.clientId || active?.clientId;
+    const matterId = props.matterId || active?.matterId;
+    if (tenantId) params.set("tenantId", tenantId);
+    if (clientId) params.set("clientId", clientId);
+    if (matterId) params.set("matterId", matterId);
+    return `/api/research-workspace${params.size ? `?${params}` : ""}`;
+  }
+
+  useEffect(() => {
+    if (!props.recordView) return;
+    void fetch(endpoint(), {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entity: "history", action: "view", resourceType: props.resourceType, resourceId: props.resourceId, title: props.title, url: props.url || window.location.pathname, responseExcerpt: props.excerpt || "" })
+    }).catch(() => undefined);
+    // Source identity is stable for the mounted detail page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.resourceId, props.recordView]);
+
   async function save(entity: "saved-item" | "highlight") {
     setBusy(true);
     try {
-      const params = new URLSearchParams();
-      if (props.tenantId) params.set("tenantId", props.tenantId);
-      if (props.clientId) params.set("clientId", props.clientId);
-      if (props.matterId) params.set("matterId", props.matterId);
-      const response = await fetch(`/api/research-workspace${params.size ? `?${params}` : ""}`, {
+      const response = await fetch(endpoint(), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

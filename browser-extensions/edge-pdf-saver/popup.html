@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PDF Saver</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <path d="M13 5h15l9 9v27a2 2 0 0 1-2 2H13a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" fill="white" opacity=".96"/>
+            <path d="M28 5v9h9" fill="#d9e7ff"/>
+            <path d="M24 19v13m0 0-6-6m6 6 6-6" fill="none" stroke="#e63946" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+            <path d="M17 38h14" stroke="#17223b" stroke-linecap="round" stroke-width="3"/>
+          </svg>
+        </div>
+        <div>
+          <p class="eyebrow">MICROSOFT EDGE</p>
+          <h1>PDF Saver</h1>
+          <p class="subtitle">Simpan PDF yang tersedia di halaman ini.</p>
+        </div>
+      </header>
+
+      <section class="toolbar" aria-label="Aksi pemindaian">
+        <button id="scan-button" class="button button-secondary" type="button">
+          <span aria-hidden="true">↻</span> Pindai ulang
+        </button>
+        <label class="save-option">
+          <input id="save-as" type="checkbox" />
+          Pilih lokasi untuk satu file
+        </label>
+      </section>
+
+      <div id="status" class="status" role="status" aria-live="polite">Memindai halaman…</div>
+
+      <section id="results-section" class="results" hidden>
+        <div class="results-heading">
+          <h2 id="result-count">PDF ditemukan</h2>
+          <button id="toggle-all" class="text-button" type="button">Pilih semua</button>
+        </div>
+        <div id="pdf-list" class="pdf-list"></div>
+      </section>
+
+      <section id="empty-state" class="empty-state" hidden>
+        <div class="empty-icon" aria-hidden="true">PDF</div>
+        <h2 id="empty-title">Belum ada PDF terdeteksi</h2>
+        <p id="empty-description">Halaman ini mungkin berupa dokumen HTML, bukan berkas PDF.</p>
+        <button id="print-button" class="button button-print" type="button">
+          Cetak halaman ke PDF
+        </button>
+        <p class="print-hint">Edge akan membuka dialog Print. Pilih printer <strong>Save as PDF</strong>.</p>
+      </section>
+
+      <footer class="footer">
+        <button id="download-button" class="button button-primary" type="button" disabled>
+          Unduh pilihan
+        </button>
+        <p>Hanya URL HTTP(S) yang tersedia bagi sesi Anda. DRM, blob lokal, dan pembatasan server tidak dilewati.</p>
+      </footer>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

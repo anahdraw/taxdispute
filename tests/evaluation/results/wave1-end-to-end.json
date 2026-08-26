@@ -1,0 +1,2003 @@
+{
+  "schema_version": "aa-jurist-wave1-e2e-results-v1",
+  "generatedAt": "2026-08-21T04:36:33.694Z",
+  "inputs": {
+    "spec": "tests/evaluation/wave1_end_to_end_benchmark.json",
+    "snapshotConfigured": true
+  },
+  "summary": {
+    "cases": 60,
+    "corpusRecords": 10822,
+    "domainAccuracy": 1,
+    "negativeAbstentionRate": 1,
+    "temporalIntentAccuracy": 1,
+    "retrievalHitAt8": 1,
+    "trustedPositiveAnswerRate": 1,
+    "failedDomain": [],
+    "failedTemporal": [],
+    "failedRetrieval": []
+  },
+  "documentReadiness": {
+    "total": 10822,
+    "complete": 41,
+    "answerEligible": 5451,
+    "reviewRequired": 10781,
+    "averageScore": 73,
+    "flagCounts": {
+      "missing_official_url": 4690,
+      "unknown_legal_status": 287,
+      "missing_effective_date": 4447,
+      "missing_pdf": 10520,
+      "missing_source_hash": 23,
+      "missing_locator": 685,
+      "missing_extracted_text": 5
+    }
+  },
+  "graphReview": {
+    "graphAvailable": true,
+    "importantEdges": 9108,
+    "answerEligible": 350,
+    "reviewRequired": 8758
+  },
+  "gates": {
+    "domainAccuracy": true,
+    "negativeAbstention": true,
+    "temporalIntent": true,
+    "retrievalHitAt8": true
+  },
+  "passed": true,
+  "cases": [
+    {
+      "id": "tax_01",
+      "query": "Bagaimana cara menghitung PPN non-mewah?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-131-2024"
+      ],
+      "retrieved": [
+        "pmk-131-2024",
+        "per-1-pj-2025",
+        "per-12-pj-2025",
+        "pmk-64-pmk-03-2022",
+        "pmk-66-pmk-03-2022",
+        "pmk-166-pmk-03-2018",
+        "pmk-73-pmk-03-2010",
+        "pmk-8-pmk-03-2021"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_02",
+      "query": "Berapa tarif PPh Pasal 23 atas jasa konsultan?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-141-pmk-03-2015"
+      ],
+      "retrieved": [
+        "uu-36-2008",
+        "pmk-141-pmk-03-2015",
+        "uu-7-2021",
+        "se-35-pj-2010",
+        "uu-7-1983@konsolidasi-2023",
+        "book:buku-praktis-pajak-2025:pph23:018",
+        "se-53-pj-2009",
+        "se-8-pj-4-1995"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "medium",
+      "trustScore": 63,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 3,
+        "located": 3,
+        "officialRegulations": 3
+      }
+    },
+    {
+      "id": "tax_03",
+      "query": "Cari PMK Nomor 172 Tahun 2023.",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": false,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-172-2023"
+      ],
+      "retrieved": [
+        "pmk-172-2023",
+        "pmk-172-pmk-01-2012",
+        "pmk-172-pmk-07-2011",
+        "kmk-20-km-10-2023",
+        "kmk-10-kmk-03-2011",
+        "pmk-155-pmk-02-2007",
+        "pmk-172-pmk-010-2016",
+        "pmk-184-pmk-07-2022"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_04",
+      "query": "Apa syarat pengkreditan Pajak Masukan?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "uu-8-1983"
+      ],
+      "retrieved": [
+        "uu-8-1983",
+        "pmk-74-pmk-03-2010",
+        "uu-7-2021",
+        "pmk-63-pmk-03-2022",
+        "se-2-pj-52-1993",
+        "se-28-pj-2021",
+        "pmk-186-pmk-03-2022",
+        "kmk-325-kmk-04-1992"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 85,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 6,
+        "located": 6,
+        "officialRegulations": 6
+      }
+    },
+    {
+      "id": "tax_05",
+      "query": "Apa dasar hukum penagihan pajak dengan Surat Paksa?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "uu-19-1997",
+        "uu-19-2000"
+      ],
+      "retrieved": [
+        "uu-19-2000",
+        "uu-19-1997",
+        "pmk-61-2023",
+        "per-1-pj-2022",
+        "pmk-23-pmk-03-2006",
+        "pp-137-2000",
+        "per-4-pj-2016",
+        "per-26-pj-2025"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_06",
+      "query": "Aturan tarif efektif rata-rata PPh Pasal 21 pegawai apa?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pp-58-2023",
+        "pmk-168-2023"
+      ],
+      "retrieved": [
+        "pp-58-2023",
+        "pmk-168-2023",
+        "kep-106-pj-431-1991",
+        "per-16-pj-2016",
+        "pmk-40-pmk-03-2017",
+        "se-6-pj-233-1984",
+        "pp-80-2010",
+        "se-38-a-521-0395"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 85,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 6,
+        "located": 6,
+        "officialRegulations": 6
+      }
+    },
+    {
+      "id": "tax_07",
+      "query": "Aturan dokumentasi transfer pricing dan CbCR apa?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-172-2023"
+      ],
+      "retrieved": [
+        "pmk-172-2023",
+        "per-17-pj-2020",
+        "pmk-22-pmk-03-2020",
+        "pmk-136-2024",
+        "pmk-15-2025",
+        "per-48-pj-2010",
+        "per-8-pj-2025",
+        "pmk-49-pmk-03-2019"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_08",
+      "query": "Apa dasar banding di Pengadilan Pajak?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "uu-14-2002"
+      ],
+      "retrieved": [
+        "uu-14-2002",
+        "per-5-pj-2013",
+        "keppres-83-2003",
+        "pmk-127-pmk-07-2012",
+        "kep-349-pj-2002",
+        "per-34-pj-2015",
+        "pmk-196-pmk-03-2021",
+        "pmk-212-pmk-01-2017"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_09",
+      "query": "PMK mana yang mengatur natura dan kenikmatan?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-66-2023"
+      ],
+      "retrieved": [
+        "pmk-66-2023",
+        "pp-55-2022",
+        "per-16-pj-2016",
+        "per-7-pj-2023",
+        "pmk-47-pmk-04-2007",
+        "pmk-168-2023",
+        "pmk-79-2023",
+        "pmk-252-pmk-03-2008"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_10",
+      "query": "Aturan PPh Final UMKM berdasarkan peredaran bruto apa?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-164-2023",
+        "pp-55-2022"
+      ],
+      "retrieved": [
+        "pmk-99-pmk-03-2018",
+        "se-46-pj-2020",
+        "pp-55-2022",
+        "pp-36-2017",
+        "per-9-pj-2019",
+        "pmk-164-2023",
+        "ins-20-2026",
+        "perpres-20-2026"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 93,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 7,
+        "located": 7,
+        "officialRegulations": 7
+      }
+    },
+    {
+      "id": "tax_11",
+      "query": "Bagaimana pemungutan PPN oleh bendaharawan pemerintah?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-59-pmk-03-2022"
+      ],
+      "retrieved": [
+        "pmk-59-pmk-03-2022",
+        "pmk-131-2024",
+        "se-46-pj-3-1988",
+        "se-85-a-6-2001",
+        "se-2-pj-2006",
+        "per-22-pj-2018",
+        "pmk-8-pmk-03-2021",
+        "se-32-pj-52-2003"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "medium",
+      "trustScore": 70,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 4,
+        "located": 4,
+        "officialRegulations": 4
+      }
+    },
+    {
+      "id": "tax_12",
+      "query": "Apa aturan penyusutan dan amortisasi untuk pajak penghasilan?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-72-2023"
+      ],
+      "retrieved": [
+        "pmk-72-2023",
+        "pp-55-2022",
+        "pp-73-2016",
+        "pmk-86-pmk-10-2015",
+        "pmk-68-pmk-03-2020",
+        "uu-7-2021",
+        "kep-142-pj-03-2007",
+        "pp-147-2000"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_13",
+      "query": "Aturan PPN atas perdagangan aset kripto apa?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-50-2025"
+      ],
+      "retrieved": [
+        "pmk-53-2025",
+        "per-32-pj-2011",
+        "pmk-50-2025",
+        "pmk-105-pmk-010-2016",
+        "pmk-161-pmk-04-2018",
+        "pmk-196-pmk-03-2021",
+        "pmk-69-pmk-06-2014",
+        "per-1-pj-2025"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_14",
+      "query": "Apa dasar hukum pemeriksaan bukti permulaan pajak?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "per-4-pj-2014",
+        "pmk-177-pmk-03-2022",
+        "pmk-256-pmk-03-2014",
+        "kep-47-pj-10-2014",
+        "per-21-pj-2025",
+        "pmk-19-pmk-03-2018",
+        "pmk-48-pmk-03-2021",
+        "per-14-pj-2016"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_15",
+      "query": "Bagaimana ketentuan faktur pajak bagi PKP?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "per-19-pj-2025",
+        "per-58-pj-2010",
+        "kep-123-pj-2015",
+        "kep-124-pj-2015",
+        "kep-125-pj-2015",
+        "kep-136-pj-2014",
+        "kep-33-pj-2015",
+        "kep-62-pj-2015"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_16",
+      "query": "Kapan SPT Masa PPN harus dilaporkan?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-78-2024",
+        "per-15-pj-2010",
+        "per-14-pj-2010",
+        "se-5-pj-2022",
+        "se-19-pj-52-1993",
+        "kep-157-pj-2020",
+        "pmk-9-pmk-03-2018",
+        "se-6-pj-9-1997"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "medium",
+      "trustScore": 78,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 5,
+        "located": 5,
+        "officialRegulations": 5
+      }
+    },
+    {
+      "id": "tax_17",
+      "query": "Bagaimana menghitung angsuran PPh Pasal 25?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-215-pmk-03-2018",
+        "kep-210-pj-2001",
+        "per-8-pj-2020",
+        "kmk-628-kmk-04-1991",
+        "se-1-pj-41-1995",
+        "pmk-110-pmk-03-2020",
+        "se-21-pj-31-1991",
+        "se-12-pj-41-2001"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "medium",
+      "trustScore": 78,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 5,
+        "located": 5,
+        "officialRegulations": 5
+      }
+    },
+    {
+      "id": "tax_18",
+      "query": "Apa objek PPh Pasal 22 atas impor?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-51-2025",
+        "per-31-pj-2015",
+        "se-28-pj-43-1998",
+        "pmk-41-pmk-010-2022",
+        "se-70-pj-2015",
+        "se-92-pj-2010",
+        "kmk-573-kmk-04-1985",
+        "book:buku-praktis-pajak-2025:pph22:010"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "medium",
+      "trustScore": 70,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 4,
+        "located": 4,
+        "officialRegulations": 4
+      }
+    },
+    {
+      "id": "tax_19",
+      "query": "Bagaimana ketentuan P3B untuk beneficial owner?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "per-25-pj-2018",
+        "pmk-55-pmk-01-2017",
+        "kmk-45-kmk-06-2003",
+        "per-32-pj-2011",
+        "per-16-pj-2020",
+        "pmk-78-2024",
+        "per-24-pj-2010",
+        "se-1-pj-1013-1997"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 93,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 7,
+        "located": 7,
+        "officialRegulations": 7
+      }
+    },
+    {
+      "id": "tax_20",
+      "query": "Apa prosedur MAP dalam sengketa pajak internasional?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "per-32-pj-2011",
+        "pmk-49-pmk-03-2019",
+        "per-16-pj-2020",
+        "pmk-212-pmk-01-2017",
+        "perpres-40-2018",
+        "pp-73-2008",
+        "per-15-pj-2015",
+        "per-37-pj-2010"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_21",
+      "query": "Bagaimana prinsip kewajaran dan kelaziman usaha diterapkan?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-172-2023",
+        "per-32-pj-2011",
+        "pmk-160-pmk-04-2010",
+        "pmk-22-pmk-03-2020",
+        "per-25-pj-2017",
+        "per-7-pj-2021",
+        "pmk-169-pmk-010-2015",
+        "pmk-136-2024"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_22",
+      "query": "Apa kewajiban NPWP dan pelaporan SPT Tahunan?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-78-2024",
+        "se-5-pj-2022",
+        "pmk-151-pmk-03-2021",
+        "se-2-pj-2022",
+        "se-25-pj-3-1989",
+        "se-16-pj-24-1993",
+        "pmk-85-pmk-03-2019",
+        "se-44-pj-2021"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "medium",
+      "trustScore": 63,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 3,
+        "located": 3,
+        "officialRegulations": 3
+      }
+    },
+    {
+      "id": "tax_23",
+      "query": "Apa sanksi bunga dalam UU KUP?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-66-pmk-03-2017",
+        "pmk-117-pmk-04-2008",
+        "pmk-8-pmk-03-2013",
+        "kmk-11-km-10-2022",
+        "kmk-11-km-10-2023",
+        "kmk-13-km-10-2021",
+        "kmk-17-km-10-2022",
+        "kmk-17-km-10-2023"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_24",
+      "query": "Apa ketentuan keberatan pajak dan jangka waktunya?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "per-13-pj-2015",
+        "pmk-249-pmk-03-2016",
+        "kep-209-pj-2018",
+        "kep-27-pj-2021",
+        "kep-271-pj-2018",
+        "kep-370-pj-2018",
+        "per-14-pj-2020",
+        "per-29-pj-2016"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_25",
+      "query": "Bagaimana perlakuan PPN atas ekspor JKP?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-131-2024",
+        "per-7-pj-2021",
+        "per-1-pj-2025",
+        "pmk-43-pmk-03-2007",
+        "keppres-96-1993",
+        "per-11-pj-2013",
+        "per-160-pj-2006",
+        "per-29-pj-2015"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_26",
+      "query": "Apa fasilitas PPN dibebaskan dan tidak dipungut?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pp-49-2022"
+      ],
+      "retrieved": [
+        "pp-49-2022",
+        "per-42-pj-2009",
+        "pmk-76-pmk-03-2005",
+        "kmk-41-kmk-010-2005",
+        "pmk-177-pmk-04-2016",
+        "pmk-166-pmk-03-2018",
+        "pmk-259-pmk-04-2016",
+        "pmk-73-pmk-03-2010"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_27",
+      "query": "Apa aturan pajak minimum global GloBE?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-136-2024"
+      ],
+      "retrieved": [
+        "per-6-pj-2026",
+        "pmk-136-2024",
+        "per-7-pj-2024",
+        "pmk-19-pmk-03-2018",
+        "per-21-pj-2008",
+        "pmk-256-pmk-03-2014",
+        "uu-9-2017",
+        "per-23-pj-2013"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_28",
+      "query": "Apa dasar pajak daerah dan retribusi daerah?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "uu-1-2022",
+        "pp-35-2023"
+      ],
+      "retrieved": [
+        "pp-35-2023",
+        "uu-1-2022",
+        "per-5-pj-2013",
+        "pp-69-2010",
+        "pmk-11-pmk-07-2017",
+        "pmk-23-pmk-03-2014",
+        "pmk-234-pmk-03-2022",
+        "pmk-48-pmk-03-2021"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 93,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 7,
+        "located": 7,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_29",
+      "query": "Bagaimana akses informasi keuangan untuk kepentingan perpajakan?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "uu-9-2017"
+      ],
+      "retrieved": [
+        "pmk-19-pmk-03-2018",
+        "pmk-47-2024",
+        "uu-9-2017",
+        "per-7-pj-2024",
+        "per-18-pj-2014",
+        "pmk-147-pmk-01-2020",
+        "peng-3-pj-2025",
+        "per-1-pj-2022"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 93,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 7,
+        "located": 7,
+        "officialRegulations": 7
+      }
+    },
+    {
+      "id": "tax_30",
+      "query": "Apa ketentuan bea meterai elektronik?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "uu-10-2020",
+        "pp-86-2021"
+      ],
+      "retrieved": [
+        "uu-10-2020",
+        "pp-86-2021",
+        "pmk-78-2024",
+        "per-2-pj-2023",
+        "pmk-151-pmk-03-2021",
+        "per-17-pj-2008",
+        "kep-122c-pj-2000",
+        "per-11-pj-2021"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_31",
+      "query": "Which regulation governs Indonesian transfer pricing documentation?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-172-2023"
+      ],
+      "retrieved": [
+        "pmk-172-2023",
+        "per-17-pj-2020",
+        "pmk-22-pmk-03-2020",
+        "per-48-pj-2010",
+        "per-8-pj-2025",
+        "pmk-49-pmk-03-2019",
+        "pmk-70-pmk-03-2015",
+        "keppres-160-1998"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_32",
+      "query": "How is input VAT credited under Indonesian tax law?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "uu-8-1983",
+        "pmk-74-pmk-03-2010",
+        "nd-178-pj-pj-03-2022",
+        "kmk-325-kmk-04-1992",
+        "se-45-pj-2021",
+        "pmk-30-pmk-03-2014",
+        "pmk-62-pmk-03-2022",
+        "pmk-65-pmk-03-2022"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 85,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 6,
+        "located": 6,
+        "officialRegulations": 6
+      }
+    },
+    {
+      "id": "tax_33",
+      "query": "What is the appeal deadline before the Indonesian Tax Court?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "uu-14-2002",
+        "pmk-78-2024",
+        "se-5-pj-2022",
+        "se-16-pj-24-1993",
+        "se-25-pj-3-1989",
+        "pp-50-2022",
+        "perpu-2-2022",
+        "pmk-151-pmk-03-2021"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "medium",
+      "trustScore": 70,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 4,
+        "located": 4,
+        "officialRegulations": 4
+      }
+    },
+    {
+      "id": "tax_34",
+      "query": "What regulation covers employee income-tax withholding?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pp-58-2023",
+        "pmk-168-2023"
+      ],
+      "retrieved": [
+        "pmk-168-2023",
+        "pp-58-2023",
+        "perpres-101-2006",
+        "perpres-102-2006",
+        "pp-33-2005",
+        "pp-73-2008",
+        "perpres-68-2006",
+        "ins-4-pj-2014"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "tax_35",
+      "query": "Apakah PMK 131 Tahun 2024 masih berlaku saat ini?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-131-2024"
+      ],
+      "retrieved": [
+        "pmk-131-2024",
+        "pmk-52-pmk-02-2008",
+        "pmk-117-2024",
+        "pmk-138-pmk-05-2020",
+        "pmk-17-pmk-01-2008",
+        "pmk-17-2025",
+        "pmk-44-2026",
+        "pmk-78-2024"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "negative_01",
+      "query": "Berapa upah minimum provinsi Jakarta?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_02",
+      "query": "Bagaimana menghitung pesangon PHK?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR",
+        "TEMPORAL_MISMATCH"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_03",
+      "query": "Apa prosedur mengajukan perceraian?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_04",
+      "query": "What are the legal grounds for divorce?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_05",
+      "query": "Tentukan klasifikasi HS code mesin turbin.",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_06",
+      "query": "Berapa tarif bea masuk berdasarkan kode HS pompa?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR",
+        "TEMPORAL_MISMATCH"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_07",
+      "query": "Bagaimana prakiraan cuaca besok?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_08",
+      "query": "Berikan resep rendang sederhana.",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_09",
+      "query": "Obat apa untuk sakit kepala berkepanjangan?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_10",
+      "query": "Bagaimana prosedur pidana untuk kasus pencurian?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_11",
+      "query": "Siapa presiden Indonesia sekarang?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR",
+        "TEMPORAL_MISMATCH"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_12",
+      "query": "Berapa harga emas hari ini?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_13",
+      "query": "Buatkan jadwal latihan lari maraton.",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_14",
+      "query": "Apa strategi pemasaran restoran baru?",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "negative_15",
+      "query": "Jelaskan hukum waris untuk pembagian rumah keluarga.",
+      "expectedDomain": false,
+      "actualDomain": false,
+      "domainCorrect": true,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [],
+      "retrievalHit": true,
+      "abstained": true,
+      "trustLevel": "insufficient",
+      "trustScore": 0,
+      "trustReasons": [
+        "OUT_OF_SCOPE",
+        "NO_EVIDENCE",
+        "NO_VERIFIED_SOURCE",
+        "MISSING_LOCATOR"
+      ],
+      "evidence": {
+        "retrieved": 0,
+        "verified": 0,
+        "located": 0,
+        "officialRegulations": 0
+      }
+    },
+    {
+      "id": "time_01",
+      "query": "Aturan PPN untuk masa pajak 2024 apa?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "expectedAsOf": "2024-12-31",
+      "actualAsOf": "2024-12-31",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "per-1-pj-2025",
+        "per-5-pj-2024",
+        "per-2-pj-2024",
+        "per-19-pj-2025",
+        "per-8-pj-2024",
+        "per-10-pj-2013",
+        "per-11-pj-2013",
+        "per-166-pj-2005"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "time_02",
+      "query": "Aturan PPN untuk transaksi tahun 2025 apa?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "expectedAsOf": "2025-12-31",
+      "actualAsOf": "2025-12-31",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "per-1-pj-2025",
+        "pmk-12-2025",
+        "pmk-13-2025",
+        "pmk-18-2025",
+        "pmk-36-2025",
+        "pmk-71-2025",
+        "pmk-90-2025",
+        "per-16-pj-2025"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "time_03",
+      "query": "Apa tarif PPh untuk tahun pajak 2023?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "expectedAsOf": "2023-12-31",
+      "actualAsOf": "2023-12-31",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-50-2025",
+        "uu-7-2021",
+        "pmk-164-2023",
+        "pp-58-2023",
+        "pmk-40-2023",
+        "pmk-196-pmk-03-2021",
+        "per-1-pj-2023",
+        "pmk-215-pmk-03-2018"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "time_04",
+      "query": "Peraturan transfer pricing yang berlaku saat ini apa?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-172-2023",
+        "pmk-22-pmk-03-2020",
+        "per-17-pj-2020",
+        "per-8-pj-2025",
+        "pmk-49-pmk-03-2019",
+        "per-48-pj-2010",
+        "pmk-136-2024",
+        "pmk-15-2025"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "time_05",
+      "query": "Apakah aturan PPN ini sudah dicabut?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "per-12-pj-2014",
+        "per-22-pj-2020",
+        "per-3-pj-2009",
+        "per-30-pj-2016",
+        "per-40-pj-2015",
+        "pmk-119-pmk-02-2019",
+        "pmk-120-pmk-03-2015",
+        "pmk-30-pmk-03-2014"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "time_06",
+      "query": "What VAT rule was effective for tax year 2022?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "expectedAsOf": "2022-12-31",
+      "actualAsOf": "2022-12-31",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-62-pmk-03-2022",
+        "pmk-66-pmk-03-2022",
+        "pmk-209-pmk-03-2021",
+        "pp-50-2022",
+        "pmk-172-2023",
+        "per-13-pj-2019",
+        "per-9-pj-2025",
+        "pmk-6-pmk-010-2022"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "time_07",
+      "query": "What transfer-pricing rule is currently in force?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [],
+      "retrieved": [
+        "pmk-172-2023",
+        "perpres-102-2006",
+        "perpres-17-2006",
+        "kep-27-pj-2021",
+        "per-7-pj-2024",
+        "pmk-116-pmk-04-2008",
+        "pmk-177-pmk-04-2013",
+        "pmk-55-pmk-01-2017"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "time_08",
+      "query": "Cari UU Nomor 8 Tahun 1983.",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": false,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "uu-8-1983"
+      ],
+      "retrieved": [
+        "uu-8-1983",
+        "kmk-10-kmk-03-2011",
+        "per-2-pj-2017",
+        "pmk-155-pmk-02-2007",
+        "pmk-233-pmk-05-2011",
+        "pmk-73-pmk-05-2007",
+        "uu-12-1994",
+        "uu-20-2000"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "time_09",
+      "query": "Cari PP Nomor 58 Tahun 2023.",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": false,
+      "actualTemporal": false,
+      "temporalCorrect": true,
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pp-58-2023"
+      ],
+      "retrieved": [
+        "pp-58-2023",
+        "kmk-11-km-10-2023",
+        "kmk-17-km-10-2023",
+        "kmk-22-km-10-2023",
+        "kmk-28-km-10-2023",
+        "kmk-32-km-10-2023",
+        "kmk-38-km-10-2023",
+        "kmk-44-km-10-2023"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    },
+    {
+      "id": "time_10",
+      "query": "Status berlaku PMK 172 Tahun 2023 sekarang?",
+      "expectedDomain": true,
+      "actualDomain": true,
+      "domainCorrect": true,
+      "expectedTemporal": true,
+      "actualTemporal": true,
+      "temporalCorrect": true,
+      "actualAsOf": "2026-08-21",
+      "asOfCorrect": true,
+      "expectedCanonical": [
+        "pmk-172-2023"
+      ],
+      "retrieved": [
+        "pmk-172-2023",
+        "pmk-2-pmk-09-2023",
+        "pmk-44-2026",
+        "pmk-136-2023",
+        "pmk-184-pmk-07-2022",
+        "per-7-pj-2024",
+        "per-2-pj-2024",
+        "pmk-84-pmk-012-2006"
+      ],
+      "retrievalHit": true,
+      "abstained": false,
+      "trustLevel": "high",
+      "trustScore": 100,
+      "trustReasons": [],
+      "evidence": {
+        "retrieved": 8,
+        "verified": 8,
+        "located": 8,
+        "officialRegulations": 8
+      }
+    }
+  ]
+}

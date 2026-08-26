@@ -39,9 +39,11 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.parse import urlparse
 
+from regulation_pipeline_path import default_regulation_pipeline_db
+
 
 SCHEMA_VERSION = "aa-jurist-peraturan-import-v1"
-DEFAULT_SOURCE = Path("/Users/sintzu/Anahdraw/peraturan-pipeline/data/peraturan.db")
+DEFAULT_SOURCE = default_regulation_pipeline_db()
 DEFAULT_TARGET = Path("data/tax_dispute_prototype.sqlite")
 DEFAULT_OUTPUT = Path("data/regulation-pipeline-import")
 

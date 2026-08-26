@@ -51,12 +51,12 @@ Browser UI (Next.js)
 Modul TP Local File dipindahkan langsung ke framework Next.js yang sama, tanpa service Django/Celery/Redis terpisah. Alur pengguna:
 
 1. Pilih kategori dan unggah dokumen sumber pertama. Profil perusahaan direkomendasikan, tetapi pengguna dapat memulai dari dokumen kepemilikan, laporan keuangan, kebijakan TP, kontrak afiliasi, atau dokumen pendukung lain.
-2. Sistem membuat proyek Local File dan menyimpan file ke Vercel Blob.
-3. LLM mengekstrak fakta terstruktur dan menggabungkan data antar dokumen dengan jejak sumber.
+2. Sistem membuat proyek Local File dan menyimpan file ke private Vercel Blob; raw storage URL tidak digunakan untuk akses pengguna.
+3. LLM mengekstrak fakta terstruktur, kutipan, dan lokator halaman, lalu menggabungkan data antar dokumen secara non-destruktif. Nilai yang bertentangan masuk conflict queue.
 4. Pengguna mereview profil perusahaan, pihak afiliasi, transaksi terkendali, informasi keuangan, metode, PLI, dan parameter kesebandingan.
-5. Advisor analysis menyusun ringkasan, analisis fungsi-aset-risiko, justifikasi metode, risiko, dan daftar bukti yang masih diperlukan.
+5. Workflow agent yang durable menjalankan intake, extraction inventory, gap analysis, research, verification, section drafting, assembly, dan QA. Setiap tahap memiliki checkpoint, dependency, retry, serta quality gate; browser tidak harus tetap terbuka bila Vercel Cron dan `CRON_SECRET` telah dikonfigurasi.
 6. Bila `TAVILY_API_KEY` tersedia dan advisor memberikan persetujuan eksplisit melalui checkbox, sistem menjalankan riset eksternal memakai deskriptor usaha yang telah difilter. Hasil dipisahkan menjadi sumber resmi, konteks industri, dan kandidat pembanding awal dengan URL, kualitas sumber, retrieval score, alasan kecocokan, perbedaan material, serta keterbatasan screening. Pencarian kandidat hanya dijalankan bila deskriptor produk/transaksi cukup spesifik; annual report dan exchange filing diprioritaskan di atas directory/discovery pages.
-7. Draft Local File dapat diunduh dalam format Word dengan identitas Alpha AI Jurist dan audit trail riset eksternal.
+7. Draft Local File dapat diunduh dalam format Word dengan identitas Alpha AI Jurist, evidence register, unresolved-item appendix, dan audit trail riset eksternal. Final approval tetap merupakan tindakan manusia atas versi yang sama.
 
 Riset Tavily bersifat **discovery evidence**. Kandidat web belum menjadi pembanding final sebelum advisor menyelesaikan pemeriksaan independensi, kepemilikan, FAR, produk/pasar, periode keuangan, kerugian berulang, ketersediaan data, serta acceptance/rejection log dari database komersial. Nama klien, NPWP, nilai transaksi, dan nama pihak afiliasi tidak dimasukkan ke kueri eksternal.
 
@@ -79,6 +79,7 @@ Komponen penting:
 | RAG ranking | `lib/smart-chat.ts`, `lib/case-search.ts` |
 | TP Local File UI | `app/tp-local-file-panel.tsx` |
 | TP Local File model/API | `lib/tp-local-file.ts`, `app/api/tp-local-files/*` |
+| TP agent contracts/runtime/queue | `lib/tp-agent-workflow.ts`, `lib/tp-agent-runtime.ts`, `lib/tp-agent-queue.ts`, `lib/tp-agent-worker.ts` |
 | TP Local File Word export | `lib/tp-local-file-report.ts` |
 
 ## Privacy & Access Control
@@ -136,12 +137,19 @@ Trusted Search memakai korpus lokal (`TDP_SEARCH_STORE=local`) secara default da
 
 #### Snapshot peraturan dari pipeline Anahdraw
 
-Pipeline lokal `/Users/sintzu/Anahdraw/peraturan-pipeline` dapat diimpor tanpa menulis ke database sumber:
+Source code pipeline ikut disimpan secara portabel di `tools/peraturan-pipeline`.
+Basis data besarnya tidak masuk Git; arahkan `TDP_REGULATION_PIPELINE_DB` ke
+`peraturan.db` yang dipindahkan ke laptop/drive data. Importer selalu membacanya
+secara read-only:
 
 ```bash
 npm run import:regulations
 TDP_LOCAL_REGULATION_SNAPSHOT=data/regulation-pipeline-import/next-regulations.jsonl.gz npm run dev
 ```
+
+Di Windows PowerShell gunakan `$env:TDP_REGULATION_PIPELINE_DB =
+"D:\\AAJuristData\\peraturan-pipeline\\peraturan.db"`. Petunjuk lengkap ada di
+`docs/WINDOWS_MIGRATION_HANDOFF_2026-08-26.md`.
 
 Snapshot membawa teks pasal/diktum, locator, hash, status temporal, dan relasi yang sudah dinormalisasi. Hanya URL HTTPS pemerintah `*.go.id` dipertahankan sebagai URL sitasi; sumber sekunder tetap searchable tetapi berstatus `review_required`, dan nama situs eksternal disaring dari teks. Graph dan antrean tinjauan dibuat dengan `npm run quality:regulations`; benchmark seed-vs-pipeline tersimpan lewat `npm run eval:regulations:pipeline`. Benchmark ini adalah development gate, bukan sertifikasi akurasi hukum.
 
@@ -193,6 +201,8 @@ OPENAI_API_KEY=sk-...
 TDP_LLM_MODEL=gpt-5.4-mini
 TDP_AUTH_SECRET=replace-with-a-long-random-secret
 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxx
+CRON_SECRET=replace-with-a-long-random-cron-secret
+TDP_CONFIDENTIAL_LLM_POLICY=onprem_only
 DATABASE_URL=postgres://user:password@host/db?sslmode=require
 TAVILY_API_KEY=tvly-...
 TAVILY_PROJECT_ID=alpha-ai-jurist
@@ -203,6 +213,15 @@ Jalankan lokal:
 ```bash
 npm run dev
 ```
+
+Untuk mengosongkan antrean agent TP secara lokal dari terminal lain:
+
+```bash
+npm run worker:tp
+```
+
+Perintah worker memerlukan `CRON_SECRET` dan, bila URL development bukan `http://127.0.0.1:3000`, `TP_AGENT_WORKER_URL`.
+Verification dan drafting yang memuat data rahasia hanya memakai model `local-onprem` secara default. Aktifkan `allow_openai` hanya setelah persetujuan engagement dan privasi terdokumentasi.
 
 Buka:
 
@@ -217,6 +236,34 @@ npm run lint
 npm run build
 npm run start
 ```
+
+Sinkronisasi sumber resmi Gelombang 3 (P3B/MLI, manual Coretax, formulir, dan kurs):
+
+```bash
+npm run sync:wave3
+npm run test:wave3
+npm run eval:wave3
+npm run test:wave4
+npm run eval:wave4
+npm run build:lightrag-manifest
+npm run build:search-index
+npm run test:wave5
+npm run eval:wave5
+```
+
+Gelombang 4 tersedia di `/workbench` setelah memilih client dan matter di `/workspace`. Modul ini menggabungkan evidence matrix, precedent navigator, drafting studio, calculation engine, regulatory impact, serta workflow/approval dalam satu scope perkara. Lihat `docs/WAVE4_DIFFERENTIATION_2026-08-21.md` untuk kontrak, benchmark, dan batas production.
+
+Gelombang 5 tersedia untuk admin di `/enterprise`. Implementasi lokal mencakup persistent candidate index dengan hydration ke 157.924 chunk sumber, manifest full-corpus LightRAG yang dikunci oleh count+hash, durable queue lokal, metrik tanpa prompt/PII, cost budget, retention dry-run, serta backup hash verification dan restore rehearsal. Jalankan:
+
+```bash
+npm run backup:enterprise
+npm run verify:backup
+npm run rehearse:dr
+```
+
+Status “siap lokal” tidak sama dengan “siap produksi multi-node”. Gap produksi dan bukti benchmark ada di `docs/WAVE5_ENTERPRISE_GAP_REPORT_2026-08-22.md`.
+
+Registry ringkas yang dipakai aplikasi berada di `content/official-knowledge`. Salinan berkas untuk audit checksum disimpan lokal di `outputs/knowledge-acquisition` dan tidak ikut Git/deployment.
 
 ## Health Check
 
@@ -310,7 +357,9 @@ Ringkas:
 ## Known Limitations
 
 - OCR penuh untuk PDF scan belum menjadi pipeline background khusus.
-- RAG ranking masih lightweight cosine/keyword; production idealnya memakai embeddings + hybrid search.
+- Persistent lexical candidate index dan hydration/reranking sudah tersedia lokal; vector embeddings masih kosong dan backend distributed FTS/vector belum tersedia.
+- Manifest LightRAG mencakup seluruh corpus, tetapi full ingestion belum diaktifkan; pilot 58 dokumen ditolak karena count/hash tidak cocok.
 - Multi-tenant isolation belum diterapkan penuh di database schema.
 - Billing/metering belum aktif walaupun tier model sudah tersedia.
+- OIDC SSO, MFA enrollment, offsite backup, dan cross-region DR belum tersedia; policy/readiness guard tidak boleh dianggap implementasi provider.
 - LLM output harus tetap direview manusia.

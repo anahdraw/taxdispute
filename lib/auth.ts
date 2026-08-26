@@ -16,6 +16,9 @@ export type AppSession = {
   tier: SubscriptionTier;
   iat: number;
   exp: number;
+  /** Authentication methods supplied by a future verified OIDC provider. */
+  amr?: string[];
+  mfaVerifiedAt?: number;
 };
 
 type CookieStoreLike = {
@@ -152,6 +155,14 @@ export function requireAuth(request: Request, roles?: UserRole[]) {
     return {
       response: NextResponse.json({ error: "Admin access required." }, { status: 403 })
     };
+  }
+  if (String(process.env.TDP_MFA_REQUIRED || "false").toLowerCase() === "true") {
+    const methods = Array.isArray(session.amr) ? session.amr.map((item) => item.toLowerCase()) : [];
+    if (!methods.some((item) => item === "mfa" || item === "otp" || item === "hwk")) {
+      return {
+        response: NextResponse.json({ error: "A verified MFA session is required." }, { status: 403 })
+      };
+    }
   }
   return { session };
 }

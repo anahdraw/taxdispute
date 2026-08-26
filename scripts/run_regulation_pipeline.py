@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from regulation_pipeline_path import default_regulation_pipeline_db
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,7 +28,7 @@ def run_agent(name: str, command: list[str]) -> dict[str, object]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source-db", type=Path, default=Path("/Users/sintzu/Anahdraw/peraturan-pipeline/data/peraturan.db"))
+    parser.add_argument("--source-db", type=Path, default=default_regulation_pipeline_db())
     parser.add_argument("--skip-import", action="store_true", help="Reuse the existing normalized snapshot.")
     args = parser.parse_args(argv)
     source_db = str(args.source_db)

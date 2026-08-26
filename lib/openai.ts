@@ -41,6 +41,11 @@ type PdfInput = {
   fileData: string;
 };
 
+export type LlmCallOptions = {
+  reasoningEffort?: "low" | "medium" | "high";
+  textVerbosity?: "low" | "medium" | "high";
+};
+
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 
 type LlmRuntime = {
@@ -108,6 +113,14 @@ export function hasOpenAIKey() {
 
 export function hasRemoteLlm(modelChoice?: LlmModelChoice | string) {
   return resolveLlmRuntime(modelChoice).remoteAvailable;
+}
+
+/** Client-confidential payloads default to on-prem/manual unless explicitly approved for OpenAI. */
+export function canUseConfidentialLlm(modelChoice?: LlmModelChoice | string) {
+  const runtime = resolveLlmRuntime(modelChoice);
+  if (!runtime.remoteAvailable) return false;
+  if (runtime.provider === "local-onprem") return true;
+  return runtime.provider === "openai" && process.env.TDP_CONFIDENTIAL_LLM_POLICY === "allow_openai";
 }
 
 export function canUsePdfModel(modelChoice?: LlmModelChoice | string) {
@@ -225,7 +238,12 @@ async function callLocalCompatibleText(prompt: string, system: string, runtime: 
   return outputText;
 }
 
-export async function callOpenAIText(prompt: string, system: string, modelChoice: LlmModelChoice | string = DEFAULT_LLM_MODEL_CHOICE): Promise<string> {
+export async function callOpenAIText(
+  prompt: string,
+  system: string,
+  modelChoice: LlmModelChoice | string = DEFAULT_LLM_MODEL_CHOICE,
+  options: LlmCallOptions = {}
+): Promise<string> {
   const runtime = resolveLlmRuntime(modelChoice);
   if (runtime.provider === "local-rules") {
     throw new Error("Local rule-based runtime does not call a remote LLM.");
@@ -257,8 +275,8 @@ export async function callOpenAIText(prompt: string, system: string, modelChoice
           content: [{ type: "input_text", text: prompt }]
         }
       ],
-      text: { verbosity: process.env.TDP_TEXT_VERBOSITY || "medium" },
-      reasoning: { effort: process.env.TDP_REASONING_EFFORT || "low" }
+      text: { verbosity: options.textVerbosity || process.env.TDP_TEXT_VERBOSITY || "medium" },
+      reasoning: { effort: options.reasoningEffort || process.env.TDP_REASONING_EFFORT || "low" }
     })
   });
 
@@ -274,7 +292,7 @@ export async function callOpenAIText(prompt: string, system: string, modelChoice
   return outputText;
 }
 
-async function callResponsesWithPdf(endpoint: string, apiKey: string, prompt: string, system: string, pdf: PdfInput, model: string): Promise<string> {
+async function callResponsesWithPdf(endpoint: string, apiKey: string, prompt: string, system: string, pdf: PdfInput, model: string, options: LlmCallOptions = {}): Promise<string> {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -303,8 +321,8 @@ async function callResponsesWithPdf(endpoint: string, apiKey: string, prompt: st
           ]
         }
       ],
-      text: { verbosity: process.env.TDP_TEXT_VERBOSITY || "medium" },
-      reasoning: { effort: process.env.TDP_REASONING_EFFORT || "low" }
+      text: { verbosity: options.textVerbosity || process.env.TDP_TEXT_VERBOSITY || "medium" },
+      reasoning: { effort: options.reasoningEffort || process.env.TDP_REASONING_EFFORT || "low" }
     })
   });
 
@@ -323,7 +341,8 @@ export async function callOpenAIWithPdf(
   prompt: string,
   system: string,
   pdf: PdfInput,
-  modelChoice: LlmModelChoice | string = DEFAULT_LLM_MODEL_CHOICE
+  modelChoice: LlmModelChoice | string = DEFAULT_LLM_MODEL_CHOICE,
+  options: LlmCallOptions = {}
 ): Promise<string> {
   const runtime = resolveLlmRuntime(modelChoice);
   if (runtime.provider === "local-rules") {
@@ -333,7 +352,7 @@ export async function callOpenAIWithPdf(
     if (!runtime.endpoint || process.env.TDP_LOCAL_LLM_PDF_ENABLED !== "true") {
       throw new Error("On-prem PDF extraction requires TDP_LOCAL_LLM_URL and TDP_LOCAL_LLM_PDF_ENABLED=true.");
     }
-    return callResponsesWithPdf(runtime.endpoint, localApiKey(), prompt, system, pdf, runtime.model);
+    return callResponsesWithPdf(runtime.endpoint, localApiKey(), prompt, system, pdf, runtime.model, options);
   }
   const model = runtime.model;
   const apiKey = process.env.OPENAI_API_KEY;
@@ -369,8 +388,8 @@ export async function callOpenAIWithPdf(
           ]
         }
       ],
-      text: { verbosity: process.env.TDP_TEXT_VERBOSITY || "medium" },
-      reasoning: { effort: process.env.TDP_REASONING_EFFORT || "low" }
+      text: { verbosity: options.textVerbosity || process.env.TDP_TEXT_VERBOSITY || "medium" },
+      reasoning: { effort: options.reasoningEffort || process.env.TDP_REASONING_EFFORT || "low" }
     })
   });
 

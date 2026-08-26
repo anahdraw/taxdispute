@@ -56,6 +56,8 @@ Set di Vercel Project Settings -> Environment Variables.
 | `TDP_TEXT_VERBOSITY` | Optional | Response verbosity, e.g. `low` |
 | `TDP_AUTH_SECRET` | Yes for production | HMAC signing secret for login cookies |
 | `BLOB_READ_WRITE_TOKEN` | Yes for PDF upload/storage | Vercel Blob read/write token |
+| `CRON_SECRET` | Yes for unattended TP agents | Protects the durable TP agent worker invoked by Vercel Cron |
+| `TDP_CONFIDENTIAL_LLM_POLICY` | Yes for TP agents | Keep `onprem_only` by default; use `allow_openai` only after engagement/privacy approval |
 | `DATABASE_URL` | Yes for persistence | PostgreSQL connection URL |
 | `POSTGRES_URL` | Optional fallback | Some Vercel/Postgres integrations use this |
 | `TAVILY_API_KEY` | Optional, recommended for TP Local File | Privacy-filtered industry research and preliminary comparable discovery |
@@ -70,6 +72,8 @@ TDP_REASONING_EFFORT=low
 TDP_TEXT_VERBOSITY=low
 TDP_AUTH_SECRET=replace-with-a-long-random-secret
 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxx
+CRON_SECRET=replace-with-a-long-random-cron-secret
+TDP_CONFIDENTIAL_LLM_POLICY=onprem_only
 DATABASE_URL=postgres://user:password@host/db?sslmode=require
 TAVILY_API_KEY=tvly-xxx
 TAVILY_PROJECT_ID=alpha-ai-jurist
@@ -79,8 +83,8 @@ Important:
 
 - Never commit `.env`.
 - Use a long random `TDP_AUTH_SECRET` in production.
-- Use public Vercel Blob if the app needs direct browser PDF links.
-- For private Blob, PDF viewer links need signed read URL support.
+- Use a private Vercel Blob store for client documents. The TP workspace serves files through its authenticated project-scoped download route.
+- Confidential verification and drafting prompts are not sent to OpenAI unless `TDP_CONFIDENTIAL_LLM_POLICY=allow_openai`; choose `local-onprem` or retain manual review under the default policy.
 - TP Local File calls Tavily only after explicit advisor opt-in and sends filtered business descriptors. Do not replace this privacy filter with client names, NPWP, transaction values, or affiliate names.
 - Tavily results are discovery inputs, not final comparable-company acceptance or an arm's-length range. Final screening still requires verified financial data and an advisor-owned acceptance/rejection log.
 - Comparable discovery is skipped when the anonymized product/transaction descriptor is too generic. Source-quality tiers and research warnings are persisted in the project and Word audit trail.
@@ -333,3 +337,28 @@ Without this, the app can still run locally, but production cookie signing shoul
 - Add automated tests for extraction, reports, auth, tier gates, and PDF viewer.
 - Add monitoring and alerting for API error rates.
 - Review legal permission for regulation/decision data ingestion.
+
+## 12. Wave 5 Enterprise Gate
+
+Sebelum mengaktifkan mode enterprise di production, jalankan dan simpan artefak berikut:
+
+```bash
+npm run build:lightrag-manifest
+npm run build:search-index
+npm run test:wave5
+npm run eval:wave5
+npm run backup:enterprise
+npm run verify:backup
+npm run rehearse:dr
+```
+
+Aturan activation:
+
+- `TDP_PERSISTENT_SEARCH=prefer` aman untuk satu host lokal yang memiliki volume persisten. Vercel/serverless tidak boleh mengandalkan filesystem runtime ini; gunakan backend FTS/vector eksternal sebelum `required` di production.
+- `AAJ_RAG_PROVIDER` tetap `baseline` sampai full-corpus LightRAG selesai diindeks dan active manifest memiliki `documentsProcessed` serta `corpusHash` yang identik dengan `TDP_LIGHTRAG_FULL_MANIFEST`.
+- Dokumen klien harus berada pada private object store. Public official-law assets boleh dipisahkan, tetapi private files tidak boleh memakai URL publik permanen.
+- `TDP_MFA_REQUIRED=true` bersifat fail-closed. Jangan mengaktifkannya sebelum OIDC callback yang terverifikasi dapat memasok claim `amr=mfa`, `otp`, atau `hwk`.
+- `TDP_RETENTION_DESTRUCTIVE_SWEEP` tetap `false` sampai jadwal retensi, legal hold, dual approval, dan backup terverifikasi disetujui.
+- Backup lokal bukan DR production. Production memerlukan backup database PITR, object versioning, KMS, salinan offsite/cross-region, serta uji failover menurut RPO/RTO yang disetujui.
+
+Dashboard admin `/enterprise` sengaja membedakan `ready_local`, `partial`, dan `gap`; jangan mengubah label menjadi `ready_production` tanpa bukti infrastruktur dan recovery test.

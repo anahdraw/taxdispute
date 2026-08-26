@@ -52,7 +52,13 @@ function guardedStatus(item: ReviewItem, status: unknown): ReviewStatus {
     "contradictory_relation_types",
     "self_relation",
     "self_reference",
-    "unparsed_reference"
+    "unparsed_reference",
+    "missing_official_url",
+    "missing_pdf",
+    "missing_source_hash",
+    "missing_locator",
+    "unknown_legal_status",
+    "missing_effective_date"
   ].includes(flag));
   // The assistant cannot promote a flagged or non-eligible record to Verified.
   if (candidate === "Verified" && (item.flags.length > 0 || item.eligibleForAnswer === false || item.verified !== true)) {
@@ -62,7 +68,7 @@ function guardedStatus(item: ReviewItem, status: unknown): ReviewStatus {
 }
 
 function fallbackSuggestion(item: ReviewItem): ReviewAiSuggestion {
-  const sourceGap = item.flags.some((flag) => ["unresolved_target", "missing_source", "source_conflict", "status_site_conflict", "unparsed_reference"].includes(flag));
+  const sourceGap = item.flags.some((flag) => ["unresolved_target", "missing_source", "source_conflict", "status_site_conflict", "unparsed_reference", "missing_official_url", "missing_pdf", "missing_source_hash", "missing_locator", "unknown_legal_status", "missing_effective_date"].includes(flag));
   const highRisk = item.severity === "High" || sourceGap;
   return {
     suggestedStatus: highRisk ? "Needs Source" : fallbackStatus,

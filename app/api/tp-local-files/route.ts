@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireFeature } from "@/lib/auth";
 import {
   countTpLocalFileProjects,
+  getTpLocalFileProjectById,
   hasDatabase,
   listTpLocalFileProjectSummaries,
   upsertTpLocalFileProject
@@ -48,7 +49,9 @@ export async function POST(request: Request) {
       updatedAt: now
     };
     await upsertTpLocalFileProject(project);
-    return NextResponse.json({ project }, { status: 201 });
+    const storedProject = await getTpLocalFileProjectById(project.id);
+    if (!storedProject) throw new Error("The TP project was created but could not be reloaded.");
+    return NextResponse.json({ project: storedProject }, { status: 201 });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not create TP project." }, { status: 400 });
   }

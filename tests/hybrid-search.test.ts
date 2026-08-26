@@ -79,6 +79,20 @@ test("citation identifier outranks noisy body mentions", () => {
   assert.equal(result.hits[0]?.exactMatch, true);
 });
 
+test("compact DGT citations without the word Tahun remain exact lookups", () => {
+  const direct: SearchDocument = { id: "regulation:per-7-2025:1", corpus: "regulation", title: "Ketentuan faktur", citation: "PER-7/PJ/2025", body: "Ketentuan faktur pajak.", visibility: "public", status: "review_required", metadata: { canonicalKey: "per-7-2025" } };
+  const mention: SearchDocument = { id: "regulation:book:1", corpus: "regulation", title: "Buku praktis", citation: "Buku Pajak 2025", body: "Penjelasan PER-7/PJ/2025.", visibility: "public", status: "review_required", metadata: { canonicalKey: "book-2025" } };
+  const result = hybridSearch([direct, mention], { query: "PER-7/PJ/2025", tenantId: "tenant-a", corpora: ["regulation"], limit: 1 });
+  assert.equal(result.hits[0]?.id, direct.id);
+});
+
+test("legacy PMK administrative codes do not replace the regulation number", () => {
+  const direct: SearchDocument = { id: "regulation:pmk-141-2015:1", corpus: "regulation", title: "Jenis jasa", citation: "PMK No. 141/PMK.03/2015", body: "Jenis jasa PPh Pasal 23.", visibility: "public", status: "review_required", metadata: { canonicalKey: "pmk-141-2015" } };
+  const distractor: SearchDocument = { id: "regulation:pmk-121-2015:1", corpus: "regulation", title: "Aturan lain", citation: "PMK No. 121/PMK.03/2015", body: "Menyebut PMK 141/PMK.03/2015.", visibility: "public", status: "review_required", metadata: { canonicalKey: "pmk-121-2015" } };
+  const result = hybridSearch([direct, distractor], { query: "PMK No. 141/PMK.03/2015", tenantId: "tenant-a", corpora: ["regulation"], limit: 1 });
+  assert.equal(result.hits[0]?.id, direct.id);
+});
+
 test("invalid dates and unbounded limits are rejected", () => {
   assert.throws(() => hybridSearch(documents, { query: "PPN", tenantId: "tenant-a", asOf: "not-a-date" }), InvalidSearchRequestError);
   assert.throws(() => hybridSearch(documents, { query: "PPN", tenantId: "tenant-a", limit: 500 }), InvalidSearchRequestError);

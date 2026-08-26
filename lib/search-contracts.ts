@@ -38,6 +38,30 @@ export type SearchRequest = {
   asOf?: string;
   queryEmbedding?: number[];
   minimumScore?: number;
+  facets?: SearchFacetFilters;
+};
+
+export type SearchFacetFilters = {
+  topics?: string[];
+  authorities?: string[];
+  statuses?: Array<"verified" | "review_required" | "unknown">;
+  legalStatuses?: string[];
+  years?: number[];
+};
+
+export type SearchFacetBucket = {
+  value: string;
+  label: string;
+  count: number;
+};
+
+export type SearchFacetSummary = {
+  corpora: SearchFacetBucket[];
+  topics: SearchFacetBucket[];
+  authorities: SearchFacetBucket[];
+  statuses: SearchFacetBucket[];
+  legalStatuses: SearchFacetBucket[];
+  years: SearchFacetBucket[];
 };
 
 export type SearchHit = {
@@ -50,6 +74,8 @@ export type SearchHit = {
   sourceHash: string;
   authority: string;
   locator?: SearchLocator;
+  effectiveFrom?: string;
+  effectiveTo?: string;
   status: "verified" | "review_required" | "unknown";
   score: number;
   lexicalScore: number;
@@ -57,6 +83,8 @@ export type SearchHit = {
   exactMatch: boolean;
   matchedTerms: string[];
   metadata: Record<string, string | number | boolean | null>;
+  /** Internal catalogue page. External provenance remains in sourceUrl. */
+  detailUrl?: string;
 };
 
 export type HybridSearchResult = {
@@ -64,10 +92,15 @@ export type HybridSearchResult = {
   hits: SearchHit[];
   totalCandidates: number;
   hasMore: boolean;
+  facets: SearchFacetSummary;
   diagnostics: {
     lexicalEnabled: true;
     semanticEnabled: boolean;
     tenantFiltered: true;
     elapsedMs: number;
+    persistentIndex?: boolean;
+    indexedDocuments?: number;
+    candidateDocuments?: number;
+    corpusHash?: string;
   };
 };

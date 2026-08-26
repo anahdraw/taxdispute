@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireFeature } from "@/lib/auth";
-import { getTpLocalFileProjectById, hasDatabase, listTaxRegulations, upsertTpLocalFileProject } from "@/lib/db";
+import { getTpLocalFileProjectById, hasDatabase, listTaxRegulations, updateTpLocalFileProjectIfUnchanged } from "@/lib/db";
 import { modelChoiceFromRequest } from "@/lib/model-options";
-import { callOpenAIText, extractJsonObject } from "@/lib/openai";
+import { callOpenAIText, canUseConfidentialLlm, extractJsonObject } from "@/lib/openai";
 import { getManagedPrompt } from "@/lib/server-settings";
-import { normalizeTpProjectState, tpGenerationReadiness, tpProjectCompleteness } from "@/lib/tp-local-file";
+import { normalizeTpProjectState, tpGenerationReadiness, tpProjectCompleteness, tpProjectStatusAfterAnalysis } from "@/lib/tp-local-file";
 import { runTpExternalResearch, type TpExternalResearchBundle } from "@/lib/tavily";
+import { selectTpRegulationContext } from "@/lib/tp-regulation-context";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -22,6 +23,15 @@ function comparableUrl(value: unknown) {
   }
 }
 
+function sourceSupportsCandidateName(sourceText: string, candidateName: unknown) {
+  const ignored = new Set(["pt", "tbk", "ltd", "limited", "inc", "corporation", "corp", "company", "plc"]);
+  const tokens = String(candidateName || "").toLocaleLowerCase("en-US")
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 2 && !ignored.has(token));
+  const normalizedSource = sourceText.toLocaleLowerCase("en-US");
+  return tokens.length > 0 && tokens.every((token) => normalizedSource.includes(token));
+}
+
 export async function POST(request: Request, context: RouteContext) {
   const auth = await requireFeature(request, "tpLocalFile");
   if ("response" in auth) return auth.response;
@@ -36,10 +46,11 @@ export async function POST(request: Request, context: RouteContext) {
     if (auth.session.role !== "admin" && project.ownerUsername !== auth.session.username) {
       return NextResponse.json({ error: "You do not have access to this TP project." }, { status: 403 });
     }
-    const regulations = (await listTaxRegulations().catch(() => []))
-      .filter((record) => record.topic === "transfer_pricing" || /transfer pricing|hubungan istimewa|kewajaran/i.test(`${record.title} ${record.focus}`))
-      .slice(0, 10)
-      .map((record) => ({ title: record.title, citation: record.citation, focus: record.focus, sourceUrl: record.sourceUrl }));
+    const modelChoice = modelChoiceFromRequest(request);
+    if (!canUseConfidentialLlm(modelChoice)) {
+      return NextResponse.json({ error: "Confidential TP analysis requires an available on-prem model or TDP_CONFIDENTIAL_LLM_POLICY=allow_openai after documented approval." }, { status: 409 });
+    }
+    const regulations = selectTpRegulationContext(await listTaxRegulations().catch(() => []), 15);
     const managed = await getManagedPrompt("tpLocalFile", language);
     const readiness = tpGenerationReadiness(project.state);
     const research: TpExternalResearchBundle = useExternalResearch
@@ -77,7 +88,7 @@ Rules:
 1. Separate source facts, advisor inference, assumptions, and unresolved evidence. Never invent amounts, counterparties, ratios, regulations, company names, or financial results.
 2. Explain why the selected method, PLI, tested party, and analysis period are or are not supportable. Explicitly test alternative methods and the strongest likely tax-authority counterarguments.
 3. Treat readiness blockers as unresolved review items, not as facts. Make the action plan sequenced and evidence-specific.
-4. Cite only regulations in REGULATION CONTEXT. External official sources may support research direction but are not a substitute for verified legal text.
+4. Cite only regulations in REGULATION CONTEXT. Treat revoked or temporally uncertain records as historical context, not current authority. External official sources may support research direction but are not a substitute for verified legal text.
 5. EXTERNAL WEB RESEARCH is discovery evidence only. Derive a comparable candidate only from a sourceType "comparable_candidate" source that explicitly names an entity and describes relevant business activity. Preserve the exact supplied source URL and title. Prefer exchange_or_filing evidence over discovery_only sources.
 6. A web candidate is never a final accepted comparable. Use screeningStatus "preliminary" or "needs_financial_screening" unless the source clearly proves it should be excluded. State missing independence, ownership, financial-period, geographic, product, FAR, loss-making, and data-availability checks in limitation/keyDifferences.
 7. Do not provide a profitability ratio unless it appears explicitly in a supplied source for a clear period. Do not calculate an arm's-length range from web search results.
@@ -85,14 +96,14 @@ Rules:
 
 PROJECT DATA:\n${JSON.stringify(project.state)}
 
-GENERATION READINESS AND UNRESOLVED ITEMS:\n${JSON.stringify({ summary: readiness.summary, blockers: readiness.blockers })}
+GENERATION READINESS AND UNRESOLVED ITEMS:\n${JSON.stringify({ summary: readiness.summary, blockers: readiness.blockers, dataConflicts: readiness.dataConflicts })}
 
 REGULATION CONTEXT:\n${JSON.stringify(regulations)}
 
 EXTERNAL WEB RESEARCH STATUS:\n${JSON.stringify({ status: research.status, warnings: research.warnings, queries: research.queries })}
 
 EXTERNAL WEB RESEARCH SOURCES:\n${JSON.stringify(externalContext)}`;
-    const raw = await callOpenAIText(prompt, managed.system, modelChoiceFromRequest(request));
+    const raw = await callOpenAIText(prompt, managed.system, modelChoice, { reasoningEffort: "high", textVerbosity: "high" });
     const parsedAnalysis = extractJsonObject(raw);
     const candidateEntries = Array.isArray(parsedAnalysis.externalComparableCandidates)
       ? parsedAnalysis.externalComparableCandidates
@@ -103,7 +114,7 @@ EXTERNAL WEB RESEARCH SOURCES:\n${JSON.stringify(externalContext)}`;
       const source = research.sources.find((item) =>
         item.sourceType === "comparable_candidate" && comparableUrl(item.url) === comparableUrl(candidate.sourceUrl)
       );
-      if (!source) return [];
+      if (!source || !sourceSupportsCandidateName(`${source.title} ${source.snippet}`, candidate.name)) return [];
       return [{
         ...candidate,
         sourceTitle: source.title,
@@ -124,10 +135,13 @@ EXTERNAL WEB RESEARCH SOURCES:\n${JSON.stringify(externalContext)}`;
     const updatedProject = {
       ...project,
       state,
-      status: completeness >= 80 ? "ready" as const : "analyzed" as const,
+      status: tpProjectStatusAfterAnalysis(state),
       updatedAt: new Date().toISOString()
     };
-    await upsertTpLocalFileProject(updatedProject);
+    const updated = await updateTpLocalFileProjectIfUnchanged(updatedProject, project.updatedAt);
+    if (!updated) {
+      return NextResponse.json({ error: "The TP project changed during analysis. The generated draft was not applied; reload and run again." }, { status: 409 });
+    }
     return NextResponse.json({
       project: updatedProject,
       completeness,

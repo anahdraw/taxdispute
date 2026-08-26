@@ -1,10 +1,12 @@
 import { readFile } from "fs/promises";
 import path from "path";
 import { readLocalJson, updateLocalJson } from "./local-json-store";
+import { buildDocumentReadinessQueue, summarizeDocumentReadiness } from "./document-readiness";
+import { loadLocalRegulationSnapshot } from "./regulation-snapshot";
 
 export const REVIEW_STATUSES = ["Not Started", "In Review", "Verified", "Rejected", "Needs Source"] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
-export type ReviewKind = "node" | "edge" | "citation" | "queue";
+export type ReviewKind = "node" | "edge" | "citation" | "document" | "queue";
 
 export type ReviewDecision = {
   key: string;
@@ -51,14 +53,15 @@ type GraphEdge = Record<string, any> & { flags?: string[] };
 
 type DecisionMap = Record<string, ReviewDecision>;
 
-const qualityRoot = path.resolve(process.env.TDP_REGULATION_QUALITY_ROOT || "outputs/regulation-quality");
+const qualityRoot = process.env.TDP_REGULATION_QUALITY_ROOT
+  || path.join(/* turbopackIgnore: true */ process.cwd(), "outputs", "regulation-quality");
 const decisionFile = "regulation-review-decisions.json";
 let reportPromise: Promise<QualityReport> | null = null;
 let graphPromise: Promise<{ nodes: GraphNode[]; edges: GraphEdge[] }> | null = null;
 let citationsPromise: Promise<Array<Record<string, any>>> | null = null;
 
 function filePath(name: string) {
-  return path.join(qualityRoot, name);
+  return path.join(/* turbopackIgnore: true */ qualityRoot, name);
 }
 
 async function readJson<T>(name: string): Promise<T> {
@@ -67,7 +70,7 @@ async function readJson<T>(name: string): Promise<T> {
 
 function normalizeSeverity(flags: string[], supplied?: string) {
   if (String(supplied || "").toLowerCase() === "high") return "High";
-  if (flags.some((flag) => ["status_site_conflict", "metadata_body_identity_mismatch", "contradictory_relation_types", "hierarchy_violation", "source_conflict", "unresolved_target", "self_reference", "self_relation", "unparsed_reference"].includes(flag))) return "High";
+  if (flags.some((flag) => ["status_site_conflict", "metadata_body_identity_mismatch", "contradictory_relation_types", "hierarchy_violation", "source_conflict", "unresolved_target", "self_reference", "self_relation", "unparsed_reference", "missing_official_url", "missing_source_hash", "missing_locator", "unknown_legal_status"].includes(flag))) return "High";
   return "Medium";
 }
 
@@ -129,10 +132,14 @@ export async function reviewSummary() {
   const nodes = graph.nodes.filter((node) => node.qualityFlags?.length);
   const edges = graph.edges.filter((edge) => !edge.eligibleForAnswer || edge.flags?.length);
   const flaggedCitations = citations.filter((item) => item.flags?.length);
+  const documentRecords = loadLocalRegulationSnapshot();
+  const documents = buildDocumentReadinessQueue(documentRecords);
+  const documentSummary = summarizeDocumentReadiness(documentRecords);
   const allItems = [
     ...nodes.map((node) => baseItem("node", String(node.id), node, decisions)),
     ...edges.map((edge) => baseItem("edge", String(edge.id), edge, decisions)),
     ...flaggedCitations.map((citation) => baseItem("citation", String(citation.id), citation, decisions)),
+    ...documents.map((document) => baseItem("document", document.id, { ...document, source: document.canonical, statusSite: document.legalStatus, confidence: document.score / 100, verified: document.answerEligible, eligibleForAnswer: document.answerEligible }, decisions)),
     ...(report.findingsSample || []).map((finding) => baseItem("queue", String(finding.id), finding, decisions))
   ];
   const flagCounts: Record<string, number> = {};
@@ -143,7 +150,8 @@ export async function reviewSummary() {
     qualityGate: report.summary.qualityGate || "review_required",
     source: report.source || {},
     summary: report.summary,
-    counts: { nodes: nodes.length, edges: edges.length, citations: flaggedCitations.length, queue: (report.findingsSample || []).length },
+    counts: { nodes: nodes.length, edges: edges.length, citations: flaggedCitations.length, documents: documents.length, queue: (report.findingsSample || []).length },
+    documentReadiness: documentSummary,
     flagCounts,
     statusCounts,
     fullArtifacts: { graph: "outputs/regulation-quality/regulation-graph.json", citations: "outputs/regulation-quality/regulation-citations.jsonl", report: "outputs/regulation-quality/regulation-quality-report.json" }
@@ -156,15 +164,18 @@ function searchText(item: ReviewItem) {
 
 export async function reviewItems(options: { kind?: ReviewKind | "all"; query?: string; flag?: string; severity?: string; status?: string; page?: number; pageSize?: number }) {
   const [graph, citations, report, decisions] = await Promise.all([getGraph(), getCitations(), getReport(), getDecisions()]);
-  const kinds: ReviewKind[] = options.kind && options.kind !== "all" ? [options.kind] : ["node", "edge", "citation", "queue"];
+  const kinds: ReviewKind[] = options.kind && options.kind !== "all" ? [options.kind] : ["node", "edge", "citation", "document", "queue"];
   const rows: ReviewItem[] = [];
   if (kinds.includes("node")) for (const node of graph.nodes.filter((item) => item.qualityFlags?.length)) rows.push(baseItem("node", String(node.id), node, decisions));
   if (kinds.includes("edge")) for (const edge of graph.edges.filter((item) => !item.eligibleForAnswer || item.flags?.length)) rows.push(baseItem("edge", String(edge.id), edge, decisions));
   if (kinds.includes("citation")) for (const citation of citations.filter((item) => item.flags?.length)) rows.push(baseItem("citation", String(citation.id), citation, decisions));
+  if (kinds.includes("document")) for (const document of buildDocumentReadinessQueue(loadLocalRegulationSnapshot())) rows.push(baseItem("document", document.id, { ...document, source: document.canonical, statusSite: document.legalStatus, confidence: document.score / 100, verified: document.answerEligible, eligibleForAnswer: document.answerEligible }, decisions));
   if (kinds.includes("queue")) for (const finding of report.findingsSample || []) rows.push(baseItem("queue", String(finding.id), finding, decisions));
   const query = String(options.query || "").trim().toLowerCase();
   const filtered = rows.filter((item) => (!query || searchText(item).includes(query)) && (!options.flag || item.flags.includes(options.flag)) && (!options.severity || item.severity === options.severity) && (!options.status || item.decision.status === options.status));
-  const priority = (item: ReviewItem) => (item.severity === "High" ? 100 : 10) + item.flags.reduce((sum, flag) => sum + (flag === "unresolved_target" ? 20 : flag === "status_site_conflict" ? 18 : 5), 0);
+  const relation = (item: ReviewItem) => String(item.type || "").toLowerCase();
+  const legalImpact = (item: ReviewItem) => /revok|cabut|ganti/.test(relation(item)) ? 70 : /amend|ubah/.test(relation(item)) ? 60 : /implement|laksana/.test(relation(item)) ? 45 : /effective|berlaku/.test(relation(item)) ? 40 : 0;
+  const priority = (item: ReviewItem) => (item.severity === "High" ? 100 : 10) + legalImpact(item) + item.flags.reduce((sum, flag) => sum + (flag === "unresolved_target" ? 20 : flag === "status_site_conflict" ? 18 : flag.startsWith("missing_") ? 15 : 5), 0);
   filtered.sort((a, b) => priority(b) - priority(a) || a.kind.localeCompare(b.kind) || a.id.localeCompare(b.id));
   const pageSize = Math.min(100, Math.max(10, Number(options.pageSize) || 50));
   const page = Math.max(1, Number(options.page) || 1);
@@ -186,6 +197,10 @@ export async function reviewItem(kind: ReviewKind, id: string): Promise<ReviewIt
   if (kind === "citation") {
     const source = citations.find((item) => String(item.id) === id && item.flags?.length);
     return source ? baseItem(kind, id, source, decisions) : null;
+  }
+  if (kind === "document") {
+    const source = buildDocumentReadinessQueue(loadLocalRegulationSnapshot()).find((item) => item.id === id);
+    return source ? baseItem(kind, id, { ...source, source: source.canonical, statusSite: source.legalStatus, confidence: source.score / 100, verified: source.answerEligible, eligibleForAnswer: source.answerEligible }, decisions) : null;
   }
   const source = (report.findingsSample || []).find((item) => String(item.id) === id);
   return source ? baseItem(kind, id, source, decisions) : null;

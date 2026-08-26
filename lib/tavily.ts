@@ -50,41 +50,92 @@ function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function publicDescriptor(state: TpProjectState) {
-  const productDescriptions = state.products.map((item) => item.description).filter(Boolean).join(" ");
-  let descriptor = [state.transactionType, productDescriptions, state.businessActivities]
-    .filter(Boolean)
-    .join(" ");
-
-  const privateNames = [
+function privateResearchTerms(state: TpProjectState) {
+  const values = [
     state.companyName,
     state.companyShortName,
     state.parentCompany,
     state.parentGroup,
+    state.brandName,
+    state.npwp,
+    state.companyAddress,
+    ...state.shareholders.map((item) => item.name),
+    ...state.management.map((item) => item.name),
     ...state.affiliatedParties.map((item) => item.name),
-    ...state.affiliatedTransactions.map((item) => item.counterparty)
-  ].filter((value) => value && value.length > 2);
+    ...state.affiliatedTransactions.map((item) => item.counterparty),
+    ...state.independentTransactions.map((item) => item.counterparty),
+    ...state.organizationDepartments.map((item) => item.head)
+  ].map((value) => cleanText(value || "", 500)).filter((value) => value.length > 2);
+  const commonTokens = new Set([
+    "pt", "cv", "tbk", "persero", "company", "corporation", "limited", "ltd", "inc", "indonesia",
+    "group", "holding", "tested", "party", "pihak", "diuji"
+  ]);
+  const identifyingTokens = values.flatMap((value) => value.split(/[^a-zA-ZÀ-ÿ0-9]+/))
+    .map((value) => value.trim())
+    .filter((value) => value.length > 3 && !commonTokens.has(value.toLowerCase()));
+  return Array.from(new Set([...values, ...identifyingTokens])).sort((a, b) => b.length - a.length);
+}
 
-  for (const name of privateNames) {
-    descriptor = descriptor.replace(new RegExp(escapeRegExp(name), "gi"), " taxpayer ");
+export function sanitizeTpResearchTerm(value: unknown, state: TpProjectState, fallback = "") {
+  let sanitized = cleanText(String(value || ""), 1200);
+  for (const privateTerm of privateResearchTerms(state)) {
+    sanitized = sanitized.replace(new RegExp(escapeRegExp(privateTerm), "gi"), " ");
   }
-
-  descriptor = descriptor
+  sanitized = sanitized
     .replace(/[\w.+-]+@[\w.-]+\.[a-z]{2,}/gi, " ")
+    .replace(/\b(?:NPWP|TIN|tax\s*id)\s*[:#-]?\s*[\d .-]{8,}\b/gi, " ")
     .replace(/\b\d{1,3}(?:[.\s-]\d{2,4}){2,}\b/g, " ")
     .replace(/\b(?:IDR|USD|EUR|SGD|Rp)\s*[\d.,]+\b/gi, " ")
     .replace(/\b\d{4,}\b/g, " ")
-    .replace(/\b(?:PT|CV|Tbk|Persero)\b/gi, " ");
+    .replace(/\b(?:PT|CV|Tbk|Persero|Ltd|Limited|Inc|Corporation)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return sanitized || fallback;
+}
+
+function publicDescriptor(state: TpProjectState) {
+  const productDescriptions = state.products.map((item) => item.description).filter(Boolean).join(" ");
+  const descriptor = [state.transactionType, productDescriptions, state.businessActivities]
+    .filter(Boolean)
+    .join(" ");
 
   const stopWords = new Set([
     "yang", "dan", "dengan", "untuk", "dari", "pada", "atau", "dalam", "adalah", "serta",
     "the", "and", "with", "for", "from", "into", "this", "that", "company", "taxpayer"
   ]);
-  const words = cleanText(descriptor, 900)
+  const words = sanitizeTpResearchTerm(descriptor, state)
     .split(/[^a-zA-ZÀ-ÿ0-9/&-]+/)
     .map((word) => word.trim())
     .filter((word) => word.length > 2 && !stopWords.has(word.toLowerCase()));
   return Array.from(new Set(words.map((word) => word.toLowerCase()))).slice(0, 14).join(" ") || "business services";
+}
+
+export function buildTpResearchQueries(state: TpProjectState): TpExternalResearchBundle["queries"] {
+  const descriptor = publicDescriptor(state);
+  const descriptorTerms = descriptor.split(/\s+/).filter(Boolean);
+  const comparableDescriptorReady = descriptor !== "business services" && descriptorTerms.length >= 4;
+  const comparableDescriptor = descriptorTerms.slice(0, 8).join(" ");
+  const method = sanitizeTpResearchTerm(state.selectedMethod, state, "transfer pricing method").slice(0, 100);
+  const pli = sanitizeTpResearchTerm(state.selectedPli, state, "profit level indicator").slice(0, 100);
+  const testedParty = sanitizeTpResearchTerm(state.testedParty, state, "tested party").slice(0, 100);
+  const candidates: TpExternalResearchBundle["queries"] = [
+    {
+      sourceType: "official",
+      query: `Indonesia transfer pricing ${method} ${pli} official regulation OECD guidance`
+    },
+    {
+      sourceType: "industry",
+      query: `${descriptor} industry value chain market drivers Indonesia Southeast Asia`
+    },
+    ...(comparableDescriptorReady ? [{
+      sourceType: "comparable_candidate" as const,
+      query: `publicly listed independent companies ${comparableDescriptor} ${testedParty} Indonesia Southeast Asia company profile competitors`
+    }, {
+      sourceType: "comparable_candidate" as const,
+      query: `${comparableDescriptor} listed company annual report investor relations business segments products Southeast Asia`
+    }] : [])
+  ];
+  return candidates.map((item) => ({ ...item, query: sanitizeTpResearchTerm(item.query, state, "transfer pricing research") }));
 }
 
 function hostName(url: string) {
@@ -185,30 +236,8 @@ async function tavilySearch(
 export async function runTpExternalResearch(state: TpProjectState): Promise<TpExternalResearchBundle> {
   if (!hasTavilyKey()) return { status: "not_configured", sources: [], warnings: [], queries: [] };
 
-  const descriptor = publicDescriptor(state);
-  const descriptorTerms = descriptor.split(/\s+/).filter(Boolean);
-  const comparableDescriptorReady = descriptor !== "business services" && descriptorTerms.length >= 4;
-  const comparableDescriptor = descriptorTerms.slice(0, 8).join(" ");
-  const method = cleanText(state.selectedMethod || "transfer pricing method", 100);
-  const pli = cleanText(state.selectedPli || "profit level indicator", 100);
-  const testedParty = cleanText(state.testedParty || "tested party", 100);
-  const queries: TpExternalResearchBundle["queries"] = [
-    {
-      sourceType: "official",
-      query: `Indonesia transfer pricing ${method} ${pli} official regulation OECD guidance`
-    },
-    {
-      sourceType: "industry",
-      query: `${descriptor} industry value chain market drivers Indonesia Southeast Asia`
-    },
-    ...(comparableDescriptorReady ? [{
-      sourceType: "comparable_candidate" as const,
-      query: `publicly listed independent companies ${comparableDescriptor} ${testedParty} Indonesia Southeast Asia company profile competitors`
-    }, {
-      sourceType: "comparable_candidate" as const,
-      query: `${comparableDescriptor} listed company annual report investor relations business segments products Southeast Asia`
-    }] : [])
-  ];
+  const queries = buildTpResearchQueries(state);
+  const comparableDescriptorReady = queries.some((item) => item.sourceType === "comparable_candidate");
 
   const tasks: Array<Promise<TpExternalResearchSource[]>> = [
     tavilySearch(queries[0]!.query, {

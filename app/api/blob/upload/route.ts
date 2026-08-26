@@ -1,6 +1,7 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { requireFeature } from "@/lib/auth";
+import { getTpLocalFileProjectById, hasDatabase } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -30,13 +31,39 @@ export async function POST(request: Request) {
           throw new Error("Only administrators can upload decision database documents.");
         }
 
+        let safeTokenPayload: string | null = null;
+        if (tpDocument) {
+          if (!hasDatabase()) throw new Error("Database is not configured.");
+          let payload: Record<string, unknown> = {};
+          try {
+            payload = clientPayload ? JSON.parse(clientPayload) as Record<string, unknown> : {};
+          } catch {
+            throw new Error("Invalid TP upload metadata.");
+          }
+          const projectId = String(payload.projectId || "").trim();
+          if (!projectId || !pathname.startsWith(`tp-local-files/${projectId}/`)) {
+            throw new Error("TP upload path does not match the authorized project.");
+          }
+          const project = await getTpLocalFileProjectById(projectId);
+          if (!project) throw new Error("TP project not found.");
+          if (auth.session.role !== "admin" && project.ownerUsername !== auth.session.username) {
+            throw new Error("You do not have access to this TP project.");
+          }
+          safeTokenPayload = JSON.stringify({
+            projectId,
+            kind: String(payload.kind || "auto_mixed").slice(0, 80),
+            filename: String(payload.filename || "source-document").slice(0, 240),
+            ownerUsername: auth.session.username
+          });
+        }
+
         return {
           allowedContentTypes: decisionPdf
             ? ["application/pdf"]
             : ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"],
-          maximumSizeInBytes: 250 * 1024 * 1024,
+          maximumSizeInBytes: tpDocument ? 30 * 1024 * 1024 : 250 * 1024 * 1024,
           addRandomSuffix: true,
-          tokenPayload: clientPayload || null
+          tokenPayload: tpDocument ? safeTokenPayload : clientPayload || null
         };
       }
     });

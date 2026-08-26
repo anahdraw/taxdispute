@@ -14,8 +14,12 @@ try {
     [
       "tests/lightrag-client.test.ts",
       "tests/rag-provider.test.ts",
+      "tests/regulation-answer.test.ts",
       "lib/lightrag-client.ts",
       "lib/rag-provider.ts",
+      "lib/regulation-answer.ts",
+      "lib/regulation-knowledge.ts",
+      "lib/regulation-sources.ts",
       "lib/mock-data.ts",
       "lib/essential-regulations.ts",
       "--outDir",
@@ -38,6 +42,7 @@ try {
       "--test",
       path.join(compileDir, "tests", "lightrag-client.test.js"),
       path.join(compileDir, "tests", "rag-provider.test.js"),
+      path.join(compileDir, "tests", "regulation-answer.test.js"),
       path.join(repoRoot, "tests", "regulation-knowledge.test.mjs")
     ],
     { cwd: repoRoot, stdio: "inherit" }

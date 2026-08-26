@@ -16,9 +16,14 @@ try {
       "tests/citation-trust.test.ts",
       "tests/search-store.test.ts",
       "tests/search-api-policy.test.ts",
+      "tests/wave1-trust.test.ts",
       "lib/search-contracts.ts",
       "lib/hybrid-search.ts",
       "lib/citation-trust.ts",
+      "lib/query-domain.ts",
+      "lib/temporal-validation.ts",
+      "lib/chat-trust.ts",
+      "lib/document-readiness.ts",
       "lib/search-corpus.ts",
       "lib/search-store.ts",
       "lib/regulation-snapshot.ts",
@@ -53,7 +58,8 @@ try {
       path.join(compileDir, "tests", "hybrid-search.test.js"),
       path.join(compileDir, "tests", "citation-trust.test.js"),
       path.join(compileDir, "tests", "search-store.test.js"),
-      path.join(compileDir, "tests", "search-api-policy.test.js")
+      path.join(compileDir, "tests", "search-api-policy.test.js"),
+      path.join(compileDir, "tests", "wave1-trust.test.js")
     ],
     { cwd: repoRoot, stdio: "inherit" }
   );

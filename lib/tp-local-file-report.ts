@@ -79,13 +79,13 @@ function dataTable(headers: string[], rows: string[][], language: Language) {
   });
 }
 
-function heading(text: string, level: typeof HeadingLevel.HEADING_1 | typeof HeadingLevel.HEADING_2, pageBreakBefore = false) {
+function heading(text: string, level: typeof HeadingLevel.HEADING_1 | typeof HeadingLevel.HEADING_2 | typeof HeadingLevel.HEADING_3, pageBreakBefore = false) {
   return new Paragraph({
     heading: level,
     pageBreakBefore,
-    spacing: { before: level === HeadingLevel.HEADING_1 ? 260 : 200, after: 110 },
+    spacing: { before: level === HeadingLevel.HEADING_1 ? 260 : level === HeadingLevel.HEADING_2 ? 200 : 140, after: 110 },
     border: level === HeadingLevel.HEADING_1 ? { bottom: { color: BLUE, style: BorderStyle.SINGLE, size: 9 } } : undefined,
-    children: [new TextRun({ text, color: level === HeadingLevel.HEADING_1 ? NAVY : BLUE })]
+    children: [new TextRun({ text, color: level === HeadingLevel.HEADING_1 ? NAVY : level === HeadingLevel.HEADING_2 ? BLUE : TEXT })]
   });
 }
 
@@ -142,12 +142,13 @@ export async function buildTpLocalFileDocx(project: TpLocalFileProject, language
   const s = project.state;
   const en = language === "en";
   const readiness = tpGenerationReadiness(s);
+  const unresolvedCount = readiness.blockers.length + readiness.dataConflicts.length;
   const title = en ? "TRANSFER PRICING LOCAL FILE" : "DOKUMEN LOKAL TRANSFER PRICING";
   const disclaimer = en
-    ? "Advisor working draft generated from uploaded source documents. Facts, calculations, legal references, comparables, and conclusions require professional review before filing or external use."
-    : "Draft kerja advisor yang disusun dari dokumen sumber yang diunggah. Fakta, perhitungan, dasar hukum, pembanding, dan kesimpulan wajib direview profesional sebelum pelaporan atau penggunaan eksternal.";
-  const statusLabel = readiness.blockers.length
-    ? `${readiness.blockers.length} ${en ? "final review item(s) remain" : "item review final masih terbuka"}`
+    ? "Advisor working draft generated from uploaded documents and/or manually registered evidence. Facts, calculations, legal references, comparables, and conclusions require professional review before filing or external use."
+    : "Draft kerja advisor yang disusun dari dokumen dan/atau bukti manual yang diregistrasikan. Fakta, perhitungan, dasar hukum, pembanding, dan kesimpulan wajib direview profesional sebelum pelaporan atau penggunaan eksternal.";
+  const statusLabel = unresolvedCount
+    ? `${unresolvedCount} ${en ? "final review item(s) remain" : "item review final masih terbuka"}`
     : (en ? "Ready for final professional review" : "Siap untuk review profesional final");
 
   const contents = [
@@ -167,7 +168,7 @@ export async function buildTpLocalFileDocx(project: TpLocalFileProject, language
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 190 }, children: [new TextRun({ text: title, bold: true, color: NAVY, size: 42 })] }),
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 95 }, children: [new TextRun({ text: display(s.companyName, language), bold: true, size: 29, color: BLUE })] }),
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 420 }, children: [new TextRun({ text: `${en ? "Fiscal year" : "Tahun pajak"}: ${display(s.fiscalYear, language)}`, size: 22, color: GREY })] }),
-    callout(en ? "DOCUMENT STATUS" : "STATUS DOKUMEN", statusLabel, readiness.blockers.length ? "blue" : "green"),
+    callout(en ? "DOCUMENT STATUS" : "STATUS DOKUMEN", statusLabel, unresolvedCount ? "blue" : "green"),
     new Paragraph({ spacing: { before: 380, after: 110 }, children: [new TextRun({ text: disclaimer, italics: true, color: GREY, size: 17 })] }),
     new Paragraph({ children: [new PageBreak()] }),
 
@@ -178,6 +179,7 @@ export async function buildTpLocalFileDocx(project: TpLocalFileProject, language
       [en ? "Fiscal year" : "Tahun pajak", s.fiscalYear],
       [en ? "Document status" : "Status dokumen", project.status],
       [en ? "Source documents" : "Dokumen sumber", project.documents.length],
+      [en ? "Manual evidence records" : "Register bukti manual", s.manualEvidence.length],
       [en ? "Generated" : "Dibuat", new Date().toLocaleDateString(en ? "en-GB" : "id-ID")]
     ], language),
     heading(en ? "Document Guide" : "Panduan Dokumen", HeadingLevel.HEADING_2),
@@ -254,6 +256,16 @@ export async function buildTpLocalFileDocx(project: TpLocalFileProject, language
     ...paragraphs(s.pricingPolicy, language),
     ...paragraphs(s.supplyChainManagement, language),
     heading(en ? "Functional, asset, and risk analysis" : "Analisis fungsi, aset, dan risiko", HeadingLevel.HEADING_2),
+    heading(en ? "Functions performed" : "Fungsi yang dilakukan", HeadingLevel.HEADING_3),
+    ...paragraphs(s.farAnalysis.functionsPerformed, language),
+    heading(en ? "Assets used" : "Aset yang digunakan", HeadingLevel.HEADING_3),
+    ...paragraphs(s.farAnalysis.assetsUsed, language),
+    heading(en ? "Risks assumed" : "Risiko yang ditanggung", HeadingLevel.HEADING_3),
+    ...paragraphs(s.farAnalysis.risksAssumed, language),
+    heading(en ? "Contractual terms and economic circumstances" : "Ketentuan kontraktual dan kondisi ekonomi", HeadingLevel.HEADING_3),
+    ...paragraphs([s.farAnalysis.contractualTerms, s.farAnalysis.economicCircumstances].filter(Boolean).join("\n\n"), language),
+    heading(en ? "Intangibles and service benefit test" : "Aset tidak berwujud dan benefit test jasa", HeadingLevel.HEADING_3),
+    ...paragraphs([s.farAnalysis.intangiblesUsed, s.farAnalysis.serviceBenefitTest].filter(Boolean).join("\n\n"), language),
     ...paragraphs(s.analysis.functionalAnalysis, language),
 
     heading(en ? "5. Method Selection and Comparability" : "5. Pemilihan Metode dan Kesebandingan", HeadingLevel.HEADING_1, true),
@@ -316,10 +328,43 @@ export async function buildTpLocalFileDocx(project: TpLocalFileProject, language
       }),
       language
     ),
+    heading(en ? "Appendix A.1. Extracted Evidence Register" : "Lampiran A.1. Register Bukti Hasil Ekstraksi", HeadingLevel.HEADING_2),
+    dataTable(
+      [en ? "File" : "File", en ? "Locator" : "Lokator", en ? "Supported fields" : "Field yang didukung", en ? "Source excerpt" : "Kutipan sumber"],
+      project.documents.flatMap((document) => (document.evidence || []).map((evidence) => [
+        document.filename,
+        [evidence.page ? `${en ? "Page" : "Halaman"} ${evidence.page}` : "", evidence.section, evidence.table].filter(Boolean).join(" · "),
+        evidence.fieldPaths.join(", "),
+        evidence.excerpt
+      ])),
+      language
+    ),
+    heading(en ? "Appendix A.2. Manual Evidence Register" : "Lampiran A.2. Register Bukti Manual", HeadingLevel.HEADING_2),
+    dataTable(
+      [en ? "Source" : "Sumber", en ? "Kind / reference" : "Jenis / referensi", en ? "Locator" : "Lokator", en ? "Supported fields" : "Field yang didukung", en ? "Excerpt / note" : "Kutipan / catatan"],
+      s.manualEvidence.map((evidence) => [
+        evidence.title,
+        `${evidence.sourceKind}${evidence.reference ? ` · ${evidence.reference}` : ""}`,
+        evidence.locator,
+        evidence.fieldPaths.join(", "),
+        evidence.excerpt
+      ]),
+      language
+    ),
     heading(en ? "Appendix B. Unresolved Final-review Items" : "Lampiran B. Item Review Final yang Belum Selesai", HeadingLevel.HEADING_1, true),
     dataTable(
       [en ? "Section" : "Bagian", en ? "Required item" : "Item wajib", en ? "Status" : "Status", en ? "Typical source / action" : "Sumber / tindakan"],
-      readiness.blockers.map((item) => [item.section, en ? item.en : item.idLabel, item.status, item.expectedSources.join(", ") || (en ? "Advisor confirmation" : "Konfirmasi advisor")]),
+      [
+        ...readiness.blockers.map((item) => [item.section, en ? item.en : item.idLabel, item.status, item.expectedSources.join(", ") || (en ? "Advisor confirmation" : "Konfirmasi advisor")]),
+        ...readiness.dataConflicts.map((conflict) => [
+          en ? "Data conflict" : "Konflik data",
+          `${conflict.path}.${conflict.field}`,
+          conflict.status,
+          en
+            ? `Compare retained value “${clean(conflict.existingValue)}” with incoming value “${clean(conflict.incomingValue)}”; sources: ${conflict.sourceDocumentIds.join(", ")}`
+            : `Bandingkan nilai tersimpan “${clean(conflict.existingValue)}” dengan nilai baru “${clean(conflict.incomingValue)}”; sumber: ${conflict.sourceDocumentIds.join(", ")}`
+        ])
+      ],
       language
     ),
     heading(en ? "Appendix C. External Research Audit Trail" : "Lampiran C. Audit Trail Riset Eksternal", HeadingLevel.HEADING_1, true),

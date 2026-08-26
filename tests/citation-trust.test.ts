@@ -15,6 +15,7 @@ const verifiedRule: SearchHit = {
   sourceHash: "a".repeat(64),
   authority: "JDIH Kementerian Keuangan",
   locator: { page: 10, section: "Pasal 9" },
+  effectiveFrom: "1984-07-01",
   status: "verified",
   score: 92,
   lexicalScore: 0.9,

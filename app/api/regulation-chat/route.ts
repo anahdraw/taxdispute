@@ -17,6 +17,13 @@ import { ragProviderModeFromEnv, runRagProvider, type RagProviderAttempt } from 
 import type { Regulation } from "@/lib/mock-data";
 import { loadLocalRegulationSnapshot } from "@/lib/regulation-snapshot";
 import { generateLocalRegulationAnswer } from "@/lib/regulation-answer";
+import { assessTaxQueryDomain } from "@/lib/query-domain";
+import { assessRegulationChatTrust, chatAbstentionAnswer } from "@/lib/chat-trust";
+import { resolveWorkspaceScope } from "@/lib/workspace-access";
+import { createResearchWorkspaceRecord } from "@/lib/research-workspace";
+import { saveResearchWorkspaceRecord } from "@/lib/research-workspace-store";
+import { assertEnterpriseAiBudget, estimateTokens, recordEnterpriseMetric } from "@/lib/enterprise-observability";
+import { configuredModel } from "@/lib/openai";
 
 export const runtime = "nodejs";
 
@@ -56,6 +63,7 @@ function attemptTelemetry(attempt: RagProviderAttempt<RegulationRetrieval> | und
 }
 
 export async function POST(request: Request) {
+  const startedAt = Date.now();
   const auth = requireAuth(request);
   if ("response" in auth) return auth.response;
   const modelChoice = modelChoiceFromRequest(request);
@@ -73,6 +81,19 @@ export async function POST(request: Request) {
   const language = body.language === "id" ? "id" : "en";
   if (!question) {
     return NextResponse.json({ error: language === "id" ? "Pertanyaan belum diisi." : "Question is required." }, { status: 400 });
+  }
+  const domain = assessTaxQueryDomain(question);
+  if (!domain.inScope) {
+    const trust = assessRegulationChatTrust(question, [], { language });
+    return NextResponse.json({
+      answer: chatAbstentionAnswer(language, trust),
+      citations: [],
+      answerMeta: { abstained: true, matchedProvisions: [] },
+      trust: { ...trust, validationStage: "preflight" },
+      retrieval: { requestedProvider: "baseline", servedBy: "baseline", fallbackUsed: false, totalCorpus: 0, resultCount: 0, canonicalIds: [] },
+      reranking: { answerable: false, bestScore: 0, abstentionReason: domain.reason },
+      graphPaths: []
+    });
   }
   try {
     const stored = hasDatabase() ? await listTaxRegulations().catch(() => []) : [];
@@ -112,6 +133,31 @@ export async function POST(request: Request) {
       compare: compareRetrieval
     });
     const answerContext = rerankRegulationContext(retrieval.value.records, question, 8);
+    const scoreByCanonical = new Map(answerContext.diagnostics.topScores.map((entry) => [entry.canonicalKey, entry.score]));
+    const trust = assessRegulationChatTrust(question, answerContext.records, { language, scoreByCanonical });
+    if (trust.abstain) {
+      return NextResponse.json({
+        answer: chatAbstentionAnswer(language, trust),
+        citations: answerContext.records.slice(0, 6),
+        answerMeta: { abstained: true, matchedProvisions: [] },
+        trust: { ...trust, validationStage: "preflight" },
+        retrieval: {
+          requestedProvider: retrieval.requestedMode,
+          servedBy: retrieval.servedBy,
+          fallbackUsed: retrieval.fallbackUsed,
+          totalCorpus: records.length,
+          resultCount: retrieval.value.records.length,
+          canonicalIds: retrieval.value.canonicalIds,
+          baseline: attemptTelemetry(retrieval.baseline),
+          lightrag: attemptTelemetry(retrieval.lightrag),
+          comparison: retrieval.comparison
+        },
+        reranking: answerContext.diagnostics,
+        graphPaths: answerContext.graphPaths
+      });
+    }
+    const workspace = await resolveWorkspaceScope(request, auth.session).catch(() => null);
+    if (workspace && hasRemoteLlm(modelChoice)) await assertEnterpriseAiBudget(workspace.tenantId);
     const answer = hasRemoteLlm(modelChoice)
       ? await answerRegulationQuestion(
           question,
@@ -134,8 +180,27 @@ export async function POST(request: Request) {
             llmStatus: { ...status, message: `${status.message} Reranker + graph evidence formatter applied.` }
           };
         })();
+    if (workspace) {
+      const history = createResearchWorkspaceRecord("history", {
+        action: "chat", resourceType: "chat", resourceId: `regulation-chat-${Date.now()}`,
+        title: question.slice(0, 180), query: question, responseExcerpt: answer.answer.slice(0, 12_000),
+        metadata: { provider: retrieval.servedBy, sourceIds: canonicalIds(answerContext.records).slice(0, 12), trustScore: trust.score }
+      }, { tenantId: workspace.tenantId, userId: workspace.userId, clientId: workspace.clientId, matterId: workspace.matterId });
+      await saveResearchWorkspaceRecord("history", history).catch(() => undefined);
+      await recordEnterpriseMetric({
+        tenantId: workspace.tenantId,
+        operation: "regulation_chat",
+        provider: hasRemoteLlm(modelChoice) ? "openai" : "local",
+        model: configuredModel(modelChoice),
+        ok: true,
+        latencyMs: Date.now() - startedAt,
+        inputTokensEstimate: estimateTokens(question) + answerContext.records.length * 700,
+        outputTokensEstimate: estimateTokens(answer.answer)
+      }).catch(() => undefined);
+    }
     return NextResponse.json({
       ...answer,
+      trust: { ...trust, validationStage: "preflight" },
       retrieval: {
         requestedProvider: retrieval.requestedMode,
         servedBy: retrieval.servedBy,

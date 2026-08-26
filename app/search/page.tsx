@@ -21,6 +21,8 @@ export default async function TrustedSearchPage() {
         <nav aria-label="Navigasi trusted search">
           <a href="/">Kembali ke aplikasi</a>
           <a href="/workspace">Workspace</a>
+          <a href="/watchlist">Watchlist</a>
+          <a href="/knowledge">Knowledge hub</a>
           <span>{session.name}</span>
         </nav>
       </header>
@@ -28,8 +30,8 @@ export default async function TrustedSearchPage() {
       <section className="trusted-search-hero">
         <div>
           <span className="case-detail-kicker">Citation &amp; Trust Layer</span>
-          <h1>Trusted hybrid search</h1>
-          <p>Cari putusan dan peraturan, periksa provenance, lalu hentikan jawaban otomatis saat bukti belum cukup.</p>
+          <h1>Universal research search</h1>
+          <p>Cari putusan dan peraturan sekaligus, saring dengan facet, buka time machine, lalu simpan bukti ke workspace dengan Trust Layer tetap aktif.</p>
         </div>
         <div className="trusted-search-guardrail">
           <b>Fail closed</b>

@@ -29,6 +29,8 @@ import tempfile
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+
+from regulation_pipeline_path import default_regulation_pipeline_db
 from typing import Any, Iterable
 
 
@@ -831,7 +833,7 @@ def write_artifacts(snapshot: dict[str, Any], output_dir: Path) -> dict[str, str
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", type=Path, required=True, help="Read-only source SQLite database")
+    parser.add_argument("--db", type=Path, default=default_regulation_pipeline_db(), help="Read-only source SQLite database")
     parser.add_argument("--output-dir", type=Path, default=Path("outputs/regulation-quality"))
     parser.add_argument("--max-citations", type=int, default=None, help="Only for smoke tests; omit for full snapshot")
     args = parser.parse_args(argv)

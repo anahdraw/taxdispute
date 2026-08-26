@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { del } from "@vercel/blob";
 import { requireFeature } from "@/lib/auth";
-import { deleteTpLocalFileProject, getTpLocalFileProjectById, hasDatabase, upsertTpLocalFileProject } from "@/lib/db";
+import { deleteTpLocalFileProject, getTpLocalFileProjectById, hasDatabase, updateTpLocalFileProjectIfUnchanged } from "@/lib/db";
+import { cancelTpAgentRunsForProject } from "@/lib/tp-agent-queue";
 import {
   normalizeTpProjectState,
   tpDocumentKinds,
   tpExtractionScopes,
+  tpProjectCompleteness,
+  tpProjectStatusAfterAnalysis,
   type TpLocalFileProject,
-  type TpProjectStatus,
   type TpSourceDocument
 } from "@/lib/tp-local-file";
 
@@ -34,10 +36,12 @@ function mergeProjectDocuments(value: unknown, current: TpSourceDocument[], proj
   const existing = new Map(current.map((document) => [document.id, document]));
   const allowedKinds = new Set(tpDocumentKinds.map((kind) => kind.id));
   const allowedScopes = new Set<string>(tpExtractionScopes.map((scope) => scope.id));
-  return value.map((raw) => {
+  const additions = value.flatMap((raw): TpSourceDocument[] => {
     const source = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
-    const currentDocument = existing.get(String(source.id || ""));
-    if (currentDocument) return currentDocument;
+    const documentId = String(source.id || "").trim().slice(0, 120);
+    if (!documentId) throw new Error("A source document ID is required.");
+    const currentDocument = existing.get(documentId);
+    if (currentDocument) return [];
     if (!trustedProjectBlob(source.url, projectId) || !trustedProjectBlob(source.downloadUrl || source.url, projectId)) {
       throw new Error("The source document must be an uploaded TP Local File Blob.");
     }
@@ -45,8 +49,8 @@ function mergeProjectDocuments(value: unknown, current: TpSourceDocument[], proj
     const requestedScopes = Array.isArray(source.requestedScopes)
       ? source.requestedScopes.map(String).filter((scope) => allowedScopes.has(scope)) as TpSourceDocument["requestedScopes"]
       : [];
-    return {
-      id: String(source.id || "").slice(0, 120),
+    return [{
+      id: documentId,
       filename: String(source.filename || "source-document").slice(0, 240),
       kind: allowedKinds.has(kind) ? kind : "other",
       url: String(source.url),
@@ -57,9 +61,23 @@ function mergeProjectDocuments(value: unknown, current: TpSourceDocument[], proj
       uploadedAt: new Date().toISOString(),
       requestedScopes,
       detectedScopes: [],
-      coverage: []
-    };
+      coverage: [],
+      evidence: []
+    }];
   });
+  additions.forEach((document) => {
+    if (!existing.has(document.id)) existing.set(document.id, document);
+  });
+  return Array.from(existing.values());
+}
+
+function serverProjectStatus(project: TpLocalFileProject) {
+  const hasAdvisorAnalysis = project.status === "analyzed"
+    || project.status === "ready"
+    || Boolean(project.state.analysis.executiveSummary.trim() || project.state.analysis.conclusion.trim());
+  if (hasAdvisorAnalysis) return tpProjectStatusAfterAnalysis(project.state);
+  if (project.documents.some((document) => document.status === "extracted") || tpProjectCompleteness(project.state) > 0) return "extracted" as const;
+  return "draft" as const;
 }
 
 async function authorizedProject(request: Request, id: string): Promise<ProjectAccess> {
@@ -88,16 +106,29 @@ export async function PUT(request: Request, context: RouteContext) {
   if (!access.ok) return access.response;
   try {
     const body = await request.json();
-    const status = String(body.status || access.project.status) as TpProjectStatus;
+    if (!body.updatedAt || String(body.updatedAt) !== access.project.updatedAt) {
+      return NextResponse.json({ error: "This TP project changed after it was opened. Reload it before saving." }, { status: 409 });
+    }
+    const state = body.state ? normalizeTpProjectState(body.state) : access.project.state;
+    const documents = mergeProjectDocuments(body.documents, access.project.documents, access.project.id);
     const project: TpLocalFileProject = {
       ...access.project,
       name: String(body.name || access.project.name).trim().slice(0, 180) || access.project.name,
-      status: status === "ready" || status === "analyzed" || status === "extracted" ? status : "draft",
-      state: body.state ? normalizeTpProjectState(body.state) : access.project.state,
-      documents: mergeProjectDocuments(body.documents, access.project.documents, access.project.id),
+      status: access.project.status,
+      state,
+      documents,
       updatedAt: new Date().toISOString()
     };
-    await upsertTpLocalFileProject(project);
+    project.status = serverProjectStatus(project);
+    const unchanged = project.name === access.project.name
+      && project.status === access.project.status
+      && JSON.stringify(project.state) === JSON.stringify(access.project.state)
+      && JSON.stringify(project.documents) === JSON.stringify(access.project.documents);
+    if (unchanged) return NextResponse.json({ project: access.project });
+    const updated = await updateTpLocalFileProjectIfUnchanged(project, access.project.updatedAt);
+    if (!updated) {
+      return NextResponse.json({ error: "This TP project changed while it was being saved. Reload it and review the newer version." }, { status: 409 });
+    }
     return NextResponse.json({ project });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not save TP project." }, { status: 400 });
@@ -109,6 +140,11 @@ export async function DELETE(request: Request, context: RouteContext) {
   const { id } = await context.params;
   const access = await authorizedProject(request, id);
   if (!access.ok) return access.response;
+  await cancelTpAgentRunsForProject({
+    projectId: access.project.id,
+    cancelledBy: access.project.ownerUsername,
+    reason: "TP project was deleted."
+  });
   const urls = access.project.documents.map((document) => document.url).filter((url) => url.startsWith("https://"));
   if (urls.length && process.env.BLOB_READ_WRITE_TOKEN) await Promise.allSettled(urls.map((url) => del(url)));
   await deleteTpLocalFileProject(id);

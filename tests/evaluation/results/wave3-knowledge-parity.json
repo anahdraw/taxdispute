@@ -1,0 +1,1689 @@
+{
+  "schemaVersion": "aa-jurist-wave3-knowledge-parity-v1",
+  "generatedAt": "2026-08-21T07:48:51.005Z",
+  "summary": {
+    "benchmarkCases": 140,
+    "sourceRecords": 10805,
+    "primaryLawRecords": 10545,
+    "manualRecords": 260,
+    "knowledgeItems": 7040,
+    "retrievalHitAt10": 1,
+    "scenarioCases": 17,
+    "scenarioHitAt10": 1,
+    "treatyItems": 277,
+    "p3bItems": 185,
+    "mliItems": 40,
+    "structuredTreatyPartners": 72,
+    "coretaxItems": 63,
+    "officialCoretaxManuals": 21,
+    "coretaxSearchablePages": 1346,
+    "transactionGuideItems": 3078,
+    "professionGuideItems": 210,
+    "taxManualItems": 260,
+    "verifiedGraphChanges": 785,
+    "glossaryItems": 50,
+    "formKnowledgeItems": 753,
+    "formFileCoverage": 0.1235,
+    "officialFormFiles": 85,
+    "officialFormFileCoverage": 1,
+    "rateRegulationItems": 1564,
+    "structuredCurrentRateRows": 25,
+    "verifiedCurrentRateRows": 25,
+    "officialConnectors": 5,
+    "readyDomains": 1,
+    "partialDomains": 6,
+    "gapDomains": 0
+  },
+  "sourceAudit": {
+    "treaty": {
+      "count": 277,
+      "verified": 104,
+      "officialUrlCoverage": 0.4332,
+      "pdfCoverage": 0,
+      "hashCoverage": 1,
+      "locatorCoverage": 0.9964
+    },
+    "guides": {
+      "count": 3351,
+      "verified": 2044,
+      "officialUrlCoverage": 0.8111,
+      "pdfCoverage": 0.0107,
+      "hashCoverage": 0.9997,
+      "locatorCoverage": 0.9182
+    },
+    "manual": {
+      "count": 260,
+      "verified": 0,
+      "officialUrlCoverage": 0,
+      "pdfCoverage": 1,
+      "hashCoverage": 1,
+      "locatorCoverage": 1
+    },
+    "changes": {
+      "count": 785,
+      "verified": 785,
+      "officialUrlCoverage": 0.9962,
+      "pdfCoverage": 0.0013,
+      "hashCoverage": 1,
+      "locatorCoverage": 1
+    },
+    "glossary": {
+      "count": 50,
+      "verified": 48,
+      "officialUrlCoverage": 0.96,
+      "pdfCoverage": 0.02,
+      "hashCoverage": 1,
+      "locatorCoverage": 1
+    },
+    "forms": {
+      "count": 753,
+      "verified": 387,
+      "officialUrlCoverage": 0.5365,
+      "pdfCoverage": 0.1235,
+      "hashCoverage": 1,
+      "locatorCoverage": 0.9894
+    },
+    "rates": {
+      "count": 1564,
+      "verified": 1249,
+      "officialUrlCoverage": 0.8817,
+      "pdfCoverage": 0.016,
+      "hashCoverage": 1,
+      "locatorCoverage": 1
+    }
+  },
+  "readiness": [
+    {
+      "domain": "treaty",
+      "label": "P3B & MLI",
+      "status": "partial",
+      "itemCount": 277,
+      "verifiedCount": 104,
+      "officialUrlCoverage": 43.32,
+      "pdfCoverage": 0,
+      "locatorCoverage": 99.64,
+      "explanation": "Naskah P3B/MLI tersedia, tetapi matriks negara, effective date, dan matching reservasi/notifikasi belum terstruktur penuh.",
+      "missing": [
+        "Sinkronisasi matriks resmi P3B/MLI",
+        "Matching position dan reservasi OECD",
+        "PDF bilingual terkonsolidasi"
+      ]
+    },
+    {
+      "domain": "guides",
+      "label": "Panduan transaksi, profesi & Coretax",
+      "status": "partial",
+      "itemCount": 3351,
+      "verifiedCount": 2044,
+      "officialUrlCoverage": 81.11,
+      "pdfCoverage": 1.07,
+      "locatorCoverage": 91.82,
+      "explanation": "Aturan dan sebagian referensi panduan dapat ditemukan, namun corpus manual operasional resmi belum lengkap dan terversi.",
+      "missing": [
+        "Seri PDF Coretax resmi",
+        "Panduan per profesi dan transaksi dengan langkah kerja",
+        "Versi dan tanggal pembaruan panduan"
+      ]
+    },
+    {
+      "domain": "manual",
+      "label": "Tax manual",
+      "status": "partial",
+      "itemCount": 260,
+      "verifiedCount": 0,
+      "officialUrlCoverage": 0,
+      "pdfCoverage": 100,
+      "locatorCoverage": 100,
+      "explanation": "Tax manual lokal memiliki pasangan pertanyaan, PDF, hash, dan locator halaman, tetapi baru berasal dari 1 dokumen manual.",
+      "missing": [
+        "Tambahan manual resmi/berlisensi per jenis pajak dan industri",
+        "Review hukum dan versi masa berlaku"
+      ]
+    },
+    {
+      "domain": "changes",
+      "label": "Rekap perubahan",
+      "status": "partial",
+      "itemCount": 785,
+      "verifiedCount": 785,
+      "officialUrlCoverage": 99.62,
+      "pdfCoverage": 0.13,
+      "locatorCoverage": 100,
+      "explanation": "Hanya relasi graph yang lolos verifikasi mesin dan eligible-for-answer yang ditampilkan; sign-off ahli belum lengkap.",
+      "missing": [
+        "Sign-off ahli untuk relasi perubahan instrumen prioritas",
+        "Locator bukti relasi dan ketentuan transisi"
+      ]
+    },
+    {
+      "domain": "glossary",
+      "label": "Glosarium",
+      "status": "partial",
+      "itemCount": 50,
+      "verifiedCount": 48,
+      "officialUrlCoverage": 96,
+      "pdfCoverage": 2,
+      "locatorCoverage": 100,
+      "explanation": "Definisi editorial dasar telah dipautkan ke sumber primer, tetapi cakupan istilah dan sign-off ahli belum memadai untuk glosarium produksi.",
+      "missing": [
+        "Perluasan istilah per jenis pajak dan proses bisnis",
+        "Review ahli dan versioning definisi"
+      ]
+    },
+    {
+      "domain": "forms",
+      "label": "Formulir",
+      "status": "partial",
+      "itemCount": 753,
+      "verifiedCount": 387,
+      "officialUrlCoverage": 53.65,
+      "pdfCoverage": 12.35,
+      "locatorCoverage": 98.94,
+      "explanation": "Aturan yang menyebut formulir tersedia; file formulir blank/Excel yang dapat digunakan belum menjadi katalog terversi penuh.",
+      "missing": [
+        "Unduh file PDF/XLSX resmi",
+        "Pemetaan formulir ke tahun pajak dan aturan dasar",
+        "Validasi formulir aktif"
+      ]
+    },
+    {
+      "domain": "rates",
+      "label": "Kurs pajak",
+      "status": "ready",
+      "itemCount": 1564,
+      "verifiedCount": 1249,
+      "officialUrlCoverage": 88.17,
+      "pdfCoverage": 1.6,
+      "locatorCoverage": 100,
+      "explanation": "Feed minggu berjalan memuat 25 mata uang dengan KMK, checksum dokumen, locator, dan rentang berlaku.",
+      "missing": []
+    }
+  ],
+  "connectors": [
+    {
+      "id": "djp-tax-treaty-mli",
+      "domain": "treaty",
+      "title": "Tax Treaty and Multilateral Instrument",
+      "authority": "Direktorat Jenderal Pajak",
+      "url": "https://www.pajak.go.id/id/taxtreaty-mli",
+      "updateCadence": "event_driven",
+      "ingestion": "catalogued",
+      "note": "Matriks negara, tanggal penandatanganan, entry into force, dan entry into effect perlu disinkronkan sebagai data terstruktur. Snapshot resmi sudah tersambung; pembaruan berikutnya mengikuti cadence sumber."
+    },
+    {
+      "id": "oecd-mli-matching",
+      "domain": "treaty",
+      "title": "BEPS MLI Matching Database",
+      "authority": "OECD",
+      "url": "https://www.oecd.org/en/data/tools/beps-mli-matching-database.html",
+      "updateCadence": "event_driven",
+      "ingestion": "not_ingested",
+      "note": "Diperlukan untuk matching pilihan pasal, reservasi, dan notifikasi masing-masing yurisdiksi."
+    },
+    {
+      "id": "djp-coretax-manual",
+      "domain": "guides",
+      "title": "Buku Panduan Coretax DJP",
+      "authority": "Direktorat Jenderal Pajak",
+      "url": "https://www.pajak.go.id/coretaxpedia/buku-panduan-coretax-djp",
+      "updateCadence": "event_driven",
+      "ingestion": "catalogued",
+      "note": "Manual resmi per proses bisnis dan segmen wajib pajak belum menjadi corpus PDF terversi. Snapshot resmi sudah tersambung; pembaruan berikutnya mengikuti cadence sumber."
+    },
+    {
+      "id": "djp-tax-forms",
+      "domain": "forms",
+      "title": "Formulir Perpajakan",
+      "authority": "Direktorat Jenderal Pajak",
+      "url": "https://www.pajak.go.id/id/formulir-page",
+      "updateCadence": "event_driven",
+      "ingestion": "catalogued",
+      "note": "File PDF/XLSX, jenis formulir, tahun pajak, dan aturan dasarnya perlu diunduh dan diberi versi. Snapshot resmi sudah tersambung; pembaruan berikutnya mengikuti cadence sumber."
+    },
+    {
+      "id": "kemenkeu-tax-rates",
+      "domain": "rates",
+      "title": "Kurs Pajak",
+      "authority": "Direktorat Jenderal Strategi Ekonomi dan Fiskal, Kementerian Keuangan",
+      "url": "https://fiskal.kemenkeu.go.id/informasi-publik/kurs-pajak",
+      "updateCadence": "weekly",
+      "ingestion": "catalogued",
+      "note": "Tabel mata uang mingguan perlu diambil sebagai seri waktu; corpus saat ini terutama berisi instrumen KMK historis. Snapshot resmi sudah tersambung; pembaruan berikutnya mengikuti cadence sumber."
+    }
+  ],
+  "quality": {
+    "manualNeverPresentedAsPrimaryLaw": true,
+    "graphFailClosed": true,
+    "glossaryHasProvenance": true,
+    "dynamicSourcesTrackedHonestly": true,
+    "readinessDisclosesGaps": true
+  },
+  "gates": {
+    "benchmarkSize": true,
+    "retrieval": true,
+    "realisticScenarios": true,
+    "treatyCatalog": true,
+    "taxManual": true,
+    "glossary": true,
+    "sourceSeparation": true,
+    "graphFailClosed": true,
+    "explicitGaps": true
+  },
+  "implementationPassed": true,
+  "dataEnoughForProductionParity": false,
+  "recommendations": [
+    "Ingest matriks resmi P3B/MLI per negara beserta tanggal efektif, CTA, reservasi, notifikasi, dan synthesized text bilingual.",
+    "Unduh dan versi-kan seluruh seri manual Coretax resmi; pecah per langkah, layar, peran, dan masa berlaku.",
+    "Bangun registry formulir yang menyimpan file PDF/XLSX, tahun pajak, status aktif, checksum, dan aturan dasar.",
+    "Tambahkan scheduled weekly ingestion untuk KMK kurs dan tabel mata uang terstruktur dengan deteksi gap/revisi.",
+    "Lanjutkan review graph perubahan untuk instrumen prioritas sebelum rekap perubahan dipakai chatbot utama.",
+    "Tambah tax manual resmi/berlisensi per industri, profesi, dan jenis transaksi; manual edukatif tetap harus diverifikasi terhadap hukum primer."
+  ],
+  "cases": [
+    {
+      "id": "treaty:keppres-11-1994",
+      "domain": "treaty",
+      "query": "PENGESAHAN PROTOKOL PERUBAHAN ATAS PERSETUJUAN ANTARA REPUBLIK INDONESIA DAN KERAJAAN BELANDA MENGENAI PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN DAN ATAS KEKAYAAN DENGAN PROTOKOL, YANG DITANDATANGANI DI JAKARTA PADA TANGGAL 5 MARET 1973, DAN PROTOKOL PERUBAHAN YANG DITANDATANGANI DI KUALA LUMPUR PADA TANGGAL 22 JULI 1991",
+      "returned": 5,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-151-1998",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH KERAJAAN YORDANIA HASHIMIAH TENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-152-1998",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH NEGARA KUWAIT TENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN DAN MODAL",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-153-1998",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH REPUBLIK ARAB MESIR TENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-155-1998",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH UKRAINA TENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN BESERTA PROTOKOL",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-157-1998",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH MONGOLIA TENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-158-1998",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK DAN PENGHINDARAN PAJAK ATAS PENGHASILAN ANTARA REPUBLIK INDONESIA DAN REPUBLIK VENEZUELA BESERTA PROTOKOL",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-160-1998",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH REPUBLIK TURKI TENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN BESERTA PROTOKOL",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-161-1998",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH REPUBLIK UZBEKISTAN TENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN (LABA USAHA)",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-176-1998",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH REPUBLIK ARAB SURIAH TENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-2-2001",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH REPUBLIK SLOVAKIATENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN BESERTA PROTOKOL",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-67-2004",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH NEGARA MEKSIKO SERIKAT UNTUK PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK YANG BERKENAAN DENGAN PAJAK ATAS PENGHASILAN BESERTA PROTOKOL",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-7-2004",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA REPUBLIK INDONESIA DAN REPUBLIK PORTUGAL UNTUK PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK YANG BERKENAAN DENGAN PAJAK ATAS PENGHASILAN BESERTA PROTOKOL",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-92-2003",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH KERAJAAN BELANDA UNTUK PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK YANG BERKENAAN DENGAN PAJAK ATAS PENGHASILAN BESERTA PROTOKOL",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:keppres-96-2003",
+      "domain": "treaty",
+      "query": "PENGESAHAN PERSETUJUAN ANTARA PEMERINTAH REPUBLIK INDONESIA DAN PEMERINTAH REPUBLIK DEMOKRATIK RAKYAT KOREA TENTANG PENGHINDARAN PAJAK BERGANDA DAN PENCEGAHAN PENGELAKAN PAJAK ATAS PENGHASILAN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:peng-2-pj-09-2026",
+      "domain": "treaty",
+      "query": "PELAKSANAAN PERATURAN MENTERI KEUANGAN NOMOR 112 TAHUN 2025 TENTANG TATA CARA PENERAPAN PERSETUJUAN PENGHINDARAN PAJAK BERGANDA",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:per-10-pj-2017",
+      "domain": "treaty",
+      "query": "TATA CARA PENERAPAN PERSETUJUAN PENGHINDARAN PAJAK BERGANDA",
+      "returned": 10,
+      "rank": 3,
+      "passed": true
+    },
+    {
+      "id": "treaty:per-16-pj-2020",
+      "domain": "treaty",
+      "query": "PENANGANAN PERMINTAAN PELAKSANAAN PROSEDUR PERSETUJUAN BERSAMA DAN PENYELESAIAN TINDAK LANJUT PERSETUJUAN BERSAMA",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:per-17-pj-2020",
+      "domain": "treaty",
+      "query": "TATA CARA PENYELESAIAN PERMOHONAN, PELAKSANAAN, DAN EVALUASI KESEPAKATAN HARGA TRANSFER (ADVANCE PRICING AGREEMENT)",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "treaty:per-2-pj-2020",
+      "domain": "treaty",
+      "query": "TATA CARA PELAKSANAAN TAX EXAMINATION ABROAD DALAM RANGKA PERTUKARAN INFORMASI BERDASARKAN PERJANJIAN INTERNASIONAL",
+      "returned": 2,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:bc-23-bc-2004",
+      "domain": "guides",
+      "query": "PETUNJUK TEKNIS PELAKSANAAN KEPUTUSAN MENTERI KEUANGAN NOMOR 68/KMK.04/2004 TENTANG TATACARA PENGEMBALIAN BEA MASUK DAN/ATAU CUKAI DALAM RANGKA KEMUDAHAN IMPOR TUJUAN EKSPOR",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:imk-1-imk-01-1986",
+      "domain": "guides",
+      "query": "TATA CARA PELAPORAN PAJAK PERTAMBAHAN NILAI, PAJAK PENJUALAN ATAS BARANG MEWAH DAN BEA MASUK YANG DITANGGUNG ATAU DIBAYAR PEMERINTAH",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:inpres-2-2022",
+      "domain": "guides",
+      "query": "PERCEPATAN PENINGKATAN PENGGUNAAN PRODUK DALAM NEGERI DAN PRODUK USAHA MIKRO, USAHA KECIL, DAN KOPERASI DALAM RANGKA MENYUKSESKAN GERAKAN NASIONAL BANGGA BUATAN INDONESIA PADA PELAKSANAAN PENGADAAN BARANG/JASA PEMERINTAH",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:ins-15-pj-2016",
+      "domain": "guides",
+      "query": "PELAKSANAAN KERJA LEMBUR PADA HARI MINGGU OLEH PEGAWAI DI LINGKUNGAN DIREKTORAT JENDERAL PAJAK DALAM RANGKA PELAKSANAAN PROGRAM PENGAMPUNAN PAJAK PERIODE KEDUA",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-1-pj-1996",
+      "domain": "guides",
+      "query": "TARIF DAN TATA CARA PEMUNGUTAN, PENYETORAN, SERTA PELAPORAN PAJAK PENGHASILAN PASAL 22 ATAS PENJUALAN HASIL PRODUKSI INDUSTRI BAJA DI DALAM NEGERI",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-1-pj-43-1992",
+      "domain": "guides",
+      "query": "BENTUK, UKURAN, KODE DAN WARNA FORMULIR PEMOTONGAN, PELAPORAN DAN RESITUSI PAJAK PENGHASILAN ATAS BUNGA DEPOSITO BERJANGKA, SERTIFIKAT BANK INDONESIA, SERTIFIKAT DEPOSITO DAN TABUNGAN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-1-pj-up-41-1990",
+      "domain": "guides",
+      "query": "PENUNJUKAN PARA PEJABAT DALAM LINGKUNGAN DIREKTORAT JENDERAL PAJAK UNTUK MENETAPKAN DAN MENERBITKAN SURAT-SURAT IZIN CUTI BAGI PARA PEGAWAI NEGERI SIPIL DALAM LINGKUNGAN MASING-MASING",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-10-pj-3-1987",
+      "domain": "guides",
+      "query": "PELIMPAHAN WEWENANG DIREKTUR JENDERAL PAJAK UNTUK MENGURANGKAN ATAU MENGHAPUSKAN SANKSI ADMINISTRASI PAJAK PERTAMBAHAN NILAI DAN PAJAK PENJUALAN ATAS BARANG MEWAH SEBAGAIMANA DIMAKSUDKAN DALAM PASAL 36 AYAT (1) HURUF A UNDANG-UNDANG NOMOR 6 TAHUN 1983",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-104-pj-2002",
+      "domain": "guides",
+      "query": "PERUBAHAN ATAS KEPUTUSAN DIREKTUR JENDERAL PAJAK NOMOR KEP-48/PJ./2001 TENTANG TATACARA PEMBERIAN DAN PENATAUSAHAAN PAJAK PERTAMBAHAN NILAI DIBEBASKAN ATAS IMPOR DAN ATAU PENYERAHAN BARANG KENA PAJAK TERTENTU DAN ATAU JASA KENA PAJAK TERTENTU",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-11-pj-1996",
+      "domain": "guides",
+      "query": "BENTUK SURAT KETETAPAN PAJAK KURANG BAYAR PAJAK PERTAMBAHAN NILAI ATAS IMPOR/ PEMANFAATAN BKP TIDAK BERWUJUD DARI LUAR DAERAH PABEAN / PEMANFAATAN JKP DARI LUAR DAERAH PABEAN/ PEMUNGUTAN PAJAK OLEH PEMUNGUT PAJAK, SURAT KETETAPAN PAJAK KURANG BAYAR PAJAK PENJUALAN ATAS BARANG MEWAH ATAS IMPOR/ PEMUNGUTAN PAJAK OLEH PEMUNGUT PAJAK BESERTA NOTA PENGHITUNGANNYA",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-11-pj-3-1987",
+      "domain": "guides",
+      "query": "PELIMPAHAN WEWENANG DIREKTUR JENDERAL PAJAK UNTUK MEMBERIKAN KEPUTUSAN ATAS KEBERATAN WAJIB PAJAK MENGENAI PAJAK PERTAMBAHAN NILAI DAN PAJAK PENJUALAN ATAS BARANG MEWAH SEBAGAIMANA DIMAKSUDKAN DALAM PASAL 26 UNDANG-UNDANG NOMOR 6 TAHUN 1983",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-111-pj-1996",
+      "domain": "guides",
+      "query": "PENYEMPURNAAN KEPUTUSAN DIREKTUR JENDERAL PAJAK NOMOR KEP-97/PJ./1996 TENTANG SUSUNAN DAN TUGAS DEWAN PENGAWAS PELAKSANAAN PEMERIKSAAN SEDERHANA LAPANGAN (PSL) PAJAK PERTAMBAHAN NILAI DAN PAJAK PENJUALAN ATAS BARANG MEWAH OLEH AKUNTAN PUBLIK",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-112-pj-1996",
+      "domain": "guides",
+      "query": "PETUNJUK PELAKSANAAN PEMERIKSAAN SEDERHANA LAPANGAN PAJAK PERTAMBAHAN NILAI DAN PAJAK PENJUALAN ATAS BARANG MEWAH OLEH AKUNTAN PUBLIK",
+      "returned": 10,
+      "rank": 2,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-117-pj-2004",
+      "domain": "guides",
+      "query": "PERUBAHAN KEPUTUSAN DIREKTUR JENDERAL PAJAK NOMOR KEP-388/PJ./2003 TENTANG PENGGUNAAN STEMPEL TANDA TANGAN PADA BUKTI PEMOTONGAN PAJAK PENGHASILAN PASAL 23 DAN ATAU PASAL 26 ATAS PEMBAYARAN DIVIDEN KEPADA PARA PEMEGANG SAHAM",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-12-pj-3-1987",
+      "domain": "guides",
+      "query": "PELIMPAHAN WEWENANG DIREKTUR JENDERAL PAJAK UNTUK MEMBETULKAN SURAT KETETAPAN PAJAK- PAJAK PERTAMBAHAN NILAI DAN PAJAK PENJUALAN ATAS BARANG MEWAH SEBAGAIMANA DIMAKSUDKAN DALAM PASAL 16 UNDANG-UNDANG NOMOR 6 TAHUN 1983",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-125-pj-2018",
+      "domain": "guides",
+      "query": "PENUGASAN PEJABAT/PEGAWAI DIREKTORAT JENDERAL PAJAK DALAMRANGKA PENGAWASAN ATAS PEMASUKAN BARANG DARI TEMPAT LAINDALAM DAERAH PABEAN KE KAWASAN PERDAGANGAN BEBAS DANPELABUHAN BEBAS BATAM, BINTAN, DAN KARIMUN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-126-pj-2018",
+      "domain": "guides",
+      "query": "PENUGASAN PEJABAT /PEGAWAI DIREKTORAT JENDERAL PAJAK DALAMRANGKA PENGAWASAN ATAS PEMASUKAN BARANG DARI TEMPAT LAINDALAM DAERAH PABEAN KE KAWASAN PERDAGANGAN BEBAS DANPELABUHAN BEBAS SABANG",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-133-pj-1998",
+      "domain": "guides",
+      "query": "PENUNJUKAN PEGAWAI BADAN PENGAWASAN KEUANGAN DAN PEMBANGUNAN SEBAGAI TENAGA AHLI PADA DIREKTORAT JENDERAL PAJAK DAN PEMBENTUKAN TIM GABUNGAN DJP-BPKP TAHUN 1998/1999",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-135-pj-1998",
+      "domain": "guides",
+      "query": "STANDAR BENTUK DAN ISI FORMULIR SURAT IZIN PRAKTEK KONSULTAN PAJAK, PIAGAM PENGHARGAAN PENSIUNAN PEGAWAI DIREKTORAT JENDERAL PAJAK, DAN TANDA PENGENAL KONSULTAN PAJAK",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "guides:kep-141-bc-2003",
+      "domain": "guides",
+      "query": "PETUNJUK PELAKSANAAN PEMBERIAN PEMBEBASAN DAN/ATAU PENGEMBALIAN BEA MASUK DAN/ATAU CUKAI SERTA PAJAK PERTAMBAHAN NILAI DAN PAJAK PENJUALAN ATAS BARANG MEWAH TIDAK DIPUNGUT ATAS IMPOR BARANG DAN/ATAU BAHAN UNTUK DIOLAH, DIRAKIT ATAU DIPASANG PADA BARANG LA",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph21:001",
+      "domain": "manual",
+      "query": "Apa itu PPh Pasal 21?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph21:002",
+      "domain": "manual",
+      "query": "Siapa subjek PPh Pasal 21?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph21:003",
+      "domain": "manual",
+      "query": "Apa saja objek PPh Pasal 21?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph21:004",
+      "domain": "manual",
+      "query": "Bagaimana cara menghitung PPh Pasal 21 bulanan pegawai tetap?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph21:005",
+      "domain": "manual",
+      "query": "Bagaimana menghitung PPh Pasal 21 pegawai tidak tetap?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph21:006",
+      "domain": "manual",
+      "query": "Bagaimana menghitung PPh Pasal 21 bukan pegawai atau peserta kegiatan?",
+      "returned": 9,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph21:007",
+      "domain": "manual",
+      "query": "Apa itu PTKP dan berapa komponennya?",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph21:008",
+      "domain": "manual",
+      "query": "Berapa tarif progresif PPh Pasal 17 yang disebut dalam buku?",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph21:009",
+      "domain": "manual",
+      "query": "Apa akibat tidak memiliki NPWP untuk PPh Pasal 21?",
+      "returned": 3,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph22:010",
+      "domain": "manual",
+      "query": "Apa itu PPh Pasal 22?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph22:011",
+      "domain": "manual",
+      "query": "Siapa pemungut PPh Pasal 22?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph22:012",
+      "domain": "manual",
+      "query": "Siapa wajib pajak yang dipungut PPh Pasal 22?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph22:013",
+      "domain": "manual",
+      "query": "Apa saja objek PPh Pasal 22?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph22:014",
+      "domain": "manual",
+      "query": "Berapa batas pembayaran dan pelaporan PPh Pasal 22?",
+      "returned": 3,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph22:015",
+      "domain": "manual",
+      "query": "Berapa tarif PPh Pasal 22 atas impor?",
+      "returned": 9,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph22:016",
+      "domain": "manual",
+      "query": "Berapa tarif PPh Pasal 22 atas pembelian oleh bendahara pemerintah atau BUMN/BUMD?",
+      "returned": 8,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph22:017",
+      "domain": "manual",
+      "query": "Apa akibat tidak memiliki NPWP untuk PPh Pasal 22?",
+      "returned": 3,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph23:018",
+      "domain": "manual",
+      "query": "Apa itu PPh Pasal 23?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph23:019",
+      "domain": "manual",
+      "query": "Siapa pemotong dan penerima penghasilan PPh Pasal 23?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "manual:book:buku-praktis-pajak-2025:pph23:020",
+      "domain": "manual",
+      "query": "Apa saja objek PPh Pasal 23?",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:0066167994c73009c6bc4f8d",
+      "domain": "changes",
+      "query": "PP 10 TAHUN 2012 MENCABUT PP 2 TAHUN 2009",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:00c06d02ae8a0b34682c91bb",
+      "domain": "changes",
+      "query": "PP 79 TAHUN 1999 MENGUBAH PP 48 TAHUN 1994",
+      "returned": 10,
+      "rank": 2,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:00ca539608f463b8984bae60",
+      "domain": "changes",
+      "query": "PP 15 TAHUN 2022 DASAR HUKUM UU 7 TAHUN 1983",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:0175f92a449ee4a5fcb8d24b",
+      "domain": "changes",
+      "query": "PERPRES 22 TAHUN 2005 DASAR HUKUM UU 22 TAHUN 2001",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:019c204b4a3e727650f37188",
+      "domain": "changes",
+      "query": "UU 16 TAHUN 2009 DASAR HUKUM UU 9 TAHUN 1994",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:01a887f1664c98e4760316cd",
+      "domain": "changes",
+      "query": "UU 18 TAHUN 2000 DASAR HUKUM UU 8 TAHUN 1983",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:01d1caa012837e62e2c3f220",
+      "domain": "changes",
+      "query": "PP 55 TAHUN 2008 DASAR HUKUM PP 35 TAHUN 2005",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:02321ea843cc8b505b0e795b",
+      "domain": "changes",
+      "query": "PP 49 TAHUN 2022 DASAR HUKUM PP 40 TAHUN 2015",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:023692eb7c8078e71cc261dd",
+      "domain": "changes",
+      "query": "PP 55 TAHUN 2009 MENGUBAH PP 35 TAHUN 2004",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:02bda3aa43c19b181421e1a6",
+      "domain": "changes",
+      "query": "PP 77 TAHUN 2013 MENCABUT PP 81 TAHUN 2007",
+      "returned": 10,
+      "rank": 2,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:02fb8d090a707bca66d9609f",
+      "domain": "changes",
+      "query": "PP 35 TAHUN 2004 DASAR HUKUM UU 22 TAHUN 2001",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:032b119a8d831b10c3f13dac",
+      "domain": "changes",
+      "query": "PP 94 TAHUN 2010 MENCABUT PP 138 TAHUN 2000",
+      "returned": 10,
+      "rank": 2,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:03d16bc842ce1ebaf14647f3",
+      "domain": "changes",
+      "query": "PP 19 TAHUN 2007 MENGUBAH PP 75 TAHUN 2005",
+      "returned": 10,
+      "rank": 2,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:0426bd3020da125d735a05db",
+      "domain": "changes",
+      "query": "PP 42 TAHUN 2000 MENCABUT PP 46 TAHUN 1994",
+      "returned": 10,
+      "rank": 2,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:044a46bd212e2c532774c14a",
+      "domain": "changes",
+      "query": "PP 7 TAHUN 2007 DASAR HUKUM PP 12 TAHUN 2001",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:04f75f5b67cd6eb815e52209",
+      "domain": "changes",
+      "query": "PP 7 TAHUN 2007 MENGUBAH PP 12 TAHUN 2001",
+      "returned": 10,
+      "rank": 2,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:0527f97a664c2196a78a1f40",
+      "domain": "changes",
+      "query": "UU 44 TAHUN 2007 DASAR HUKUM UU 36 TAHUN 2000",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:0547b291a30d486f8ea3dbe1",
+      "domain": "changes",
+      "query": "PP 62 TAHUN 2008 DASAR HUKUM PP 1 TAHUN 2007",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:0556dafeb1ae92342b9471b6",
+      "domain": "changes",
+      "query": "PP 34 TAHUN 2016 MENCABUT PP 27 TAHUN 1996",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "changes:edge:06bf834670f8dca45c847b03",
+      "domain": "changes",
+      "query": "PP 46 TAHUN 2000 MENCABUT PP 74 TAHUN 1998",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:pajak-penghasilan-pph",
+      "domain": "glossary",
+      "query": "Pajak Penghasilan (PPh)",
+      "returned": 5,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:pajak-pertambahan-nilai-ppn",
+      "domain": "glossary",
+      "query": "Pajak Pertambahan Nilai (PPN)",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:pengusaha-kena-pajak",
+      "domain": "glossary",
+      "query": "Pengusaha Kena Pajak",
+      "returned": 2,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:dasar-pengenaan-pajak",
+      "domain": "glossary",
+      "query": "Dasar Pengenaan Pajak",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:pajak-masukan",
+      "domain": "glossary",
+      "query": "Pajak Masukan",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:pajak-keluaran",
+      "domain": "glossary",
+      "query": "Pajak Keluaran",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:penghasilan-tidak-kena-pajak",
+      "domain": "glossary",
+      "query": "Penghasilan Tidak Kena Pajak",
+      "returned": 3,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:persetujuan-penghindaran-pajak-berganda",
+      "domain": "glossary",
+      "query": "Persetujuan Penghindaran Pajak Berganda",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:multilateral-instrument",
+      "domain": "glossary",
+      "query": "Multilateral Instrument",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:norma-penghitungan-penghasilan-neto",
+      "domain": "glossary",
+      "query": "Norma Penghitungan Penghasilan Neto",
+      "returned": 3,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:tarif-efektif-rata-rata",
+      "domain": "glossary",
+      "query": "Tarif Efektif Rata-rata",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:surat-pemberitahuan",
+      "domain": "glossary",
+      "query": "Surat Pemberitahuan",
+      "returned": 3,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:nomor-pokok-wajib-pajak",
+      "domain": "glossary",
+      "query": "Nomor Pokok Wajib Pajak",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:kurs-pajak",
+      "domain": "glossary",
+      "query": "Kurs Pajak",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:wajib-pajak",
+      "domain": "glossary",
+      "query": "Wajib Pajak",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:wajib-pajak-orang-pribadi",
+      "domain": "glossary",
+      "query": "Wajib Pajak Orang Pribadi",
+      "returned": 5,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:badan-usaha-tetap",
+      "domain": "glossary",
+      "query": "Badan Usaha Tetap",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:masa-pajak",
+      "domain": "glossary",
+      "query": "Masa Pajak",
+      "returned": 3,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:tahun-pajak",
+      "domain": "glossary",
+      "query": "Tahun Pajak",
+      "returned": 6,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "glossary:penghasilan-kena-pajak",
+      "domain": "glossary",
+      "query": "Penghasilan Kena Pajak",
+      "returned": 2,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:ins-2-pj-2017",
+      "domain": "forms",
+      "query": "PENUGASAN KERJA LEMBUR DALAM RANGKA PELAYANAN PROGRAM PENGAMPUNAN PAJAK PERIODE KETIGA DAN PENERIMAAN SURAT PEMBERITAHUAN TAHUNAN PAJAK PENGHASILAN WAJIB PAJAK ORANG PRIBADI",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:ins-4-pj-2015",
+      "domain": "forms",
+      "query": "PENYELESAIAN PEMERIKSAAN KHUSUS MELALUI PENGHENTIAN PEMERIKSAAN DENGAN MEMBUAT LAPORAN HASIL PEMERIKSAAN SUMIR SEBELUM PENYAMPAIAN SURAT PEMBERITAHUAN HASIL PEMERIKSAAN DALAM RANGKA MENDUKUNG TAHUN PEMBINAAN WAJIB PAJAK",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-1-pj-43-1992",
+      "domain": "forms",
+      "query": "BENTUK, UKURAN, KODE DAN WARNA FORMULIR PEMOTONGAN, PELAPORAN DAN RESITUSI PAJAK PENGHASILAN ATAS BUNGA DEPOSITO BERJANGKA, SERTIFIKAT BANK INDONESIA, SERTIFIKAT DEPOSITO DAN TABUNGAN",
+      "returned": 2,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-100-pj-2003",
+      "domain": "forms",
+      "query": "PERUBAHAN KEEMPAT ATAS KEPUTUSAN DIREKTUR JENDERAL PAJAK NOMOR KEP-108/PJ.1/1996 TENTANG BENTUK FORMULIR PEMOTONGAN/PEMUNGUTAN PAJAK PENGHASILAN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-101-pj-2002",
+      "domain": "forms",
+      "query": "PERUBAHAN KEPUTUSAN DIREKTUR JENDERAL PAJAK NOMOR KEP-542/PJ./2001 TENTANG SURAT PEMBERITAHUAN TAHUNAN PAJAK PENGHASILAN WAJIB PAJAK ORANG PRIBADI SERTA BUKU PETUNJUK PENGISIANNYA",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-103-pj-2017",
+      "domain": "forms",
+      "query": "PENGECUALIAN PENGENAAN SANKSI ADMINISTRASI BERUPA DENDA ATAS KETERLAMBATAN PENYAMPAIAN SURAT PEMBERITAHUAN MASA PAJAK PENGHASILAN BAGI WAJIB PAJAK YANG MENYAMPAIKAN SURAT PEMBERITAHUAN (SPT) MASA ELEKTRONIK PAJAK PENGHASILAN",
+      "returned": 8,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-104-pj-2006",
+      "domain": "forms",
+      "query": "SURAT PEMBERITAHUAN TAHUNAN PAJAK PENGHASILAN WAJIB PAJAK BADAN, SURAT PEMBERITAHUAN TAHUNAN PAJAK PENGHASILAN WAJIB PAJAK ORANG PRIBADI, DAN SURAT PEMBERITAHUAN TAHUNAN PAJAK PENGHASILAN PASAL 21 TAHUN 2006 BESERTA PETUNJUK PENGISIANNYA",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-106-pj-bt5-1984",
+      "domain": "forms",
+      "query": "PENETAPAN BENTUK, JENIS DAN WARNA FORMULIR/SARANA PERUBAHAN DATA WAJIB PAJAK",
+      "returned": 2,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-107-pj-1998",
+      "domain": "forms",
+      "query": "BENTUK FORMULIR SURAT SETORAN PAJAK",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-108-pj-1-1996",
+      "domain": "forms",
+      "query": "BENTUK FORMULIR PEMOTONGAN/PEMUNGUTAN PAJAK PENGHASILAN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-108-pj-2017",
+      "domain": "forms",
+      "query": "PERUBAHAN KEEMPAT ATAS KEPUTUSAN DIREKTUR JENDERAL PAJAK NOMOR KEP-289/PJ/2014 TENTANG PENETAPAN KANTOR PELAYANAN PAJAK DAN JENIS SURAT PEMBERITAHUAN YANG DIOLAH DALAM RANGKA UJI COBA PERLUASAN DAN PENERAPAN WILAYAH KERJA PUSAT PENGOLAHAN DATA DAN DOKUMEN PERPAJAKAN DAN KANTOR PENGOLAHAN DATA DAN DOKUMEN PERPAJAKAN",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-112-pj-2008",
+      "domain": "forms",
+      "query": "TEMPAT DAN SAAT MULAI BERLAKUNYA SPT MASA PPN FORMULIR 1108 PADA KANTOR PELAYANAN PAJAK DI LINGKUNGAN KANTOR WILAYAH DIREKTORAT JENDERAL PAJAK JAKARTA PUSAT",
+      "returned": 6,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-113-pj-bt5-1984",
+      "domain": "forms",
+      "query": "BENTUK, JENIS, WARNA, FORMULIR DAN BUKU PETUNJUK PENGISIAN SURAT PEMBERITAHUAN TAHUNAN PAJAK PENGHASILAN TAHUN PAJAK 1984",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-115-pj-1997",
+      "domain": "forms",
+      "query": "PERUBAHAN BENTUK-BENTUK FORMULIR YANG DIGUNAKAN UNTUK PENAGIHAN PAJAK SEBAGAIMANA TERCANTUM PADA LAMPIRAN KEPUTUSAN DIREKTUR JENDERAL PAJAK NOMOR KEP-19/PJ./1995 TENTANG PEDOMAN TATA USAHA PIUTANG DAN PENAGIHAN PAJAK",
+      "returned": 1,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-12-pj-1995",
+      "domain": "forms",
+      "query": "BENTUK DAN ISI SURAT PEMBERITAHUAN MASA PAJAK PERTAMBAHAN NILAI (SPT MASA PPN) DAN SPT MASA PPN BAGI PENGUSAHA KENA PAJAK PEDAGANG ECERAN YANG MENGGUNAKAN NILAI LAIN SEBAGAI DASAR PENGENAAN PAJAK, KETERANGAN DAN DOKUMEN YANG HARUS DILAMPIRKAN, SERTA BUKU PETUNJUK PENGISIANNYA",
+      "returned": 6,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-12-pj-bt5-1989",
+      "domain": "forms",
+      "query": "BENTUK, KODE, WARNA DAN UKURAN FORMULIR SURAT PEMBERITAHUAN DAN FORMULIR SURAT TEGORAN PAJAK BUMI DAN BANGUNAN",
+      "returned": 7,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-123-pj-2015",
+      "domain": "forms",
+      "query": "PENETAPAN PENGUSAHA KENA PAJAK YANG DIWAJIBKAN MEMBUAT FAKTUR PAJAK BERBENTUK ELEKTRONIK",
+      "returned": 10,
+      "rank": 2,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-124-pj-2015",
+      "domain": "forms",
+      "query": "PENETAPAN PENGUSAHA KENA PAJAK YANG DIWAJIBKAN MEMBUAT FAKTUR PAJAK BERBENTUK ELEKTRONIK",
+      "returned": 10,
+      "rank": 3,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-125-pj-2015",
+      "domain": "forms",
+      "query": "PENETAPAN PENGUSAHA KENA PAJAK YANG DIWAJIBKAN MEMBUAT FAKTUR PAJAK BERBENTUK ELEKTRONIK",
+      "returned": 10,
+      "rank": 4,
+      "passed": true
+    },
+    {
+      "id": "forms:kep-127-pj-2008",
+      "domain": "forms",
+      "query": "TEMPAT DAN SAAT MULAI BERLAKUNYA SPT MASA PPN FORMULIR 1108 PADA KANTOR PELAYANAN PAJAK DI LINGKUNGAN KANTOR WILAYAH DIREKTORAT",
+      "returned": 6,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-01-2009",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, PAJAK EKSPOR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 05 JANUARI SAMPAI DENGAN 11 JANUARI 2009",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-1-2005",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, PAJAK EKSPOR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 3 SAMPAI DENGAN 9 JANUARI 2005",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-1-2006",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, PAJAK EKSPOR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 2 SAMPAI DENGAN 8 JANUARI 2006",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-1-2007",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, PAJAK EKSPOR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 1 SAMPAI DENGAN 7 JANUARI 2007",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-1-2010",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, PAJAK EKSPOR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 04 JANUARI 2010 SAMPAI DENGAN 10 JANUARI 2010",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-1-2011",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, PAJAK EKSPOR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 03 JANUARI 2011 SAMPAI DENGAN 09 JANUARI 2011",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-10-2016",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHANNILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH,BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUKTANGGAL 6 JANUARI 2016 SAMPAI DENGAN 12 JANUARI 2016",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-10-2017",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 04 JANUARI 2017 SAMPAI DENGAN 10 JANUARI 2017",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-10-2018",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHANNILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH,BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUKTANGGAL 3 JANUARI 2018 SAMPAI DENGAN 9 JANUARI 2018",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-10-2021",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 6 JANUARI 2021 SAMPAI DENGAN 12 JANUARI 2021",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-10-2022",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 5 JANUARI 2022 SAMPAI DENGAN 11 JANUARI 2022",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-10-kf-4-2023",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 11 OKTOBER 2023 SAMPAI DENGAN 17 OKTOBER 2023",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-10-kf-4-2024",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 3 JANUARI SAMPAI DENGAN 9 JANUARI 2024",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-10-kf-4-2025",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK 8 JANUARI 2025 SAMPAI DENGAN 14 JANUARI 2025",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-11-2013",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHANNILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH,BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUKTANGGAL 9 JANUARI 2013 SAMPAI DENGAN 15 JANUARI 2013",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-11-2014",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 8 JANUARI 2014 SAMPAI DENGAN 14 JANUARI 2014",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-km-11-2015",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, BEA KELUAR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 07 JANUARI 2015 SAMPAI DENGAN 13 JANUARI 2015",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-kmk-011-2002",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, PAJAK EKSPOR, DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 7 SAMPAI DENGAN 13 JANUARI 2002",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-kmk-014-1998",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, PAJAK EKSPOR DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 5 SAMPAI DENGAN 11 JANUARI 1998",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    },
+    {
+      "id": "rates:kmk-1-kmk-014-1999",
+      "domain": "rates",
+      "query": "NILAI KURS SEBAGAI DASAR PELUNASAN BEA MASUK, PAJAK PERTAMBAHAN NILAI BARANG DAN JASA DAN PAJAK PENJUALAN ATAS BARANG MEWAH, PAJAK EKSPOR DAN PAJAK PENGHASILAN YANG BERLAKU UNTUK TANGGAL 4 SAMPAI DENGAN 10 JANUARI 1999",
+      "returned": 10,
+      "rank": 1,
+      "passed": true
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "treaty-malaysia",
+      "domain": "treaty",
+      "query": "P3B Indonesia Malaysia",
+      "expected": "Malaysia",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:treaty:malaysia",
+        "treaty:se-86-pj-2010",
+        "official:treaty:singapore",
+        "official:treaty:united-arab-emirates",
+        "official:treaty:cambodia",
+        "official:treaty:tajikistan",
+        "official:treaty:belarus",
+        "official:treaty:serbia",
+        "official:treaty:armenia",
+        "official:treaty:india"
+      ]
+    },
+    {
+      "id": "treaty-australia-mli",
+      "domain": "treaty",
+      "query": "MLI Australia",
+      "expected": "Australia",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:treaty:australia",
+        "treaty:se-5-pj-2021"
+      ]
+    },
+    {
+      "id": "treaty-vietnam",
+      "domain": "treaty",
+      "query": "P3B Viet Nam",
+      "expected": "Viet Nam",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:treaty:viet-nam",
+        "official:treaty:suriname",
+        "treaty:se-11-pj-2024",
+        "treaty:se-59-pj-2013",
+        "treaty:perpres-27-2012",
+        "treaty:se-10-pj-3-2003"
+      ]
+    },
+    {
+      "id": "coretax-email",
+      "domain": "guides",
+      "query": "Coretax alamat email wajib pajak",
+      "expected": "Pendaftaran wajib pajak orang pribadi",
+      "rank": 8,
+      "passed": true,
+      "returnedIds": [
+        "official:coretax:wajib-pajak-di-sektor-migas",
+        "official:coretax:wajib-pajak-instansi-pemerintah",
+        "official:coretax:wajib-pajak-lembaga-keuangan",
+        "official:coretax:perubahan-data-wajib-pajak",
+        "official:coretax:perubahan-status-wajib-pajak",
+        "official:coretax:layanan-wajib-pajak",
+        "official:coretax:pendaftaran-wajib-pajak-badan",
+        "official:coretax:pendaftaran-wajib-pajak-orang-pribadi",
+        "official:coretax:pendaftaran-wajib-pajak-perdagangan-melalui-sistem-elektronik",
+        "official:coretax:pembayaran"
+      ]
+    },
+    {
+      "id": "coretax-invoice",
+      "domain": "guides",
+      "query": "Coretax nomor seri faktur",
+      "expected": "Pelaporan SPT masa PPN",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:coretax:pelaporan-spt-masa-ppn",
+        "official:coretax:pelaporan-spt-masa-unifikasi",
+        "official:coretax:wajib-pajak-instansi-pemerintah",
+        "official:coretax:pendaftaran-objek-pajak-bumi-dan-bangunan-p5l",
+        "official:coretax:penetapan-pemungut-bea-meterai",
+        "official:coretax:penghapusan-npwp",
+        "official:coretax:perubahan-data-wajib-pajak",
+        "official:coretax:perubahan-status-wajib-pajak",
+        "official:coretax:pendaftaran-wajib-pajak-badan",
+        "official:coretax:pendaftaran-wajib-pajak-orang-pribadi"
+      ]
+    },
+    {
+      "id": "coretax-nppn",
+      "domain": "guides",
+      "query": "pemberitahuan penggunaan NPPN Coretax",
+      "expected": "Pemberitahuan penggunaan norma",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:coretax:pemberitahuan-penggunaan-norma-penghitungan-penghasilan-neto",
+        "official:coretax:wajib-pajak-di-sektor-migas",
+        "official:coretax:wajib-pajak-instansi-pemerintah",
+        "official:coretax:layanan-wajib-pajak",
+        "official:coretax:pelaporan-spt-tahunan-pph-orang-pribadi",
+        "official:coretax:pelaporan-spt-masa-ppn",
+        "official:coretax:bukti-potong-pph",
+        "official:coretax:pelaporan-spt-masa-unifikasi",
+        "official:coretax:pembayaran",
+        "official:coretax:pencabutan-pengusaha-kena-pajak"
+      ]
+    },
+    {
+      "id": "guide-doctor",
+      "domain": "guides",
+      "query": "panduan pajak dokter tenaga medis",
+      "expected": "Dokter dan tenaga medis",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "guides:editorial:profesi:dokter-dan-tenaga-medis-petakan-penghasilan-serta-pemotongan",
+        "official:coretax:pelaporan-spt-masa-ppn",
+        "official:coretax:wajib-pajak-instansi-pemerintah",
+        "official:coretax:pelaporan-spt-tahunan-pph-orang-pribadi"
+      ]
+    },
+    {
+      "id": "guide-affiliate",
+      "domain": "guides",
+      "query": "transaksi afiliasi dokumentasi transfer pricing",
+      "expected": "Transaksi afiliasi",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "guides:editorial:transaksi:transaksi-afiliasi-dan-dokumentasi-transfer-pricing",
+        "official:coretax:wajib-pajak-di-sektor-migas",
+        "official:coretax:wajib-pajak-instansi-pemerintah",
+        "official:coretax:pelaporan-spt-masa-ppn",
+        "official:coretax:pemberitahuan-penggunaan-norma-penghitungan-penghasilan-neto",
+        "official:coretax:pelaporan-spt-masa-unifikasi",
+        "official:coretax:pembayaran",
+        "official:coretax:penetapan-pemungut-bea-meterai",
+        "official:coretax:pengukuhan-pengusaha-kena-pajak",
+        "official:coretax:wajib-pajak-lembaga-keuangan"
+      ]
+    },
+    {
+      "id": "manual-pph21",
+      "domain": "manual",
+      "query": "Bagaimana cara menghitung PPh Pasal 21 bulanan pegawai tetap?",
+      "expected": "menghitung PPh Pasal 21 bulanan",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "manual:book:buku-praktis-pajak-2025:pph21:004",
+        "manual:book:buku-praktis-pajak-2025:pph21:005",
+        "manual:book:buku-praktis-pajak-2025:pph21:006",
+        "manual:book:buku-praktis-pajak-2025:detail:081",
+        "manual:book:buku-praktis-pajak-2025:detail:080",
+        "manual:book:buku-praktis-pajak-2025:pph21:009",
+        "manual:book:buku-praktis-pajak-2025:pph21:001",
+        "manual:book:buku-praktis-pajak-2025:pph21:003",
+        "manual:book:buku-praktis-pajak-2025:pph21:002",
+        "manual:book:buku-praktis-pajak-2025:pph21:008"
+      ]
+    },
+    {
+      "id": "manual-pph22",
+      "domain": "manual",
+      "query": "Berapa tarif PPh Pasal 22 atas impor?",
+      "expected": "tarif PPh Pasal 22 atas impor",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "manual:book:buku-praktis-pajak-2025:pph22:015",
+        "manual:book:buku-praktis-pajak-2025:pph22:016",
+        "manual:book:buku-praktis-pajak-2025:pph22:014",
+        "manual:book:buku-praktis-pajak-2025:pph42:038",
+        "manual:book:buku-praktis-pajak-2025:pph42:039",
+        "manual:book:buku-praktis-pajak-2025:pph42:037",
+        "manual:book:buku-praktis-pajak-2025:pph-umkm:048",
+        "manual:book:buku-praktis-pajak-2025:pph-umkm:047",
+        "manual:book:buku-praktis-pajak-2025:pph-umkm:046"
+      ]
+    },
+    {
+      "id": "glossary-beneficial-owner",
+      "domain": "glossary",
+      "query": "apa arti beneficial owner",
+      "expected": "Beneficial Owner",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "glossary:beneficial-owner"
+      ]
+    },
+    {
+      "id": "glossary-skpkb",
+      "domain": "glossary",
+      "query": "definisi SKPKB",
+      "expected": "Kurang Bayar",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "glossary:surat-ketetapan-pajak-kurang-bayar",
+        "glossary:surat-ketetapan-pajak-kurang-bayar-tambahan"
+      ]
+    },
+    {
+      "id": "form-dgt",
+      "domain": "forms",
+      "query": "Form DGT PMK 112 Tahun 2025",
+      "expected": "Form DGT",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:form:form-dgt:1:209f2b4636",
+        "official:form:formulir-spt-tahunan-wajib-pajak-orang-pribadi:1:45dfe91707",
+        "official:form:formulir-per-7-pj-2025:4:d0fc645fd4",
+        "official:form:formulir-per-7-pj-2025:5:5b0ec3f3c6"
+      ]
+    },
+    {
+      "id": "form-efin",
+      "domain": "forms",
+      "query": "formulir permohonan EFIN PDF isian",
+      "expected": "EFIN",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:form:formulir-permohonan-efin:1:6f703396f7",
+        "official:form:formulir-permohonan-efin:2:d50492a9a0"
+      ]
+    },
+    {
+      "id": "form-spt-op",
+      "domain": "forms",
+      "query": "SPT Tahunan Orang Pribadi 2025",
+      "expected": "SPT Tahunan Orang Pribadi 2025",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:form:formulir-spt-tahunan-wajib-pajak-orang-pribadi:1:45dfe91707",
+        "forms:kep-55-pj-2026",
+        "forms:kep-62-pj-2014",
+        "forms:kep-79-pj-2025",
+        "forms:kep-95-pj-2019",
+        "forms:per-30-pj-2017",
+        "forms:per-36-pj-2015",
+        "forms:per-19-pj-2014",
+        "forms:per-6-pj-2014",
+        "forms:per-1-pj-2014"
+      ]
+    },
+    {
+      "id": "rate-usd",
+      "domain": "rates",
+      "query": "kurs pajak USD 19 Agustus 2026",
+      "expected": "USD",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:rate:kmk-nomor-38-mk-ef-2-2026:usd",
+        "rates:kmk-34-mk-ef-2-2026",
+        "rates:kmk-21-mk-ef-2-2026",
+        "rates:kmk-38-mk-10-2019",
+        "rates:kmk-37-mk-10-2019",
+        "rates:kmk-36-mk-10-2019",
+        "rates:kmk-35-mk-10-2019",
+        "rates:kmk-34-mk-10-2019",
+        "rates:kmk-437-kmk-014-1999",
+        "rates:kmk-428-kmk-014-1999"
+      ]
+    },
+    {
+      "id": "rate-jpy",
+      "domain": "rates",
+      "query": "kurs pajak JPY per 100 yen",
+      "expected": "JPY",
+      "rank": 1,
+      "passed": true,
+      "returnedIds": [
+        "official:rate:kmk-nomor-38-mk-ef-2-2026:jpy",
+        "rates:kmk-100-km-1-2008",
+        "rates:kmk-100-kmk-014-1999"
+      ]
+    }
+  ]
+}

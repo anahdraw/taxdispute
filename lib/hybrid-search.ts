@@ -1,4 +1,4 @@
-import type { HybridSearchResult, SearchDocument, SearchHit, SearchRequest } from "./search-contracts";
+import type { HybridSearchResult, SearchDocument, SearchFacetBucket, SearchFacetFilters, SearchHit, SearchRequest } from "./search-contracts";
 
 const STOP_WORDS = new Set([
   "yang", "dan", "atau", "dengan", "untuk", "pada", "dalam", "atas", "dari", "oleh", "karena", "bahwa", "ini", "itu",
@@ -42,12 +42,19 @@ export function searchTokens(value: unknown) {
 function citationSignals(value: unknown) {
   const text = normalizeSearchText(value);
   const signals = new Set<string>();
+  // Legacy ministerial citations often put the instrument number before its
+  // type, e.g. `132/KMK.014/2000`. Treat 132 as the controlling number and do
+  // not let the internal unit code (014) make every KMK from that unit look
+  // like an exact match.
+  const reversedPattern = /\b([0-9]{1,4})\s+(uu|perpu|pp|perpres|pmk|kmk|kep|per|se)\s+[0-9]{1,3}\s+((?:19|20)\d{2})\b/gi;
+  for (const match of text.matchAll(reversedPattern)) signals.add(`${match[2].toLowerCase()}-${Number(match[1])}-${match[3]}`);
+  if (signals.size) return signals;
   // Covers the common Indonesian citation form (`UU Nomor 8 Tahun 1983`) and
   // the compact form used by pipeline metadata (`UU 8/1983`).  This signal is
   // deliberately separate from BM25 so a legal identifier cannot be drowned
   // out by thousands of documents that merely repeat words such as "nomor" or
   // "tahun" in their body text.
-  const pattern = /\b(uu|perpu|pp|perpres|pmk|kmk|kep|per|se)\s*(?:nomor|no)?\s*([0-9]+)(?:\s*\/\s*(?:pmk|pj|03|\w+))?(?:\s*(?:tahun|th)\s*)?((?:19|20)\d{2})\b/gi;
+  const pattern = /\b(uu|perpu|pp|perpres|pmk|kmk|kep|per|se)\s*(?:nomor|no)?\s*([0-9]+)(?:\s+(?:pmk|pj)(?:\s+(?!(?:19|20)\d{2}\b)\d{1,3})?)?\s*(?:(?:tahun|th)\s*)?((?:19|20)\d{2})\b/gi;
   for (const match of text.matchAll(pattern)) signals.add(`${match[1].toLowerCase()}-${Number(match[2])}-${match[3]}`);
   return signals;
 }
@@ -79,6 +86,17 @@ function validateRequest(request: SearchRequest) {
   )) {
     throw new InvalidSearchRequestError("minimumScore must be a finite number between 0 and 100.");
   }
+  if (request.facets !== undefined) {
+    if (!request.facets || typeof request.facets !== "object" || Array.isArray(request.facets)) throw new InvalidSearchRequestError("facets must be an object.");
+    for (const [key, values] of Object.entries(request.facets)) {
+      if (!["topics", "authorities", "statuses", "legalStatuses", "years"].includes(key) || !Array.isArray(values) || values.length > 50) {
+        throw new InvalidSearchRequestError("Each supported facet must be an array with at most 50 values.");
+      }
+      if (values.some((value) => typeof value !== (key === "years" ? "number" : "string") || String(value).length > 300)) {
+        throw new InvalidSearchRequestError("Facet values have an invalid type or length.");
+      }
+    }
+  }
   return { query, tenantId, limit: request.limit || DEFAULT_LIMIT, offset: request.offset || 0 };
 }
 
@@ -94,6 +112,68 @@ function validAsOf(document: SearchDocument, asOf?: string) {
   const from = document.effectiveFrom ? Date.parse(document.effectiveFrom) : Number.NEGATIVE_INFINITY;
   const to = document.effectiveTo ? Date.parse(document.effectiveTo) : Number.POSITIVE_INFINITY;
   return timestamp >= from && timestamp <= to;
+}
+
+function documentYear(document: SearchDocument) {
+  const explicit = Number(document.metadata?.year || 0);
+  if (Number.isInteger(explicit) && explicit >= 1900 && explicit <= 2200) return explicit;
+  const effective = String(document.effectiveFrom || "").match(/\b((?:19|20)\d{2})\b/);
+  if (effective) return Number(effective[1]);
+  const citation = `${document.citation || ""} ${document.title}`.match(/\b((?:19|20)\d{2})\b/);
+  return citation ? Number(citation[1]) : 0;
+}
+
+function normalizedFacetValues(values: unknown[] | undefined) {
+  return new Set((values || []).map((value) => String(value).trim().toLowerCase()).filter(Boolean));
+}
+
+function matchesFacets(document: SearchDocument, facets?: SearchFacetFilters) {
+  if (!facets) return true;
+  const topics = normalizedFacetValues(facets.topics);
+  const authorities = normalizedFacetValues(facets.authorities);
+  const statuses = normalizedFacetValues(facets.statuses);
+  const legalStatuses = normalizedFacetValues(facets.legalStatuses);
+  const years = new Set((facets.years || []).filter((value) => Number.isInteger(value)).map(Number));
+  if (topics.size && !topics.has(String(document.metadata?.topic || "general").toLowerCase())) return false;
+  if (authorities.size && !authorities.has(String(document.authority || "Tidak diketahui").toLowerCase())) return false;
+  if (statuses.size && !statuses.has(String(document.status || "unknown").toLowerCase())) return false;
+  if (legalStatuses.size && !legalStatuses.has(String(document.metadata?.legalStatus || "unknown").toLowerCase())) return false;
+  if (years.size && !years.has(documentYear(document))) return false;
+  return true;
+}
+
+function facetBuckets(values: Array<{ value: string; label?: string }>): SearchFacetBucket[] {
+  const counts = new Map<string, { label: string; count: number }>();
+  for (const item of values) {
+    const value = item.value || "unknown";
+    const current = counts.get(value) || { label: item.label || value, count: 0 };
+    current.count += 1;
+    counts.set(value, current);
+  }
+  return [...counts.entries()]
+    .map(([value, item]) => ({ value, label: item.label, count: item.count }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+function facetSummary(items: ScoredDocument[]) {
+  const documents = items.map((item) => item.document);
+  return {
+    corpora: facetBuckets(documents.map((document) => ({ value: document.corpus, label: document.corpus === "decision" ? "Putusan" : "Peraturan" }))),
+    topics: facetBuckets(documents.map((document) => ({ value: String(document.metadata?.topic || "general"), label: String(document.metadata?.topicLabel || document.metadata?.topic || "Umum") }))),
+    authorities: facetBuckets(documents.map((document) => ({ value: document.authority || "Tidak diketahui" }))),
+    statuses: facetBuckets(documents.map((document) => ({ value: document.status || "unknown" }))),
+    legalStatuses: facetBuckets(documents.map((document) => ({ value: String(document.metadata?.legalStatus || "unknown") }))),
+    years: facetBuckets(documents.map((document) => ({ value: String(documentYear(document) || "unknown"), label: documentYear(document) ? String(documentYear(document)) : "Tahun belum diketahui" })))
+  };
+}
+
+function detailUrl(document: SearchDocument) {
+  if (document.corpus === "regulation") {
+    const canonical = String(document.metadata?.canonicalKey || document.id);
+    return `/sources/regulation/${encodeURIComponent(canonical)}`;
+  }
+  const documentId = String(document.metadata?.documentId || "");
+  return documentId ? `/decisions/${encodeURIComponent(documentId)}` : "";
 }
 
 function termFrequency(tokens: string[]) {
@@ -142,6 +222,7 @@ type ScoredDocument = {
   semanticScore: number | null;
   exactMatch: boolean;
   exactCitationMatch: boolean;
+  exactCitationTextMatch: boolean;
   matchedTerms: string[];
 };
 
@@ -165,12 +246,16 @@ export function hybridSearch(documents: readonly SearchDocument[], request: Sear
       hits: [],
       totalCandidates: 0,
       hasMore: false,
+      facets: { corpora: [], topics: [], authorities: [], statuses: [], legalStatuses: [], years: [] },
       diagnostics: { lexicalEnabled: true, semanticEnabled: Boolean(request.queryEmbedding), tenantFiltered: true, elapsedMs: Date.now() - started }
     };
   }
 
   const queryCitationSignals = citationSignals(query);
-  const citationCandidates = queryCitationSignals.size
+  const canonicalCitationCandidates = queryCitationSignals.size
+    ? visible.filter((document) => Array.from(queryCitationSignals).some((signal) => citationSignals(String(document.metadata?.canonicalKey || "").replace(/-/g, " ")).has(signal)))
+    : [];
+  const citationCandidates = canonicalCitationCandidates.length ? canonicalCitationCandidates : queryCitationSignals.size
     ? visible.filter((document) => Array.from(queryCitationSignals).some((signal) => citationSignals(`${document.citation} ${document.title}`).has(signal)))
     : [];
   // A citation-shaped query is a direct lookup. Restrict its expensive body
@@ -199,13 +284,14 @@ export function hybridSearch(documents: readonly SearchDocument[], request: Sear
       bm25 += idf * ((tf * 2.2) / lengthNormalization);
     }
     const title = normalizeSearchText([document.title, document.citation].filter(Boolean).join(" "));
-    const exactCitationMatch = Array.from(queryCitationSignals).some((signal) => citationSignals(`${document.citation} ${document.title}`).has(signal));
+    const exactCitationTextMatch = normalizeSearchText(document.citation) === queryNormalized;
+    const exactCitationMatch = exactCitationTextMatch || Array.from(queryCitationSignals).some((signal) => citationSignals(`${document.citation} ${document.title}`).has(signal));
     const exactMatch = title.includes(queryNormalized) || queryNormalized.includes(title) || exactCitationMatch;
     const matchedTerms = queryTerms.filter((term) => frequency.has(term));
     const coverage = matchedTerms.length / queryTerms.length;
     const lexicalScore = Math.min(1, bm25 / Math.max(2, queryTerms.length * 1.7)) * 0.7 + coverage * 0.3;
     const semanticScore = cosineSimilarity(request.queryEmbedding, document.embedding);
-    return { document, lexicalScore, semanticScore, exactMatch, exactCitationMatch, matchedTerms };
+    return { document, lexicalScore, semanticScore, exactMatch, exactCitationMatch, exactCitationTextMatch, matchedTerms };
   });
 
   const lexicalRanking = [...scored].sort((a, b) => b.lexicalScore - a.lexicalScore || a.document.id.localeCompare(b.document.id));
@@ -229,20 +315,23 @@ export function hybridSearch(documents: readonly SearchDocument[], request: Sear
     // A semantic-only match is allowed, but a lexical-only zero-score record is not.
     .filter((item) => item.lexicalScore > 0 || (item.semanticScore !== null && item.semanticScore >= 0.55))
     .filter((item) => item.score >= (request.minimumScore ?? 8))
-    .sort((a, b) => b.score - a.score || a.document.id.localeCompare(b.document.id));
+    .sort((a, b) => Number(b.exactCitationTextMatch) - Number(a.exactCitationTextMatch) || b.score - a.score || a.document.id.localeCompare(b.document.id));
 
   // Provision-level indexing is useful for citation locators, but a search
   // result should not show the same regulation five times just because five
   // pasal chunks matched. Keep the strongest chunk per canonical regulation;
   // decision chunks remain independent because their IDs are matter-scoped.
   const seenCanonical = new Set<string>();
-  const ranked = rankedDocuments.filter((item) => {
+  const relevant = rankedDocuments.filter((item) => {
     if (item.document.corpus !== "regulation") return true;
     const key = String(item.document.metadata?.canonicalKey || item.document.id);
     if (seenCanonical.has(key)) return false;
     seenCanonical.add(key);
     return true;
   });
+
+  const facets = facetSummary(relevant);
+  const ranked = relevant.filter((item) => matchesFacets(item.document, request.facets));
 
   const hits: SearchHit[] = ranked.slice(offset, offset + limit).map(({ document, score, lexicalScore, semanticScore, exactMatch, matchedTerms }) => ({
     id: document.id,
@@ -254,6 +343,8 @@ export function hybridSearch(documents: readonly SearchDocument[], request: Sear
     sourceHash: document.sourceHash || "",
     authority: document.authority || "",
     locator: document.locator,
+    effectiveFrom: document.effectiveFrom,
+    effectiveTo: document.effectiveTo,
     status: document.status || "unknown",
     score: Math.round(score * 10) / 10,
     lexicalScore: Math.round(lexicalScore * 1_000) / 1_000,
@@ -261,6 +352,7 @@ export function hybridSearch(documents: readonly SearchDocument[], request: Sear
     exactMatch,
     matchedTerms,
     metadata: document.metadata || {}
+    ,detailUrl: detailUrl(document)
   }));
 
   return {
@@ -268,6 +360,7 @@ export function hybridSearch(documents: readonly SearchDocument[], request: Sear
     hits,
     totalCandidates: ranked.length,
     hasMore: offset + hits.length < ranked.length,
+    facets,
     diagnostics: { lexicalEnabled: true, semanticEnabled: hasSemantic, tenantFiltered: true, elapsedMs: Date.now() - started }
   };
 }

@@ -740,6 +740,9 @@ export async function ensureTpLocalFileSchema() {
 
 function tpProjectFromRow(row: Record<string, unknown>): TpLocalFileProject {
   const status = String(row.status || "draft") as TpProjectStatus;
+  const timestamp = (value: unknown) => value instanceof Date
+    ? value.toISOString()
+    : new Date(String(value)).toISOString();
   return {
     id: String(row.id),
     ownerUsername: String(row.owner_username),
@@ -747,8 +750,8 @@ function tpProjectFromRow(row: Record<string, unknown>): TpLocalFileProject {
     status: status === "ready" || status === "analyzed" || status === "extracted" ? status : "draft",
     state: normalizeTpProjectState(row.state),
     documents: Array.isArray(row.documents) ? row.documents as TpSourceDocument[] : [],
-    createdAt: new Date(String(row.created_at)).toISOString(),
-    updatedAt: new Date(String(row.updated_at)).toISOString()
+    createdAt: timestamp(row.created_at),
+    updatedAt: timestamp(row.updated_at)
   };
 }
 
@@ -827,6 +830,78 @@ export async function upsertTpLocalFileProject(project: TpLocalFileProject) {
       project.updatedAt
     ]
   );
+}
+
+/** Optimistic update used by long-running TP agents so concurrent advisor edits are never overwritten. */
+export async function updateTpLocalFileProjectIfUnchanged(project: TpLocalFileProject, expectedUpdatedAt: string) {
+  await ensureTpLocalFileSchema();
+  const result = await getPool().query(
+    `UPDATE tp_local_file_projects
+     SET name = $2,
+         status = $3,
+         state = $4::jsonb,
+         documents = $5::jsonb,
+         updated_at = $6
+     WHERE id = $1
+       AND updated_at = $7::timestamptz
+     RETURNING id`,
+    [
+      project.id,
+      project.name,
+      project.status,
+      JSON.stringify(normalizeTpProjectState(project.state)),
+      JSON.stringify(project.documents || []),
+      project.updatedAt,
+      expectedUpdatedAt
+    ]
+  );
+  return Boolean(result.rows[0]);
+}
+
+/**
+ * Commits an agent-authored project update only while the worker still owns an
+ * active lease. The version and lease checks live in the same SQL statement so
+ * a concurrent advisor edit or cancellation cannot be overwritten.
+ */
+export async function updateTpLocalFileProjectFromAgentRun(
+  project: TpLocalFileProject,
+  expectedUpdatedAt: string,
+  runId: string,
+  workerId: string
+) {
+  await ensureTpLocalFileSchema();
+  const result = await getPool().query(
+    `UPDATE tp_local_file_projects project
+     SET name = $2,
+         status = $3,
+         state = $4::jsonb,
+         documents = $5::jsonb,
+         updated_at = $6
+     WHERE project.id = $1
+       AND project.updated_at = $7::timestamptz
+       AND EXISTS (
+         SELECT 1
+         FROM tp_agent_runs run
+         WHERE run.id = $8
+           AND run.project_id = project.id
+           AND run.status = 'running'
+           AND run.lease_owner = $9
+           AND run.lease_until >= NOW()
+       )
+     RETURNING project.id`,
+    [
+      project.id,
+      project.name,
+      project.status,
+      JSON.stringify(normalizeTpProjectState(project.state)),
+      JSON.stringify(project.documents || []),
+      project.updatedAt,
+      expectedUpdatedAt,
+      runId,
+      workerId
+    ]
+  );
+  return Boolean(result.rows[0]);
 }
 
 export async function deleteTpLocalFileProject(id: string) {

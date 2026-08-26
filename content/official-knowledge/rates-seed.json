@@ -1,0 +1,39 @@
+{
+  "meta": {
+    "source": "Direktorat Jenderal Strategi Ekonomi dan Fiskal, Kementerian Keuangan",
+    "officialUrl": "https://fiskal.kemenkeu.go.id/informasi-publik/kurs-pajak",
+    "pdfUrl": "https://fiskal.kemenkeu.go.id/files/kurs/file/1787041920_nilai_kurs_19-25_aug_2026.pdf",
+    "citation": "KMK Nomor 38/MK/EF.2/2026",
+    "validFrom": "2026-08-19",
+    "validTo": "2026-08-25",
+    "retrievedAt": "2026-08-21T00:00:00.000Z",
+    "sourceHash": ""
+  },
+  "items": [
+    ["USD", "Dolar Amerika Serikat", 17843.00, 1],
+    ["AUD", "Dolar Australia", 12604.73, 1],
+    ["CAD", "Dolar Kanada", 12815.93, 1],
+    ["DKK", "Kroner Denmark", 2754.75, 1],
+    ["HKD", "Dolar Hongkong", 2273.92, 1],
+    ["MYR", "Ringgit Malaysia", 4364.39, 1],
+    ["NZD", "Dolar Selandia Baru", 10478.60, 1],
+    ["NOK", "Kroner Norwegia", 1880.45, 1],
+    ["GBP", "Poundsterling Inggris", 24099.64, 1],
+    ["SGD", "Dolar Singapura", 13940.18, 1],
+    ["SEK", "Kroner Swedia", 1870.40, 1],
+    ["CHF", "Franc Swiss", 21962.83, 1],
+    ["JPY", "Yen Jepang", 11196.27, 100],
+    ["MMK", "Kyat Myanmar", 8.49, 1],
+    ["INR", "Rupee India", 187.05, 1],
+    ["KWD", "Dinar Kuwait", 57753.13, 1],
+    ["PKR", "Rupee Pakistan", 64.21, 1],
+    ["PHP", "Peso Filipina", 291.56, 1],
+    ["SAR", "Riyal Arab Saudi", 4752.27, 1],
+    ["LKR", "Rupee Sri Lanka", 53.43, 1],
+    ["THB", "Baht Thailand", 538.96, 1],
+    ["BND", "Dolar Brunei Darussalam", 13936.45, 1],
+    ["EUR", "Euro", 20593.57, 1],
+    ["CNY", "Renminbi Tiongkok", 2645.08, 1],
+    ["KRW", "Won Korea", 12.59, 1]
+  ]
+}

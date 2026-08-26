@@ -43,6 +43,7 @@ import { TIER_PREVIEW_HEADER } from "@/lib/tier-preview";
 import { AlphaBrand, AlphaTaxBotMark } from "@/app/brand";
 import { normalizeSmartAnswerMarkdown } from "@/lib/answer-format";
 import TpLocalFilePanel from "@/app/tp-local-file-panel";
+import { SaveResearchControls } from "@/app/workspace/save-research-controls";
 import { extractionCompleteness, extractionQuality } from "@/lib/extraction-quality";
 import { structuredTextItems } from "@/lib/text-presentation";
 import { readActiveWorkspaceContext } from "@/lib/workspace-client-context";
@@ -3026,6 +3027,8 @@ export default function Home() {
           sourceUrl: item.sourceUrl || item.officialPdfUrl || "",
           score: scoreByKey.get(String(item.canonicalKey || item.id)) || 0,
           snippet: item.extraction?.summary || item.focus || item.content?.slice(0, 900) || ""
+          ,canonicalKey: item.canonicalKey || item.id,
+          detailUrl: `/sources/regulation/${encodeURIComponent(item.canonicalKey || item.id)}`
         }))
         .sort((a: { score: number; citation: string }, b: { score: number; citation: string }) => b.score - a.score || a.citation.localeCompare(b.citation));
       const retrieval = data.retrieval || {};
@@ -3341,10 +3344,24 @@ export default function Home() {
           <a className="toolbar-app-link" href="/workspace">
             {language === "en" ? "Workspace" : "Ruang Kerja"}
           </a>
+          <a className="toolbar-app-link" href="/workbench">
+            {language === "en" ? "Dispute Workbench" : "Workbench Sengketa"}
+          </a>
+          <a className="toolbar-app-link" href="/watchlist">
+            {language === "en" ? "Watchlist" : "Pantauan"}
+          </a>
+          <a className="toolbar-app-link" href="/knowledge">
+            {language === "en" ? "Knowledge hub" : "Pusat pengetahuan"}
+          </a>
           {session?.role === "admin" && (
-            <a className="toolbar-app-link" href="/review">
-              {language === "en" ? "Review Queue" : "Review Peraturan"}
-            </a>
+            <>
+              <a className="toolbar-app-link" href="/review">
+                {language === "en" ? "Review Queue" : "Review Peraturan"}
+              </a>
+              <a className="toolbar-app-link" href="/enterprise">
+                {language === "en" ? "Enterprise readiness" : "Kesiapan Enterprise"}
+              </a>
+            </>
           )}
           <label className="toolbar-language" htmlFor="language">
             <span>{language === "en" ? "Language" : "Bahasa"}</span>
@@ -3738,7 +3755,7 @@ export default function Home() {
                                     <a
                                       key={item.id}
                                       className="regulation-source-compact"
-                                      href={referenceDetailPath("regulation", item.id, regulationQuestion)}
+                                      href={item.detailUrl || referenceDetailPath("regulation", item.id, regulationQuestion)}
                                       title={item.title}
                                       aria-label={`${language === "en" ? "Open regulation" : "Buka peraturan"}: ${item.citation}`}
                                     >
@@ -3758,6 +3775,13 @@ export default function Home() {
                                   </div>
                                 </div>
                                 <MarkdownText text={regulationBotResponse.answer} />
+                                <SaveResearchControls
+                                  excerpt={regulationBotResponse.answer}
+                                  quote={regulationBotResponse.answer.slice(0, 4000)}
+                                  resourceId={`regulation-chat:${regulationQuestion.slice(0, 220)}`}
+                                  resourceType="chat"
+                                  title={`Regulation Bot: ${regulationQuestion.slice(0, 180)}`}
+                                />
                               </>
                             )}
                           </div>
@@ -5789,9 +5813,9 @@ function SmartChatPanel({
         <section className={`smart-chat-layout ${captureMode ? "answer-focus-mode" : ""}`}>
           <Panel title={labels.smartChatTitle} className="smart-question-panel">
             <div className="trust-pilot-notice">
-              <b>{isEnglish ? "Citation-grade check is a separate pilot" : "Pemeriksaan citation-grade masih berupa pilot terpisah"}</b>
-              <span>{isEnglish ? "This assistant has not yet been blocked by the new abstention gate." : "Jawaban asisten ini belum diblokir oleh abstention gate baru."}</span>
-              <a href="/search">{isEnglish ? "Open Trusted Search" : "Buka Pencarian Tepercaya"}</a>
+              <b>{isEnglish ? "Trust Layer and abstention are active" : "Trust Layer dan abstention sudah aktif"}</b>
+              <span>{isEnglish ? "Answers are held when verified, temporally relevant evidence is insufficient." : "Jawaban ditahan apabila bukti terverifikasi dan sesuai masa berlaku belum memadai."}</span>
+              <a href="/search">{isEnglish ? "Open Universal Search" : "Buka Universal Search"}</a>
             </div>
             <div className="ask-entry-heading">
               <span className="ask-entry-icon"><AppIcon name="smartchat" /></span>
@@ -5886,6 +5910,13 @@ function SmartChatPanel({
                   </button>
                 </div>
                 <MarkdownText text={response.answer} structured />
+                <SaveResearchControls
+                  excerpt={response.answer}
+                  quote={response.answer.slice(0, 4000)}
+                  resourceId={`smart-chat:${question.slice(0, 220)}`}
+                  resourceType="chat"
+                  title={`Smart Chat: ${question.slice(0, 180)}`}
+                />
                 <div className="retrieval-summary">
                   <b>{labels.retrievalSummary}</b>
                   <span>
@@ -5938,7 +5969,7 @@ function SmartChatPanel({
                             excerpt={item.snippet}
                             score={item.score}
                             source={item.source}
-                            href={referenceDetailPath("regulation", item.id, question)}
+                            href={item.detailUrl || referenceDetailPath("regulation", item.id, question)}
                             openLabel={labels.openReference}
                             detailsLabel={isEnglish ? "Regulation context" : "Konteks peraturan"}
                           />

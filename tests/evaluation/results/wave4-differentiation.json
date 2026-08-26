@@ -1,0 +1,471 @@
+{
+  "schemaVersion": "aa-jurist-wave4-differentiation-v1",
+  "generatedAt": "2026-08-21T15:19:16.551Z",
+  "summary": {
+    "totalCases": 58,
+    "calculationCases": 24,
+    "calculationExactRate": 1,
+    "precedentCases": 7,
+    "precedentHitAt3": 1,
+    "evidenceCases": 10,
+    "evidenceContractRate": 1,
+    "draftCases": 8,
+    "draftGroundingRate": 1,
+    "impactCases": 4,
+    "impactLinkingRate": 1,
+    "workflowCases": 5,
+    "workflowContractRate": 1
+  },
+  "quality": {
+    "calculationsExplainSteps": true,
+    "calculationsWarnScenario": true,
+    "precedentExplainsDifferences": true,
+    "precedentNeverClaimsPrediction": true,
+    "draftingHasSourceFingerprint": true,
+    "criticalImpactHasDeadline": true
+  },
+  "gates": {
+    "benchmarkSize": true,
+    "calculationAccuracy": true,
+    "precedentRetrieval": true,
+    "evidenceContract": true,
+    "draftGrounding": true,
+    "impactLinking": true,
+    "workflowContract": true,
+    "explainability": true
+  },
+  "implementationPassed": true,
+  "limitations": [
+    "Precedent benchmark memakai corpus comparator lokal; perlu diperluas ke seluruh putusan citation-ready.",
+    "Calculation engine menghitung skenario terkontrol dan tidak menentukan sendiri klasifikasi objek atau fasilitas.",
+    "Draft tetap memerlukan review manusia dan approval sebelum digunakan.",
+    "Impact monitor bergantung pada watchlist dan graph yang sudah diverifikasi."
+  ],
+  "cases": {
+    "calculations": [
+      {
+        "id": "vat-1",
+        "expected": 825000,
+        "actual": 825000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-2",
+        "expected": 1650000,
+        "actual": 1650000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-3",
+        "expected": 2475000,
+        "actual": 2475000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-4",
+        "expected": 3300000,
+        "actual": 3300000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-5",
+        "expected": 4125000,
+        "actual": 4125000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-6",
+        "expected": 4950000,
+        "actual": 4950000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-7",
+        "expected": 5775000,
+        "actual": 5775000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-8",
+        "expected": 6600000,
+        "actual": 6600000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-9",
+        "expected": 7425000,
+        "actual": 7425000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-10",
+        "expected": 8250000,
+        "actual": 8250000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-11",
+        "expected": 9075000,
+        "actual": 9075000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "vat-12",
+        "expected": 9900000,
+        "actual": 9900000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-1",
+        "expected": 1088888.888888888,
+        "actual": 1088888.888888888,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-2",
+        "expected": 300000,
+        "actual": 300000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-3",
+        "expected": 2177777.777777776,
+        "actual": 2177777.777777776,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-4",
+        "expected": 500000,
+        "actual": 500000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-5",
+        "expected": 3266666.666666664,
+        "actual": 3266666.666666664,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-6",
+        "expected": 700000,
+        "actual": 700000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-7",
+        "expected": 4355555.555555552,
+        "actual": 4355555.555555552,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-8",
+        "expected": 900000,
+        "actual": 900000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-9",
+        "expected": 5444444.44444444,
+        "actual": 5444444.44444444,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-10",
+        "expected": 1100000,
+        "actual": 1100000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-11",
+        "expected": 6533333.333333328,
+        "actual": 6533333.333333328,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      },
+      {
+        "id": "gross-up-12",
+        "expected": 1300000,
+        "actual": 1300000,
+        "hasSteps": true,
+        "hasWarning": true,
+        "passed": true
+      }
+    ],
+    "precedents": [
+      {
+        "id": "put-011254",
+        "rank": 1,
+        "passed": true,
+        "hasExplanation": true,
+        "predictionWarning": true
+      },
+      {
+        "id": "put-003113",
+        "rank": 1,
+        "passed": true,
+        "hasExplanation": true,
+        "predictionWarning": true
+      },
+      {
+        "id": "put-012093",
+        "rank": 1,
+        "passed": true,
+        "hasExplanation": true,
+        "predictionWarning": true
+      },
+      {
+        "id": "put-012088",
+        "rank": 1,
+        "passed": true,
+        "hasExplanation": true,
+        "predictionWarning": true
+      },
+      {
+        "id": "put-011729",
+        "rank": 1,
+        "passed": true,
+        "hasExplanation": true,
+        "predictionWarning": true
+      },
+      {
+        "id": "put-011803",
+        "rank": 1,
+        "passed": true,
+        "hasExplanation": true,
+        "predictionWarning": true
+      },
+      {
+        "id": "put-011884",
+        "rank": 1,
+        "passed": true,
+        "hasExplanation": true,
+        "predictionWarning": true
+      }
+    ],
+    "evidence": [
+      {
+        "id": "evidence-a16e12f6-71bf-4577-ad54-28ef2ac7ff05",
+        "status": "verified",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      },
+      {
+        "id": "evidence-34f4302f-7ad2-4909-be62-b6cce669bb26",
+        "status": "missing",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      },
+      {
+        "id": "evidence-a6536705-ca24-4856-adfb-28268764284e",
+        "status": "verified",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      },
+      {
+        "id": "evidence-cf6fcfcb-f80b-4699-b3f9-5e82bcfbe35b",
+        "status": "missing",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      },
+      {
+        "id": "evidence-593fae17-56cc-43ba-a523-d8d90f6c2223",
+        "status": "verified",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      },
+      {
+        "id": "evidence-b29ef7ed-4863-4978-8839-2071537b3fdb",
+        "status": "missing",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      },
+      {
+        "id": "evidence-9e361305-b79e-46f4-a150-a39f62551636",
+        "status": "verified",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      },
+      {
+        "id": "evidence-7a597e82-efdf-4a64-b7ea-3d6a4244af7a",
+        "status": "missing",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      },
+      {
+        "id": "evidence-e772eeea-0f86-4ff4-b43f-fa3fa4c051bb",
+        "status": "verified",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      },
+      {
+        "id": "evidence-d9530a1d-f957-4c54-96e0-741c064af22e",
+        "status": "missing",
+        "explicitGap": true,
+        "sourceReady": true,
+        "passed": true
+      }
+    ],
+    "drafts": [
+      {
+        "id": "draft-acd01616-e277-40f7-bbbd-d3eaf35578fe",
+        "sourceFingerprint": "fb176d80f4c04d2fc334b29b9867ff8bc5b25d7b4a1c40dc1e116577db7e3961",
+        "evidenceCount": 1,
+        "passed": true
+      },
+      {
+        "id": "draft-154d8f6a-6539-4f26-8ae3-5c760d53be49",
+        "sourceFingerprint": "264a979d7a16a2915aae4e1854ab7bb9812c4dde637a4530b3b7f56a20647526",
+        "evidenceCount": 1,
+        "passed": true
+      },
+      {
+        "id": "draft-13d56cc9-7820-4f1a-947c-fa9581c51f12",
+        "sourceFingerprint": "12421315120f3d20c7b710760c5c8e74c20dbfeb9f588b7fdd8ab505ba0e1cbf",
+        "evidenceCount": 1,
+        "passed": true
+      },
+      {
+        "id": "draft-c8e3ce4d-a592-42d1-bfa3-80cd44ec0950",
+        "sourceFingerprint": "4479a4d89d1dd9c2d50a00a71bb06e79b6ec421aca17a7997d2f14ff713ff786",
+        "evidenceCount": 1,
+        "passed": true
+      },
+      {
+        "id": "draft-35160584-6ddf-45f9-bfd5-e2fa9b6656e4",
+        "sourceFingerprint": "d28b0ccc276cb546e205108c6f057061c527f85f6f594edacc377e515c290a37",
+        "evidenceCount": 1,
+        "passed": true
+      },
+      {
+        "id": "draft-1573eb16-0d1e-4026-a2c3-102ce3adfe41",
+        "sourceFingerprint": "db03b3abf0784d7765878fdf58a259dca8a11cbed27f4719a0b8319617d2d6ed",
+        "evidenceCount": 1,
+        "passed": true
+      },
+      {
+        "id": "draft-53d206a4-04c8-41e7-86b1-77bb14b3d673",
+        "sourceFingerprint": "3c05db1d5e078a60b41e297fd02dd5269a60d661cb4656204420d5220a97bbe9",
+        "evidenceCount": 1,
+        "passed": true
+      },
+      {
+        "id": "draft-71f91bf4-4727-4e29-9591-958f4c678562",
+        "sourceFingerprint": "850c4628960448f4032e5b00a31e92bb4f4cc4bf78ed34694bd967e323a8fd35",
+        "evidenceCount": 1,
+        "passed": true
+      }
+    ],
+    "impacts": [
+      {
+        "id": "impact-2d9fe2f0-b50a-4824-a5b9-d70fc755c0b2",
+        "linkedArtifacts": 3,
+        "hasCriticalDueDate": true,
+        "passed": true
+      },
+      {
+        "id": "impact-7756af87-edcb-4c0d-aab6-181cd9159c48",
+        "linkedArtifacts": 3,
+        "hasCriticalDueDate": true,
+        "passed": true
+      },
+      {
+        "id": "impact-6393c87a-d86e-4441-9f5e-be8bc3072278",
+        "linkedArtifacts": 3,
+        "hasCriticalDueDate": true,
+        "passed": true
+      },
+      {
+        "id": "impact-a4f36db7-9e94-4cf6-bc7d-65284402cb8d",
+        "linkedArtifacts": 3,
+        "hasCriticalDueDate": true,
+        "passed": true
+      }
+    ],
+    "workflows": [
+      {
+        "id": "task-f47ca2a5-72a0-40f2-9c89-99c7a318f0da",
+        "taskValid": true,
+        "approvalValid": true,
+        "passed": true
+      },
+      {
+        "id": "task-0552cd43-bb00-427d-bb5e-c73564f6dc2d",
+        "taskValid": true,
+        "approvalValid": true,
+        "passed": true
+      },
+      {
+        "id": "task-0388bbbb-1097-4f39-8f36-a385ff27509c",
+        "taskValid": true,
+        "approvalValid": true,
+        "passed": true
+      },
+      {
+        "id": "task-75dd12b5-c6d4-4b95-bb69-2574382771fb",
+        "taskValid": true,
+        "approvalValid": true,
+        "passed": true
+      },
+      {
+        "id": "task-46c2e777-a9a4-4d08-b440-8eb6b9673b2d",
+        "taskValid": true,
+        "approvalValid": true,
+        "passed": true
+      }
+    ]
+  }
+}

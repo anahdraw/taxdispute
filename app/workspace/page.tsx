@@ -15,6 +15,10 @@ export default async function WorkspacePage() {
       <header className="workspace-topbar">
         <AlphaBrand />
         <div>
+          <a href="/workbench">Dispute workbench</a>
+          <a href="/search">Universal search</a>
+          <a href="/watchlist">Watchlist</a>
+          <a href="/knowledge">Knowledge hub</a>
           <a href="/">Kembali ke aplikasi</a>
           <span>{session.name}</span>
         </div>

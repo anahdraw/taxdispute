@@ -31,6 +31,8 @@ export type SmartChatRuleHit = {
   sourceUrl: string;
   score: number;
   snippet: string;
+  canonicalKey?: string;
+  detailUrl?: string;
 };
 
 export type SmartChatChart = {
@@ -419,6 +421,8 @@ export function rankRegulations(query: string, records: Regulation[], limit = 8)
       sourceUrl: item.sourceUrl || "",
       score: Math.round(score * 10) / 10,
       snippet: focusedSnippet(text, query)
+      ,canonicalKey: item.canonicalKey || item.id,
+      detailUrl: `/sources/regulation/${encodeURIComponent(item.canonicalKey || item.id)}`
     }));
 }
 

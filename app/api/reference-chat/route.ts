@@ -3,6 +3,9 @@ import { modelChoiceFromRequest } from "@/lib/model-options";
 import { callOpenAIText, configuredModel, hasRemoteLlm, missingKeyStatus } from "@/lib/openai";
 import { requireAuth } from "@/lib/auth";
 import { getManagedPrompt } from "@/lib/server-settings";
+import { assessTaxQueryDomain } from "@/lib/query-domain";
+import { assessTrust } from "@/lib/citation-trust";
+import { chatAbstentionAnswer } from "@/lib/chat-trust";
 
 export const runtime = "nodejs";
 
@@ -59,10 +62,24 @@ export async function POST(request: Request) {
     if (!context) {
       return NextResponse.json({ error: language === "en" ? "Reference context is empty." : "Konteks referensi kosong." }, { status: 400 });
     }
+    const domain = assessTaxQueryDomain(question);
+    const trust = assessTrust([], {
+      question,
+      language,
+      policy: { minimumEvidence: 0, requireVerifiedSource: false, requireLocator: false, requireKnownRegulationStatus: false }
+    });
+    if (!domain.inScope || trust.temporal?.valid === false) {
+      return NextResponse.json({
+        answer: chatAbstentionAnswer(language, trust),
+        trust: { ...trust, validationStage: "source-bound-preflight" },
+        llmStatus: { used: false, model: "trust-gate", message: language === "en" ? "Answer withheld by the reference trust gate." : "Jawaban ditahan oleh trust gate referensi." }
+      });
+    }
 
     if (!hasRemoteLlm(modelChoice)) {
       return NextResponse.json({
         answer: localReferenceAnswer(question, context, language),
+        trust: { ...trust, validationStage: "source-bound-preflight" },
         llmStatus: missingKeyStatus(language, modelChoice)
       });
     }
@@ -88,6 +105,7 @@ export async function POST(request: Request) {
     const answer = await callOpenAIText(prompt, system, modelChoice);
     return NextResponse.json({
       answer,
+      trust: { ...trust, validationStage: "source-bound-preflight" },
       llmStatus: {
         used: true,
         model: configuredModel(modelChoice),

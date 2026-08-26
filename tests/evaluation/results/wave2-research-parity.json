@@ -1,0 +1,1191 @@
+{
+  "schemaVersion": "aa-jurist-wave2-research-parity-v1",
+  "generatedAt": "2026-08-21T06:14:52.838Z",
+  "summary": {
+    "totalCases": 170,
+    "corpusRecords": 10822,
+    "searchDocuments": 157917,
+    "exactLookupTop1": 1,
+    "facetExpectedHitRate": 1,
+    "facetPrecision": 1,
+    "timeMachineConnectedRate": 1,
+    "graphFailClosedRate": 1,
+    "internalDetailCoverage": 1,
+    "pdfCoverageSample": 0.0667,
+    "hashCoverageSample": 0.8333,
+    "locatorCoverageSample": 0.8333,
+    "watchChangeDetection": 1,
+    "eligibleGraphCasesAvailable": 785
+  },
+  "gates": {
+    "benchmarkSize": true,
+    "exactLookup": true,
+    "facetPrecision": true,
+    "graphFailClosed": true,
+    "internalDetail": true,
+    "watchDetection": true
+  },
+  "passed": true,
+  "cases": {
+    "exactLookup": [
+      {
+        "canonicalKey": "uu-1-2022",
+        "citation": "UU No. 1 Tahun 2022 tentang HKPD",
+        "top": "uu-1-2022",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-141-2015",
+        "citation": "PMK No. 141/PMK.03/2015",
+        "top": "pmk-141-2015",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-169-2015",
+        "citation": "PMK No. 169/PMK.010/2015",
+        "top": "pmk-169-2015",
+        "passed": true
+      },
+      {
+        "canonicalKey": "per-7-2025",
+        "citation": "PER-7/PJ/2025",
+        "top": "per-7-2025",
+        "passed": true
+      },
+      {
+        "canonicalKey": "per-8-2025",
+        "citation": "PER-8/PJ/2025",
+        "top": "per-8-2025",
+        "passed": true
+      },
+      {
+        "canonicalKey": "uu-6-2023",
+        "citation": "UU 6 TAHUN 2023",
+        "top": "uu-6-2023",
+        "passed": true
+      },
+      {
+        "canonicalKey": "uu-19-1997",
+        "citation": "UU 19 TAHUN 1997",
+        "top": "uu-19-1997",
+        "passed": true
+      },
+      {
+        "canonicalKey": "uu-12-1985",
+        "citation": "UU 12 TAHUN 1985",
+        "top": "uu-12-1985",
+        "passed": true
+      },
+      {
+        "canonicalKey": "uu-10-2020",
+        "citation": "UU 10 TAHUN 2020",
+        "top": "uu-10-2020",
+        "passed": true
+      },
+      {
+        "canonicalKey": "uu-9-2017",
+        "citation": "UU 9 TAHUN 2017",
+        "top": "uu-9-2017",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-86-2021",
+        "citation": "PP 86 TAHUN 2021",
+        "top": "pp-86-2021",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-17-2025",
+        "citation": "PMK 17 TAHUN 2025",
+        "top": "pmk-17-2025",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-44-2026",
+        "citation": "PMK 44 TAHUN 2026",
+        "top": "pmk-44-2026",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-108-2025",
+        "citation": "PMK 108 TAHUN 2025",
+        "top": "pmk-108-2025",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-117-2024",
+        "citation": "PMK 117 TAHUN 2024",
+        "top": "pmk-117-2024",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-136-2023",
+        "citation": "PMK 136 TAHUN 2023",
+        "top": "pmk-136-2023",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-142-2023",
+        "citation": "PMK 142 TAHUN 2023",
+        "top": "pmk-142-2023",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-143-2023",
+        "citation": "PMK 143 TAHUN 2023",
+        "top": "pmk-143-2023",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-26-2026",
+        "citation": "PMK 26 TAHUN 2026",
+        "top": "pmk-26-2026",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-47-2024",
+        "citation": "PMK 47 TAHUN 2024",
+        "top": "pmk-47-2024",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-58-2024",
+        "citation": "PMK 58 TAHUN 2024",
+        "top": "pmk-58-2024",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-7-2025",
+        "citation": "PMK 7 TAHUN 2025",
+        "top": "pmk-7-2025",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-8-2026",
+        "citation": "PMK 8 TAHUN 2026",
+        "top": "pmk-8-2026",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pmk-85-2024",
+        "citation": "PMK 85 TAHUN 2024",
+        "top": "pmk-85-2024",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-1-2004",
+        "citation": "PP 1 TAHUN 2004",
+        "top": "pp-1-2004",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-10-2004",
+        "citation": "PP 10 TAHUN 2004",
+        "top": "pp-10-2004",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-111-2000",
+        "citation": "PP 111 TAHUN 2000",
+        "top": "pp-111-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-112-2000",
+        "citation": "PP 112 TAHUN 2000",
+        "top": "pp-112-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-113-2000",
+        "citation": "PP 113 TAHUN 2000",
+        "top": "pp-113-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-114-2000",
+        "citation": "PP 114 TAHUN 2000",
+        "top": "pp-114-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-12-1994",
+        "citation": "PP 12 TAHUN 1994",
+        "top": "pp-12-1994",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-13-1989",
+        "citation": "PP 13 TAHUN 1989",
+        "top": "pp-13-1989",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-134-2000",
+        "citation": "PP 134 TAHUN 2000",
+        "top": "pp-134-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-135-2000",
+        "citation": "PP 135 TAHUN 2000",
+        "top": "pp-135-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-136-2000",
+        "citation": "PP 136 TAHUN 2000",
+        "top": "pp-136-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-137-2000",
+        "citation": "PP 137 TAHUN 2000",
+        "top": "pp-137-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-14-1993",
+        "citation": "PP 14 TAHUN 1993",
+        "top": "pp-14-1993",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-14-2005",
+        "citation": "PP 14 TAHUN 2005",
+        "top": "pp-14-2005",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-16-1999",
+        "citation": "PP 16 TAHUN 1999",
+        "top": "pp-16-1999",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-16-2000",
+        "citation": "PP 16 TAHUN 2000",
+        "top": "pp-16-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-17-2000",
+        "citation": "PP 17 TAHUN 2000",
+        "top": "pp-17-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-18-1988",
+        "citation": "PP 18 TAHUN 1988",
+        "top": "pp-18-1988",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-18-1998",
+        "citation": "PP 18 TAHUN 1998",
+        "top": "pp-18-1998",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-19-1988",
+        "citation": "PP 19 TAHUN 1988",
+        "top": "pp-19-1988",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-19-1997",
+        "citation": "PP 19 TAHUN 1997",
+        "top": "pp-19-1997",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-19-2007",
+        "citation": "PP 19 TAHUN 2007",
+        "top": "pp-19-2007",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-2-2008",
+        "citation": "PP 2 TAHUN 2008",
+        "top": "pp-2-2008",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-20-1994",
+        "citation": "PP 20 TAHUN 1994",
+        "top": "pp-20-1994",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-20-1997",
+        "citation": "PP 20 TAHUN 1997",
+        "top": "pp-20-1997",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-21-1996",
+        "citation": "PP 21 TAHUN 1996",
+        "top": "pp-21-1996",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-22-1996",
+        "citation": "PP 22 TAHUN 1996",
+        "top": "pp-22-1996",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-22-1997",
+        "citation": "PP 22 TAHUN 1997",
+        "top": "pp-22-1997",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-22-2005",
+        "citation": "PP 22 TAHUN 2005",
+        "top": "pp-22-2005",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-23-1996",
+        "citation": "PP 23 TAHUN 1996",
+        "top": "pp-23-1996",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-23-2020",
+        "citation": "PP 23 TAHUN 2020",
+        "top": "pp-23-2020",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-24-1987",
+        "citation": "PP 24 TAHUN 1987",
+        "top": "pp-24-1987",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-24-1996",
+        "citation": "PP 24 TAHUN 1996",
+        "top": "pp-24-1996",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-24-1998",
+        "citation": "PP 24 TAHUN 1998",
+        "top": "pp-24-1998",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-24-2000",
+        "citation": "PP 24 TAHUN 2000",
+        "top": "pp-24-2000",
+        "passed": true
+      },
+      {
+        "canonicalKey": "pp-24-2018",
+        "citation": "PP 24 TAHUN 2018",
+        "top": "pp-24-2018",
+        "passed": true
+      }
+    ],
+    "facets": [
+      {
+        "canonicalKey": "uu-1-2022",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-141-2015",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-169-2015",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "per-7-2025",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "per-8-2025",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "uu-6-2023",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "uu-19-1997",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "uu-12-1985",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "uu-10-2020",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "uu-9-2017",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pp-86-2021",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-17-2025",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-44-2026",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-108-2025",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-117-2024",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-136-2023",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-142-2023",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-143-2023",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-26-2026",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-47-2024",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-58-2024",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-7-2025",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-8-2026",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pmk-85-2024",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pp-1-2004",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pp-10-2004",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pp-111-2000",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pp-112-2000",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pp-113-2000",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      },
+      {
+        "canonicalKey": "pp-114-2000",
+        "returned": 1,
+        "expectedFound": true,
+        "facetPrecision": true
+      }
+    ],
+    "timeMachine": [
+      {
+        "edgeId": "edge:0066167994c73009c6bc4f8d",
+        "source": "pp-10-2012",
+        "target": "pp-2-2009",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:00c06d02ae8a0b34682c91bb",
+        "source": "pp-79-1999",
+        "target": "pp-48-1994",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:00ca539608f463b8984bae60",
+        "source": "pp-15-2022",
+        "target": "uu-7-1983",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:0175f92a449ee4a5fcb8d24b",
+        "source": "perpres-22-2005",
+        "target": "uu-22-2001",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:019c204b4a3e727650f37188",
+        "source": "uu-16-2009",
+        "target": "uu-9-1994",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:01a887f1664c98e4760316cd",
+        "source": "uu-18-2000",
+        "target": "uu-8-1983",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:01d1caa012837e62e2c3f220",
+        "source": "pp-55-2008",
+        "target": "pp-35-2005",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:02321ea843cc8b505b0e795b",
+        "source": "pp-49-2022",
+        "target": "pp-40-2015",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:023692eb7c8078e71cc261dd",
+        "source": "pp-55-2009",
+        "target": "pp-35-2004",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:02bda3aa43c19b181421e1a6",
+        "source": "pp-77-2013",
+        "target": "pp-81-2007",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:02fb8d090a707bca66d9609f",
+        "source": "pp-35-2004",
+        "target": "uu-22-2001",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:032b119a8d831b10c3f13dac",
+        "source": "pp-94-2010",
+        "target": "pp-138-2000",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:03d16bc842ce1ebaf14647f3",
+        "source": "pp-19-2007",
+        "target": "pp-75-2005",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:0426bd3020da125d735a05db",
+        "source": "pp-42-2000",
+        "target": "pp-46-1994",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:044a46bd212e2c532774c14a",
+        "source": "pp-7-2007",
+        "target": "pp-12-2001",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:04f75f5b67cd6eb815e52209",
+        "source": "pp-7-2007",
+        "target": "pp-12-2001",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:0527f97a664c2196a78a1f40",
+        "source": "uu-44-2007",
+        "target": "uu-36-2000",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:0547b291a30d486f8ea3dbe1",
+        "source": "pp-62-2008",
+        "target": "pp-1-2007",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:0556dafeb1ae92342b9471b6",
+        "source": "pp-34-2016",
+        "target": "pp-27-1996",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:06bf834670f8dca45c847b03",
+        "source": "pp-46-2000",
+        "target": "pp-74-1998",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:07072f539a16f9a5083c9d0d",
+        "source": "perpres-31-2012",
+        "target": "uu-24-2000",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:075ef419b3e587593e1d54c9",
+        "source": "pp-49-2022",
+        "target": "pp-146-2000",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:07c24a5fe4de138972e7b698",
+        "source": "pp-77-2013",
+        "target": "uu-7-1983",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:07d143c7bc82545838aba77a",
+        "source": "uu-17-2006",
+        "target": "uu-10-1995",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:080eb7e35d74a3277f25f864",
+        "source": "pp-10-2012",
+        "target": "uu-8-1983",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:081e394c22994477248625fa",
+        "source": "pp-76-2007",
+        "target": "pp-14-1993",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:0863ae1e28099c79b13af026",
+        "source": "pp-27-1996",
+        "target": "pp-48-1994",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:087359cbbaa6e47c7bef333c",
+        "source": "pp-43-2000",
+        "target": "pp-42-1995",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:08830d50ee09c398935714ef",
+        "source": "pp-73-2009",
+        "target": "pp-78-2005",
+        "timelinePresent": true,
+        "failClosed": true
+      },
+      {
+        "edgeId": "edge:099ffda7586e81a0892610bd",
+        "source": "pp-5-1997",
+        "target": "pp-25-1996",
+        "timelinePresent": true,
+        "failClosed": true
+      }
+    ],
+    "sourceDetail": [
+      {
+        "canonicalKey": "uu-1-2022",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": false,
+        "locator": false
+      },
+      {
+        "canonicalKey": "pmk-141-2015",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": false,
+        "locator": false
+      },
+      {
+        "canonicalKey": "pmk-169-2015",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": false,
+        "locator": false
+      },
+      {
+        "canonicalKey": "per-7-2025",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": false,
+        "locator": false
+      },
+      {
+        "canonicalKey": "per-8-2025",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": false,
+        "locator": false
+      },
+      {
+        "canonicalKey": "uu-6-2023",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "uu-19-1997",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "uu-12-1985",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "uu-10-2020",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "uu-9-2017",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pp-86-2021",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-17-2025",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-44-2026",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": true,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-108-2025",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-117-2024",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-136-2023",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-142-2023",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-143-2023",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-26-2026",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-47-2024",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-58-2024",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-7-2025",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-8-2026",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": true,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pmk-85-2024",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pp-1-2004",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pp-10-2004",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pp-111-2000",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pp-112-2000",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pp-113-2000",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      },
+      {
+        "canonicalKey": "pp-114-2000",
+        "internalDetail": true,
+        "officialPage": true,
+        "pdf": false,
+        "sourceHash": true,
+        "locator": true
+      }
+    ],
+    "watchlist": [
+      {
+        "canonicalKey": "uu-1-2022",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-141-2015",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-169-2015",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "per-7-2025",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "per-8-2025",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "uu-6-2023",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "uu-19-1997",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "uu-12-1985",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "uu-10-2020",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "uu-9-2017",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pp-86-2021",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-17-2025",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-44-2026",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-108-2025",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-117-2024",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-136-2023",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-142-2023",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-143-2023",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-26-2026",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      },
+      {
+        "canonicalKey": "pmk-47-2024",
+        "alerts": [
+          "relation_changed",
+          "source_changed"
+        ],
+        "detected": true
+      }
+    ]
+  }
+}

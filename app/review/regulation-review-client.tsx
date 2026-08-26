@@ -7,7 +7,7 @@ import type { ReviewAiSuggestion } from "@/lib/regulation-review-ai";
 
 type Summary = {
   qualityGate: string;
-  counts: { nodes: number; edges: number; citations: number; queue: number };
+  counts: { nodes: number; edges: number; citations: number; documents: number; queue: number };
   flagCounts: Record<string, number>;
   statusCounts: Record<string, number>;
   summary: Record<string, any>;
@@ -21,7 +21,7 @@ type AiPayload = {
 };
 const statuses: ReviewStatus[] = ["Not Started", "In Review", "Verified", "Rejected", "Needs Source"];
 const tabs: Array<{ key: ReviewKind | "all"; label: string; countKey?: keyof Summary["counts"] }> = [
-  { key: "all", label: "Semua" }, { key: "node", label: "Node", countKey: "nodes" }, { key: "edge", label: "Edge", countKey: "edges" }, { key: "citation", label: "Citation", countKey: "citations" }, { key: "queue", label: "Queue", countKey: "queue" }
+  { key: "all", label: "Semua" }, { key: "node", label: "Node", countKey: "nodes" }, { key: "edge", label: "Edge", countKey: "edges" }, { key: "citation", label: "Citation", countKey: "citations" }, { key: "document", label: "Dokumen", countKey: "documents" }, { key: "queue", label: "Queue", countKey: "queue" }
 ];
 
 function label(value: string) { return value.replaceAll("_", " "); }
@@ -129,6 +129,7 @@ export function RegulationReviewClient({ reviewer }: { reviewer: string }) {
         <article><span>Flagged nodes</span><strong>{summary?.counts.nodes.toLocaleString("id-ID") || "—"}</strong><small>Identity/status review</small></article>
         <article><span>Flagged edges</span><strong>{summary?.counts.edges.toLocaleString("id-ID") || "—"}</strong><small>Relasi belum answer-eligible</small></article>
         <article><span>Flagged citations</span><strong>{summary?.counts.citations.toLocaleString("id-ID") || "—"}</strong><small>Target/self/unparsed references</small></article>
+        <article><span>Dokumen belum lengkap</span><strong>{summary?.counts.documents.toLocaleString("id-ID") || "—"}</strong><small>PDF, hash, locator, status, tanggal</small></article>
         <article className="review-progress-kpi"><span>Progress pegawai</span><strong>{progress}%</strong><div className="review-progress-track"><i style={{ width: `${progress}%` }} /></div><small>{reviewedCount.toLocaleString("id-ID")} dari {totalReviewCount.toLocaleString("id-ID")} item punya keputusan</small></article>
       </section>
 

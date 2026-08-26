@@ -11,7 +11,7 @@ function jsonError(message: string, status = 400) {
 
 function validKind(value: string | null): ReviewKind | "all" | undefined {
   if (!value || value === "all") return value === "all" ? "all" : undefined;
-  return ["node", "edge", "citation", "queue"].includes(value) ? value as ReviewKind : undefined;
+  return ["node", "edge", "citation", "document", "queue"].includes(value) ? value as ReviewKind : undefined;
 }
 
 export async function GET(request: Request) {
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const kind = String(body.kind || "");
     const id = String(body.id || "").trim();
     const status = String(body.status || "") as ReviewStatus;
-    if (!["node", "edge", "citation", "queue"].includes(kind) || !id) return jsonError("kind dan id wajib diisi.");
+    if (!["node", "edge", "citation", "document", "queue"].includes(kind) || !id) return jsonError("kind dan id wajib diisi.");
     if (!REVIEW_STATUSES.includes(status)) return jsonError("Status review tidak valid.");
     const decision = await saveReviewDecision({ kind: kind as ReviewKind, id, status, note: body.note, reviewer: auth.session.name });
     return NextResponse.json({ decision }, { headers: { "Cache-Control": "private, no-store" } });

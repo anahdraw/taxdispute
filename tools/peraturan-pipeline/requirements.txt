@@ -1,0 +1,16 @@
+httpx>=0.27
+selectolax>=0.3.21
+anthropic>=0.116
+rapidfuzz>=3.9
+python-dateutil>=2.9
+rich>=13.7
+
+# Wajib untuk konektor JDIH Kemenkeu: situs itu menyaring sidik jari TLS,
+# sehingga httpx/requests ditolak di jabat tangan. curl_cffi menyamar sebagai
+# Chrome dan menembusnya (lihat pipeline/sources/jdih_kemenkeu.py).
+curl_cffi>=0.7
+openai>=1.60
+
+# Opsional — hanya dibutuhkan untuk jalur OCR (lihat README bagian 4).
+# pdfplumber>=0.11
+# pymupdf>=1.24

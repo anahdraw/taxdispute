@@ -31,6 +31,7 @@ export class SearchStoreConfigurationError extends Error {
 
 let cachedLocalSnapshot: Regulation[] | null = null;
 let cachedLocalRegulationDocuments: SearchDocument[] = [];
+const cachedLocalStores = new Map<string, { regulationDocuments: SearchDocument[]; documents: SearchDocument[] }>();
 
 function localRegulationDocuments() {
   const snapshot = loadLocalRegulationSnapshot();
@@ -92,7 +93,12 @@ export async function loadSearchStore({
     const decisionDocuments = wantsDecisions
       ? comparableDecisions.map((record) => localComparableToSearchDocument(record, tenantId))
       : [];
-    const documents = [...regulationDocuments, ...decisionDocuments];
+    const cacheKey = `${tenantId}:${wantsDecisions}:${wantsRegulations}`;
+    const cached = cachedLocalStores.get(cacheKey);
+    const documents = cached?.regulationDocuments === regulationDocuments
+      ? cached.documents
+      : [...regulationDocuments, ...decisionDocuments];
+    if (!cached || cached.regulationDocuments !== regulationDocuments) cachedLocalStores.set(cacheKey, { regulationDocuments, documents });
     return {
       documents,
       diagnostics: {

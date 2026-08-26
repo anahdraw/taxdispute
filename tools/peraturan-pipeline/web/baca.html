@@ -1,0 +1,283 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Baca peraturan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{--midnight:#00153D;--cerulean:#009CDE;--snow:#F7F8FC;--mist:#E8ECF4;
+  --coral:#E8826A;--sage:#6BAF8D;--amber:#E2A94E;--ink:#12203d;--lembut:#5b6b8a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--snow);color:var(--ink);
+  font:15px/1.65 "Sora",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+a{color:var(--cerulean)}
+/* Bilah atas tetap terlihat: pada naskah 4.600 unit, nomor peraturan yang ikut
+   tergulir hilang membuat pembaca kehilangan tahu sedang membaca apa. */
+.atas{position:sticky;top:0;z-index:5;background:var(--midnight);color:#fff;
+  padding:12px 22px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.atas a.balik{color:#9fb3d4;text-decoration:none;font-size:13px;white-space:nowrap}
+.atas .nomor{font-family:"Source Serif 4",Georgia,serif;font-size:17px;font-weight:600}
+.atas .judul{font-size:12px;color:#9fb3d4;flex:1 1 260px;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lencana{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;
+  background:var(--mist);color:var(--ink);white-space:nowrap}
+.lencana.berlaku{background:var(--sage);color:#fff}
+.lencana.dicabut{background:var(--coral);color:#fff}
+.lencana.diubah{background:var(--amber);color:#fff}
+.rangka{display:grid;grid-template-columns:246px minmax(0,1fr) 300px;
+  gap:16px;padding:16px;align-items:start;max-width:1560px;margin:0 auto}
+.panel{background:#fff;border-radius:10px;padding:14px 16px;
+  max-height:calc(100vh - 96px);overflow:auto;position:sticky;top:76px}
+.panel h3{margin:0 0 10px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.7px;color:var(--lembut)}
+.naskah{background:#fff;border-radius:10px;padding:0;overflow:hidden;
+  display:flex;flex-direction:column;max-height:calc(100vh - 96px)}
+.alat{padding:12px 20px;border-bottom:1px solid var(--mist);display:flex;
+  gap:8px;align-items:center;flex-wrap:wrap;flex:0 0 auto}
+.alat input[type=text]{flex:1 1 200px;min-width:150px;padding:7px 10px;
+  border:1px solid var(--mist);border-radius:6px;font:inherit;font-size:13px}
+.alat button{padding:6px 10px;border:1px solid var(--mist);background:#fff;
+  border-radius:6px;cursor:pointer;font-size:13px;color:var(--ink)}
+.alat button:hover{background:var(--snow)}
+.alat .hitung{font-size:12px;color:var(--lembut);white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.isi{overflow:auto;padding:18px 26px 60px;flex:1 1 auto}
+.blok{margin:24px 0 10px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--lembut);border-bottom:1px solid var(--mist);
+  padding-bottom:5px}
+.unit{margin:10px 0;position:relative;padding-right:78px;scroll-margin-top:12px}
+.unit:hover{background:var(--snow);border-radius:5px}
+.unit .jalur{font-size:11px;color:var(--lembut);font-family:"IBM Plex Mono",monospace;
+  display:block;margin-bottom:2px}
+.unit .kutip{position:absolute;right:0;top:0;font-size:11px;padding:2px 7px;
+  border:1px solid var(--mist);background:#fff;border-radius:4px;cursor:pointer;
+  opacity:0;transition:opacity .12s;color:var(--lembut)}
+.unit:hover .kutip{opacity:1}
+.unit.lv2{margin-left:22px}.unit.lv3{margin-left:44px}.unit.lv4{margin-left:66px}
+mark{background:#FFE9A8;padding:0 1px;border-radius:2px}
+mark.kini{background:var(--cerulean);color:#fff}
+.indeks a{display:block;padding:3px 6px;border-radius:4px;font-size:13px;
+  color:var(--ink);text-decoration:none}
+.indeks a:hover{background:var(--snow)}
+.indeks a.bab{font-weight:600;margin-top:8px;color:var(--midnight);font-size:12px}
+.rel{margin-bottom:14px}
+.rel .arah{font-size:11px;color:var(--lembut);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:4px}
+.rel a{display:block;font-size:13px;padding:4px 0;text-decoration:none;color:var(--ink)}
+.rel a:hover{color:var(--cerulean)}
+.rel .kecil{font-size:11px;color:var(--lembut);display:block}
+.info b{display:block;font-size:11px;color:var(--lembut);text-transform:uppercase;
+  letter-spacing:.5px;margin-top:10px;font-weight:500}
+.info span{font-size:13px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  background:var(--midnight);color:#fff;padding:10px 16px;border-radius:8px;
+  font-size:13px;z-index:20;max-width:80vw}
+.kosong{color:var(--lembut);font-size:13px;padding:8px 0}
+@media(max-width:1180px){.rangka{grid-template-columns:1fr}
+  .panel{position:static;max-height:340px}
+  .naskah{max-height:none}.isi{max-height:none}}
+</style>
+
+<div class="atas">
+  <a class="balik" href="/">‹ kembali</a>
+  <span class="nomor" id="nomor">memuat…</span>
+  <span id="status"></span>
+  <span class="judul" id="judul"></span>
+  <button id="kecil" title="perkecil huruf">A−</button>
+  <button id="besar" title="perbesar huruf">A+</button>
+  <a id="sumber" target="_blank" rel="noopener" style="font-size:12px"></a>
+</div>
+
+<div class="rangka">
+  <div class="panel indeks"><h3>Indeks</h3><div id="indeks"></div></div>
+  <div class="naskah">
+    <div class="alat">
+      <input type="text" id="cari" placeholder="cari di dalam aturan ini…">
+      <button id="prev" title="cocok sebelumnya">‹</button>
+      <button id="next" title="cocok berikutnya">›</button>
+      <span class="hitung" id="hitung"></span>
+      <button id="atas" title="kembali ke atas">↑ atas</button>
+    </div>
+    <div class="isi" id="isi"></div>
+  </div>
+  <div class="panel">
+    <h3>Informasi</h3><div class="info" id="info"></div>
+    <h3 style="margin-top:18px">Riwayat</h3><div class="rel" id="riwayat"></div>
+    <h3 style="margin-top:18px">Peraturan terkait</h3><div class="rel" id="terkait"></div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const el = (t, c, x) => { const n = document.createElement(t);
+  if (c) n.className = c; if (x != null) n.textContent = x; return n; };
+const esc = s => String(s ?? "").replace(/[&<>"]/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const num = n => (n ?? 0).toLocaleString("id-ID");
+const par = new URLSearchParams(location.search);
+const REG = par.get("reg_id") || "";
+
+const BLOK = {kepala:"Kepala naskah", menimbang:"Menimbang", mengingat:"Mengingat",
+  batang_tubuh:"Batang tubuh", penutup:"Ketentuan penutup",
+  penutup_meta:"Pengundangan", penjelasan:"Penjelasan — menerangkan, tidak mengatur"};
+
+function lencana(s) {
+  const n = el("span", "lencana " + (s || ""), s || "belum dihitung");
+  return n;
+}
+function pesan(t) {
+  const n = el("div", "toast", t); document.body.append(n);
+  setTimeout(() => n.remove(), 2500);
+}
+const tingkat = u => u.angka ? 4 : u.huruf ? 3 : u.ayat ? 2 : 1;
+
+function sorotHTML(teks, cari) {
+  const aman = esc(teks);
+  if (!cari) return aman;
+  const pola = esc(cari).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return aman.replace(new RegExp(pola, "gi"), m => `<mark>${m}</mark>`);
+}
+
+let D = null, teksEl = [], disorot = [], cocok = [], kini = -1;
+
+function sorotUlang(cari) {
+  // Hanya unit yang terkena yang disentuh. Menggambar ulang seluruh naskah tiap
+  // ketukan menggantung peramban pada dokumen 4.639 unit.
+  disorot.forEach(i => { teksEl[i].textContent = D.unit[i].text || ""; });
+  disorot = [];
+  if (cari) {
+    const kecil = cari.toLowerCase();
+    D.unit.forEach((u, i) => {
+      if ((u.text || "").toLowerCase().includes(kecil)) {
+        teksEl[i].innerHTML = sorotHTML(u.text || "", cari);
+        disorot.push(i);
+      }
+    });
+  }
+  cocok = [...$("#isi").querySelectorAll("mark")];
+  kini = cocok.length ? 0 : -1;
+  tandai();
+}
+function tandai() {
+  cocok.forEach(m => m.classList.remove("kini"));
+  if (kini >= 0 && cocok[kini]) {
+    cocok[kini].classList.add("kini");
+    cocok[kini].scrollIntoView({block:"center", behavior:"smooth"});
+  }
+  $("#hitung").textContent = cocok.length
+    ? `${kini + 1} dari ${num(cocok.length)} cocok`
+    : ($("#cari").value.trim() ? "tidak ada yang cocok" : "");
+}
+function pindah(a) {
+  if (!cocok.length) return;
+  kini = (kini + a + cocok.length) % cocok.length; tandai();
+}
+
+async function muat() {
+  const r = await fetch("/api/naskah?" + new URLSearchParams({reg_id: REG}));
+  D = await r.json();
+  if (!D.peraturan) { $("#isi").innerHTML = '<div class="kosong">tidak ditemukan</div>'; return; }
+  const P = D.peraturan;
+  document.title = P.kepala + " — " + (P.judul || "");
+  $("#nomor").textContent = P.kepala;
+  $("#status").replaceChildren(lencana(P.status));
+  $("#judul").textContent = P.judul || "";
+  if (P.url) { $("#sumber").href = P.url; $("#sumber").textContent = "sumber ↗"; }
+
+  // --- naskah + indeks ---
+  const isi = $("#isi"), idx = $("#indeks");
+  let blokKini = null, babKini = null;
+  D.unit.forEach((u, i) => {
+    if (u.bagian_dok !== blokKini) {
+      blokKini = u.bagian_dok; babKini = null;
+      isi.append(el("div", "blok", BLOK[blokKini] || blokKini));
+    }
+    const n = el("div", "unit lv" + tingkat(u)); n.id = "u" + i;
+    const kut = el("button", "kutip", "kutipan");
+    kut.onclick = e => { e.stopPropagation();
+      if (navigator.clipboard) navigator.clipboard.writeText(u.kutipan).catch(()=>{});
+      pesan("kutipan: " + u.kutipan); };
+    n.append(el("span", "jalur", u.path || ""), kut);
+    const t = el("div"); t.textContent = u.text || "";
+    teksEl.push(t); n.append(t);
+    isi.append(n);
+
+    if (u.bab && u.bab !== babKini && u.bagian_dok === "batang_tubuh") {
+      babKini = u.bab;
+      const a = el("a", "bab", "BAB " + u.bab); a.href = "#u" + i;
+      a.onclick = ev => { ev.preventDefault();
+        document.getElementById("u" + i).scrollIntoView({block:"start", behavior:"smooth"}); };
+      idx.append(a);
+    }
+    if (u.pasal && !idx.querySelector(`[data-p="${u.bagian_dok}:${u.pasal}"]`)
+        && u.bagian_dok !== "penjelasan") {
+      const a = el("a", null, (/^\d/.test(u.pasal) ? "Pasal " : "Diktum ") + u.pasal);
+      a.href = "#u" + i; a.dataset.p = u.bagian_dok + ":" + u.pasal;
+      a.onclick = ev => { ev.preventDefault();
+        document.getElementById("u" + i).scrollIntoView({block:"start", behavior:"smooth"}); };
+      idx.append(a);
+    }
+  });
+  if (!D.unit.length) isi.innerHTML = '<div class="kosong">Dokumen ini belum punya naskah terurai.</div>';
+
+  // --- informasi ---
+  const inf = $("#info");
+  const baris = [["Bentuk", P.jenis || P.jenis_code], ["Tahun", P.tahun],
+    ["Daerah", P.berdaerah ? P.kategori : null], ["Tanggal", P.tanggal],
+    ["Berlaku sejak", P.berlaku_dari], ["Berlaku sampai", P.berlaku_sampai],
+    ["Status di situs sumber", P.status_site], ["Asal naskah", P.source],
+    ["Pasal", num(D.jumlah_pasal)], ["Unit dapat dikutip", num(D.jumlah_unit)]];
+  baris.forEach(([k, v]) => { if (v == null || v === "") return;
+    inf.append(el("b", null, k), el("span", null, String(v))); });
+  if (P.alasan_status) {
+    inf.append(el("b", null, "Dasar status"), el("span", null, P.alasan_status));
+  }
+
+  muatKonteks();
+  sorotUlang(par.get("sorot") || "");
+  if (par.get("sorot")) $("#cari").value = par.get("sorot");
+  const kePasal = par.get("pasal");
+  if (kePasal) {
+    const i = D.unit.findIndex(u => u.pasal === kePasal);
+    if (i >= 0) document.getElementById("u" + i).scrollIntoView({block:"start"});
+  }
+}
+
+async function muatKonteks() {
+  const r = await fetch("/api/konteks?" + new URLSearchParams({reg_id: REG}));
+  const d = await r.json();
+  const gambar = (wadah, kel) => {
+    if (!kel.length) { wadah.append(el("div", "kosong", "tidak ada")); return; }
+    kel.forEach(g => {
+      wadah.append(el("div", "arah", g.label + (g.jumlah > g.ditampilkan
+        ? ` — ${num(g.ditampilkan)} dari ${num(g.jumlah)}` : "")));
+      g.simpul.forEach(s => {
+        const a = el("a", null, s.canonical);
+        a.href = "/baca.html?reg_id=" + encodeURIComponent(s.id);
+        a.append(el("span", "kecil", (s.judul || "").slice(0, 70)));
+        wadah.append(a);
+      });
+    });
+  };
+  gambar($("#riwayat"), d.riwayat || []);
+  gambar($("#terkait"), d.terkait || []);
+}
+
+let jeda;
+$("#cari").oninput = () => { clearTimeout(jeda);
+  jeda = setTimeout(() => sorotUlang($("#cari").value.trim()), 160); };
+$("#cari").onkeydown = e => { if (e.key === "Enter") {
+  e.preventDefault(); pindah(e.shiftKey ? -1 : 1); } };
+$("#next").onclick = () => pindah(1);
+$("#prev").onclick = () => pindah(-1);
+$("#atas").onclick = () => $("#isi").scrollTo({top:0, behavior:"smooth"});
+let ukuran = 15;
+$("#besar").onclick = () => { ukuran = Math.min(22, ukuran + 1);
+  $("#isi").style.fontSize = ukuran + "px"; };
+$("#kecil").onclick = () => { ukuran = Math.max(12, ukuran - 1);
+  $("#isi").style.fontSize = ukuran + "px"; };
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "f") { e.preventDefault(); $("#cari").focus(); }
+});
+muat();
+</script>

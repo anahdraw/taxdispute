@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { LLM_MODEL_HEADER, type LlmModelChoice } from "@/lib/model-options";
+import type { TpAgentRun } from "@/lib/tp-agent-queue";
+import { tpAgentDefinitions, type TpWorkflowPlan, type TpWorkflowStageId } from "@/lib/tp-agent-workflow";
 import {
   emptyTpProjectState,
   tpDocumentKinds,
@@ -12,6 +14,7 @@ import {
   type TpAffiliatedParty,
   type TpComparable,
   type TpManagement,
+  type TpManualEvidence,
   type TpOrganizationDepartment,
   type TpRejectionMatrixRow,
   type TpSearchCriteriaResult,
@@ -25,7 +28,32 @@ import {
 } from "@/lib/tp-local-file";
 
 type Language = "id" | "en";
-type WorkspaceTab = "sources" | "profile" | "transactions" | "readiness" | "review";
+type WorkspaceTab = "manual" | "sources" | "profile" | "transactions" | "readiness" | "agents" | "review";
+
+const manualStepPaths = [
+  ["companyName", "fiscalYear", "companyAddress", "establishmentInfo"],
+  ["businessActivities", "shareholders", "management", "affiliatedParties"],
+  ["affiliatedTransactions", "transactionDetails", "pricingPolicy", "backgroundTransaction"],
+  ["farAnalysis.functionsPerformed", "farAnalysis.assetsUsed", "farAnalysis.risksAssumed"],
+  ["selectedMethod", "selectedPli", "testedParty", "searchCriteriaResults", "rejectionMatrix", "comparableCompanies"],
+  ["financialData.revenue", "financialData.operatingProfit", "financialData.netIncome", "nonFinancialEvents"],
+  ["manualEvidence"]
+] as const;
+
+function valueAtManualPath(state: TpProjectState, path: string): unknown {
+  return path.split(".").reduce<unknown>((current, key) => current && typeof current === "object" ? (current as Record<string, unknown>)[key] : undefined, state);
+}
+
+function manualValuePresent(value: unknown) {
+  if (Array.isArray(value)) return value.length > 0;
+  if (value && typeof value === "object") return Object.values(value as Record<string, unknown>).some(manualValuePresent);
+  return Boolean(String(value ?? "").trim());
+}
+
+function manualStepComplete(state: TpProjectState, step: number) {
+  const paths = manualStepPaths[step] || [];
+  return paths.length > 0 && paths.every((path) => manualValuePresent(valueAtManualPath(state, path)));
+}
 
 async function jsonResponse<T>(response: Response): Promise<T> {
   const text = await response.text();
@@ -37,6 +65,15 @@ async function jsonResponse<T>(response: Response): Promise<T> {
 
 function safePart(value: string) {
   return value.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-|-$/g, "").slice(0, 100) || "document";
+}
+
+function latestAgentRun(runs: TpAgentRun[], stage: TpWorkflowStageId) {
+  return runs.find((run) => run.stage === stage);
+}
+
+function agentRunResult(run: TpAgentRun | undefined) {
+  const output = run?.output && typeof run.output === "object" ? run.output as Record<string, unknown> : {};
+  return output.result && typeof output.result === "object" ? output.result as Record<string, unknown> : output;
 }
 
 export default function TpLocalFilePanel({ language, modelChoice }: { language: Language; modelChoice: LlmModelChoice }) {
@@ -54,10 +91,45 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
   const [busy, setBusy] = useState(false);
   const [externalResearchConfigured, setExternalResearchConfigured] = useState(false);
   const [useExternalResearch, setUseExternalResearch] = useState(false);
+  const [agentRuns, setAgentRuns] = useState<TpAgentRun[]>([]);
+  const [agentPlan, setAgentPlan] = useState<TpWorkflowPlan | null>(null);
+  const [manualSourceTitle, setManualSourceTitle] = useState("");
+  const [manualSourceUrl, setManualSourceUrl] = useState("");
+  const [manualSourceSnippet, setManualSourceSnippet] = useState("");
+  const [manualSourceType, setManualSourceType] = useState<"official" | "industry" | "comparable_candidate">("industry");
+  const [approvalNotes, setApprovalNotes] = useState("");
+  const [manualStep, setManualStep] = useState(0);
+  const [manualEvidenceTitle, setManualEvidenceTitle] = useState("");
+  const [manualEvidenceKind, setManualEvidenceKind] = useState<TpManualEvidence["sourceKind"]>("management_interview");
+  const [manualEvidenceReference, setManualEvidenceReference] = useState("");
+  const [manualEvidenceLocator, setManualEvidenceLocator] = useState("");
+  const [manualEvidenceExcerpt, setManualEvidenceExcerpt] = useState("");
+  const [manualEvidencePaths, setManualEvidencePaths] = useState("");
 
   const headers = useMemo(() => ({ [LLM_MODEL_HEADER]: modelChoice }), [modelChoice]);
   const completeness = project ? tpProjectCompleteness(project.state) : 0;
   const readiness = useMemo(() => project ? tpGenerationReadiness(project.state) : null, [project]);
+  const approvedDocumentVersion = useMemo(() => {
+    const currentHash = agentRuns[0]?.inputHash;
+    const approval = agentRuns.find((run) => run.inputHash === currentHash && run.stage === "human_approval" && run.status === "succeeded");
+    const result = agentRunResult(approval);
+    return result.decision === "approved" ? String(result.reviewedDocumentVersion || "") : "";
+  }, [agentRuns]);
+  const qaEligibleForApproval = useMemo(() => {
+    const currentHash = agentRuns[0]?.inputHash;
+    const qa = agentRuns.find((run) => run.inputHash === currentHash && run.stage === "qa" && run.status === "succeeded");
+    return agentRunResult(qa).releaseRecommendation === "human_review";
+  }, [agentRuns]);
+  const hasActiveAgentRuns = agentRuns.some((run) => ["queued", "retry_wait", "running"].includes(run.status));
+  const manualSteps = [
+    { title: en ? "Entity and scope" : "Entitas dan ruang lingkup", note: en ? "Taxpayer identity and covered fiscal year" : "Identitas wajib pajak dan tahun yang dicakup" },
+    { title: en ? "Group and business" : "Grup dan kegiatan usaha", note: en ? "Ownership, management, operations, and related parties" : "Kepemilikan, manajemen, usaha, dan pihak afiliasi" },
+    { title: en ? "Controlled transactions" : "Transaksi afiliasi", note: en ? "Transaction register, agreements, and pricing policy" : "Register transaksi, perjanjian, dan kebijakan harga" },
+    { title: "FAR", note: en ? "Functions, assets, risks, contracts, and benefit test" : "Fungsi, aset, risiko, kontrak, dan benefit test" },
+    { title: en ? "Method and benchmark" : "Metode dan benchmark", note: en ? "Tested party, PLI, search trail, and comparables" : "Pihak diuji, PLI, search trail, dan pembanding" },
+    { title: en ? "Financial information" : "Informasi keuangan", note: en ? "Current/prior year, tested result, and non-financial events" : "Tahun berjalan/sebelumnya, hasil uji, dan peristiwa nonkeuangan" },
+    { title: en ? "Evidence and completion" : "Bukti dan penyelesaian", note: en ? "Register manual provenance, review gaps, then start agents" : "Registrasikan provenance manual, review gap, lalu jalankan agen" }
+  ];
 
   async function loadProjects(selectFirst = false) {
     const payload = await jsonResponse<{ records: TpLocalFileProjectSummary[] }>(await fetch("/api/tp-local-files?page=1&perPage=50"));
@@ -70,6 +142,14 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
     const payload = await jsonResponse<{ project: TpLocalFileProject }>(await fetch(`/api/tp-local-files/${encodeURIComponent(id)}`));
     setProject(payload.project);
     setProjectName(payload.project.name);
+    await loadAgentPipeline(id).catch(() => undefined);
+  }
+
+  async function loadAgentPipeline(projectId = project?.id) {
+    if (!projectId) return;
+    const payload = await jsonResponse<{ runs: TpAgentRun[]; plan: TpWorkflowPlan }>(await fetch(`/api/tp-local-files/${encodeURIComponent(projectId)}/pipeline`));
+    setAgentRuns(payload.runs || []);
+    setAgentPlan(payload.plan || null);
   }
 
   useEffect(() => {
@@ -83,7 +163,24 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
       .catch(() => setExternalResearchConfigured(false));
   }, []);
 
-  async function createProjectRecord(name = "") {
+  useEffect(() => {
+    if (!project?.id || !hasActiveAgentRuns) return;
+    const projectId = project.id;
+    const timer = window.setInterval(() => {
+      void Promise.all([
+        fetch(`/api/tp-local-files/${encodeURIComponent(projectId)}/pipeline`).then((response) => jsonResponse<{ runs: TpAgentRun[]; plan: TpWorkflowPlan }>(response)),
+        fetch(`/api/tp-local-files/${encodeURIComponent(projectId)}`).then((response) => jsonResponse<{ project: TpLocalFileProject }>(response))
+      ]).then(([pipeline, current]) => {
+        setAgentRuns(pipeline.runs || []);
+        setAgentPlan(pipeline.plan || null);
+        setProject(current.project);
+        setProjectName(current.project.name);
+      }).catch(() => undefined);
+    }, 15_000);
+    return () => window.clearInterval(timer);
+  }, [project?.id, hasActiveAgentRuns]);
+
+  async function createProjectRecord(name = "", initialTab: WorkspaceTab = "sources") {
     const payload = await jsonResponse<{ project: TpLocalFileProject }>(await fetch("/api/tp-local-files", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -91,7 +188,8 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
     }));
     setProject(payload.project);
     setProjectName(payload.project.name);
-    setTab("sources");
+    setTab(initialTab);
+    if (initialTab === "manual") setManualStep(0);
     await loadProjects();
     return payload.project;
   }
@@ -99,6 +197,13 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
   async function createProject() {
     setBusy(true); setError("");
     try { await createProjectRecord(projectName); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { setBusy(false); }
+  }
+
+  async function startManualProject() {
+    setBusy(true); setError("");
+    try { await createProjectRecord(projectName || (en ? "Manual TP Local File" : "Local File TP Manual"), "manual"); }
     catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
     finally { setBusy(false); }
   }
@@ -116,13 +221,70 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
     setProject((current) => current ? { ...current, state: { ...current.state, ...patch } } : current);
   }
 
+  async function saveManualStep(nextStep?: number) {
+    if (!project) return;
+    setBusy(true); setError("");
+    try {
+      const saved = await saveProject({ ...project, name: projectName || project.name }, en ? "Manual TP inputs saved." : "Input TP manual disimpan.");
+      if (saved && typeof nextStep === "number") setManualStep(Math.max(0, Math.min(manualStepPaths.length - 1, nextStep)));
+    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { setBusy(false); }
+  }
+
+  async function addManualEvidence() {
+    if (!project) return;
+    const fieldPaths = Array.from(new Set(manualEvidencePaths.split(/[\n,]+/).map((entry) => entry.trim()).filter((entry) => /^[a-zA-Z][a-zA-Z0-9.[\]#_-]{0,240}$/.test(entry))));
+    if (!manualEvidenceTitle.trim() || !manualEvidenceReference.trim() || !manualEvidenceLocator.trim() || !manualEvidenceExcerpt.trim() || !fieldPaths.length) {
+      setError(en ? "Evidence title, reference/owner, locator, excerpt/note, and at least one valid field path are required." : "Judul bukti, referensi/pemilik, lokator, kutipan/catatan, dan minimal satu field path yang valid wajib diisi.");
+      return;
+    }
+    const unsupportedPaths = fieldPaths.filter((path) => !manualValuePresent(valueAtManualPath(project.state, path)));
+    if (unsupportedPaths.length) {
+      setError(en
+        ? `Evidence can only support populated fields. Check: ${unsupportedPaths.join(", ")}.`
+        : `Bukti hanya boleh menunjuk field yang sudah terisi. Periksa: ${unsupportedPaths.join(", ")}.`);
+      return;
+    }
+    const evidence: TpManualEvidence = {
+      id: `manual-evidence-${crypto.randomUUID()}`,
+      title: manualEvidenceTitle.trim().slice(0, 300),
+      sourceKind: manualEvidenceKind,
+      reference: manualEvidenceReference.trim().slice(0, 500),
+      locator: manualEvidenceLocator.trim().slice(0, 500),
+      excerpt: manualEvidenceExcerpt.trim().slice(0, 4_000),
+      fieldPaths,
+      createdAt: new Date().toISOString()
+    };
+    const fieldSources = { ...project.state.fieldSources };
+    fieldPaths.forEach((path) => { fieldSources[path] = Array.from(new Set([...(fieldSources[path] || []), evidence.id])); });
+    setBusy(true); setError("");
+    try {
+      await saveProject({
+        ...project,
+        state: {
+          ...project.state,
+          manualEvidence: [...project.state.manualEvidence, evidence],
+          fieldSources
+        }
+      }, en ? "Manual evidence registered; verification is still required." : "Bukti manual diregistrasikan; verifikasi tetap diperlukan.");
+      setManualEvidenceTitle(""); setManualEvidenceReference(""); setManualEvidenceLocator(""); setManualEvidenceExcerpt("");
+    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { setBusy(false); }
+  }
+
+  async function removeManualEvidence(evidenceId: string) {
+    if (!project) return;
+    const fieldSources = Object.fromEntries(Object.entries(project.state.fieldSources).map(([path, ids]) => [path, ids.filter((id) => id !== evidenceId)]).filter(([, ids]) => ids.length));
+    await saveProject({ ...project, state: { ...project.state, manualEvidence: project.state.manualEvidence.filter((entry) => entry.id !== evidenceId), fieldSources } }, en ? "Manual evidence removed." : "Bukti manual dihapus.");
+  }
+
   async function uploadAndExtractFiles(targetProject: TpLocalFileProject, sourceFiles: File[]) {
     let working = { ...targetProject, documents: [...targetProject.documents] };
     for (let index = 0; index < sourceFiles.length; index += 1) {
       const file = sourceFiles[index];
       setStatus(`${en ? "Uploading" : "Mengunggah"} ${index + 1}/${sourceFiles.length}: ${file.name}`);
       const blob = await upload(`tp-local-files/${targetProject.id}/${Date.now()}-${safePart(file.name)}`, file, {
-          access: "public",
+          access: "private",
           handleUploadUrl: "/api/blob/upload",
           multipart: file.size > 8 * 1024 * 1024,
           clientPayload: JSON.stringify({ projectId: targetProject.id, kind: documentKind, filename: file.name })
@@ -139,9 +301,10 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
         uploadedAt: new Date().toISOString(),
         requestedScopes: autoDetectScopes ? [] : selectedScopes,
         detectedScopes: [],
-        coverage: []
+        coverage: [],
+        evidence: []
       };
-      working = (await saveProject({ ...working, documents: [...working.documents, source], updatedAt: new Date().toISOString() }, en ? "Document uploaded." : "Dokumen diunggah.")) || working;
+      working = (await saveProject({ ...working, documents: [...working.documents, source] }, en ? "Document uploaded." : "Dokumen diunggah.")) || working;
       setStatus(`${en ? "Extracting" : "Mengekstrak"} ${file.name}`);
       const extracted = await jsonResponse<{ project: TpLocalFileProject }>(await fetch(`/api/tp-local-files/${encodeURIComponent(targetProject.id)}/extract`, {
         method: "POST",
@@ -152,7 +315,15 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
       setProject(working);
     }
     setFiles([]);
-    setStatus(en ? "Documents extracted and merged into the working paper." : "Dokumen diekstrak dan digabung ke working paper.");
+    try {
+      await queueAgentPipeline(working);
+      await runNextAgent(working.id);
+      setTab("agents");
+      setStatus(en ? "Documents extracted; the resumable TP agent workflow has started." : "Dokumen selesai diekstrak; workflow agent TP yang resumable telah dimulai.");
+    } catch (reason) {
+      setStatus(en ? "Documents extracted. Start the agent workflow from the Agent tab when the queue is available." : "Dokumen selesai diekstrak. Jalankan workflow dari tab Agent saat antrean tersedia.");
+      setError(reason instanceof Error ? reason.message : String(reason));
+    }
     await loadProjects();
     return working;
   }
@@ -162,6 +333,22 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
     setBusy(true); setError(""); setStatus("");
     try { await uploadAndExtractFiles(project, files); }
     catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { setBusy(false); }
+  }
+
+  async function retryDocumentExtraction(documentId: string) {
+    if (!project) return;
+    setBusy(true); setError(""); setStatus(en ? "Retrying document extraction..." : "Mengulangi ekstraksi dokumen...");
+    try {
+      const extracted = await jsonResponse<{ project: TpLocalFileProject }>(await fetch(`/api/tp-local-files/${encodeURIComponent(project.id)}/extract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ documentId, language })
+      }));
+      setProject(extracted.project);
+      await queueAgentPipeline(extracted.project);
+      setStatus(en ? "Document re-extracted and the agent workflow was resumed." : "Dokumen selesai diekstrak ulang dan workflow agent dilanjutkan.");
+    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
     finally { setBusy(false); }
   }
 
@@ -191,6 +378,116 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
     } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); } finally { setBusy(false); }
   }
 
+  async function startAgentPipeline() {
+    if (!project) return;
+    setBusy(true); setError(""); setStatus(en ? "Queueing the TP agent workflow..." : "Menyiapkan antrean workflow agent TP...");
+    try {
+      const saved = await saveProject({ ...project, name: projectName || project.name });
+      if (!saved) return;
+      await queueAgentPipeline(saved);
+      await runNextAgent(saved.id);
+      setTab("agents");
+      setStatus(en ? "Agent workflow queued. It can resume from stored checkpoints." : "Workflow agent masuk antrean dan dapat dilanjutkan dari checkpoint tersimpan.");
+    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { setBusy(false); }
+  }
+
+  async function queueAgentPipeline(targetProject: TpLocalFileProject) {
+    const payload = await jsonResponse<{ runs: TpAgentRun[]; plan: TpWorkflowPlan }>(await fetch(`/api/tp-local-files/${encodeURIComponent(targetProject.id)}/pipeline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...headers },
+      body: JSON.stringify({ action: "start", language, useExternalResearch })
+    }));
+    setAgentRuns(payload.runs || []); setAgentPlan(payload.plan || null);
+    return payload;
+  }
+
+  async function runNextAgent(projectId = project?.id) {
+    if (!projectId) return;
+    const payload = await jsonResponse<{ runs: TpAgentRun[]; plan: TpWorkflowPlan }>(await fetch(`/api/tp-local-files/${encodeURIComponent(projectId)}/pipeline`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "run_next" })
+    }));
+    setAgentRuns(payload.runs || []); setAgentPlan(payload.plan || null);
+    return payload;
+  }
+
+  async function cancelAgentPipeline() {
+    if (!project) return;
+    setBusy(true); setError("");
+    try {
+      const payload = await jsonResponse<{ runs: TpAgentRun[]; plan: TpWorkflowPlan }>(await fetch(`/api/tp-local-files/${encodeURIComponent(project.id)}/pipeline`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel", reason: "Cancelled from the TP workspace." })
+      }));
+      setAgentRuns(payload.runs || []); setAgentPlan(payload.plan || null);
+      setStatus(en ? "Active agent runs cancelled." : "Proses agent aktif dibatalkan.");
+    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { setBusy(false); }
+  }
+
+  async function recordHumanReview(decision: "approved" | "changes_requested" | "rejected") {
+    if (!project) return;
+    setBusy(true); setError("");
+    try {
+      const payload = await jsonResponse<{ runs: TpAgentRun[]; plan: TpWorkflowPlan }>(await fetch(`/api/tp-local-files/${encodeURIComponent(project.id)}/pipeline`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "human_review", decision, notes: approvalNotes })
+      }));
+      setAgentRuns(payload.runs || []); setAgentPlan(payload.plan || null);
+      setStatus(decision === "approved"
+        ? (en ? "The exact QA-passed version was approved." : "Versi tepat yang lolos QA telah disetujui.")
+        : (en ? "The review decision was recorded." : "Keputusan review telah dicatat."));
+    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    finally { setBusy(false); }
+  }
+
+  async function addManualResearchSource() {
+    if (!project) return;
+    setError("");
+    try {
+      const sourceUrl = new URL(manualSourceUrl.trim());
+      if (!/^https?:$/.test(sourceUrl.protocol)) throw new Error(en ? "Use an HTTP(S) source URL." : "Gunakan URL sumber HTTP(S).");
+      if (!manualSourceTitle.trim()) throw new Error(en ? "Source title is required." : "Judul sumber wajib diisi.");
+      const source = {
+        title: manualSourceTitle.trim().slice(0, 500),
+        url: sourceUrl.toString(),
+        domain: sourceUrl.hostname.replace(/^www\./, ""),
+        sourceType: manualSourceType,
+        query: "Manual advisor research",
+        snippet: manualSourceSnippet.trim().slice(0, 4_000),
+        score: 0,
+        qualityTier: "discovery_only" as const,
+        qualityReason: "Manually supplied source; verification and quality classification remain required.",
+        publishedDate: "",
+        retrievedAt: new Date().toISOString()
+      };
+      const nextProject = {
+        ...project,
+        state: {
+          ...project.state,
+          analysis: {
+            ...project.state.analysis,
+            externalResearchSources: [
+              ...project.state.analysis.externalResearchSources.filter((item) => item.url !== source.url),
+              source
+            ],
+            externalResearchStatus: "partial" as const,
+            externalResearchWarnings: Array.from(new Set([
+              ...project.state.analysis.externalResearchWarnings,
+              "Manual research sources require source and claim verification before use."
+            ]))
+          }
+        }
+      };
+      await saveProject(nextProject, en ? "Manual research source saved." : "Sumber riset manual disimpan.");
+      setManualSourceTitle(""); setManualSourceUrl(""); setManualSourceSnippet("");
+    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+  }
+
   async function deleteProject() {
     if (!project || !window.confirm(en ? "Delete this TP project and its uploaded files?" : "Hapus proyek TP dan file yang diunggah?")) return;
     setBusy(true); setError("");
@@ -202,7 +499,7 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
 
   if (!project) {
     return <section className="tp-workspace empty">
-      <div><p className="eyebrow">TP LOCAL FILE</p><h2>{en ? "Build a Local File from one or more source documents" : "Susun Local File dari satu atau beberapa dokumen sumber"}</h2><p>{en ? "A single file may contain company, ownership, transaction, financial, and TP-policy information. Auto-detect scans all selected content groups and keeps every extracted fact traceable to its source." : "Satu file dapat memuat informasi perusahaan, kepemilikan, transaksi, keuangan, dan kebijakan TP sekaligus. Deteksi otomatis memeriksa seluruh kelompok konten dan menjaga setiap fakta tetap terlacak ke sumbernya."}</p></div>
+      <div><p className="eyebrow">TP LOCAL FILE</p><h2>{en ? "Build a complete Local File from documents or manual inputs" : "Susun Local File lengkap dari dokumen atau input manual"}</h2><p>{en ? "Start with PDF/Word evidence, or use the guided manual workflow when no file is available. Manual facts remain unverified until their provenance and review are recorded." : "Mulai dari bukti PDF/Word, atau gunakan alur manual terpandu bila belum ada file. Fakta manual tetap belum terverifikasi sampai provenance dan reviewnya dicatat."}</p></div>
       {error && <div className="status-banner error">{error}</div>}
       <div className="tp-start-card">
         <div className="tp-start-step"><span>1</span><div><strong>{en ? "Choose the first source document" : "Pilih dokumen sumber pertama"}</strong><small>{en ? "A company profile is recommended, but you can start from any available document." : "Profil perusahaan disarankan, tetapi Anda dapat mulai dari dokumen apa pun yang tersedia."}</small></div></div>
@@ -212,14 +509,14 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
         </div>
         <ScopeSelector language={language} auto={autoDetectScopes} selected={selectedScopes} onAutoChange={setAutoDetectScopes} onChange={setSelectedScopes} />
         <label className="tp-source-drop"><span>{en ? "Upload PDF or Word source documents" : "Unggah dokumen sumber PDF atau Word"}</span><input type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple onChange={(event) => setFiles(Array.from(event.target.files || []))} /><small>{files.length ? `${files.length} ${en ? "file(s) selected" : "file dipilih"}` : (en ? "Company profile, legal ownership, financial statement, TP policy, agreement, or other evidence." : "Profil perusahaan, legalitas kepemilikan, laporan keuangan, kebijakan TP, perjanjian, atau bukti lain.")}</small></label>
-        <div className="tp-start-actions"><button className="primary-button" onClick={startFromSource} disabled={busy || !files.length}>{busy ? (en ? "Creating & extracting..." : "Membuat & mengekstrak...") : (en ? "Start from document" : "Mulai dari dokumen")}</button><button className="table-button" onClick={createProject} disabled={busy}>{en ? "Create an empty project" : "Buat proyek kosong"}</button></div>
+        <div className="tp-start-actions"><button className="primary-button" onClick={startFromSource} disabled={busy || !files.length}>{busy ? (en ? "Creating & extracting..." : "Membuat & mengekstrak...") : (en ? "Start from document" : "Mulai dari dokumen")}</button><button className="table-button" onClick={startManualProject} disabled={busy}>{en ? "Start manual TP workflow" : "Mulai alur TP manual"}</button></div>
       </div>
     </section>;
   }
 
   return <section className="tp-workspace">
     <header className="tp-workspace-header">
-      <div><p className="eyebrow">TP LOCAL FILE · PLATINUM</p><h2>{en ? "Transfer Pricing Working Paper" : "Working Paper Transfer Pricing"}</h2><p>{en ? "Upload source documents, review extracted facts, run an advisor analysis, and export a structured Word draft." : "Unggah dokumen sumber, review fakta terekstrak, jalankan analisis advisor, dan ekspor draft Word terstruktur."}</p></div>
+      <div><p className="eyebrow">TP LOCAL FILE · PLATINUM</p><h2>{en ? "Transfer Pricing Working Paper" : "Working Paper Transfer Pricing"}</h2><p>{en ? "Use documents, guided manual inputs, or both; every route reaches the same evidence, advisor, QA, and approval gates." : "Gunakan dokumen, input manual terpandu, atau keduanya; seluruh jalur melewati evidence, advisor, QA, dan approval gate yang sama."}</p></div>
       <div className="tp-header-actions"><button className="table-button" onClick={createProject} disabled={busy}>+ {en ? "New" : "Baru"}</button><button className="table-button danger" onClick={deleteProject} disabled={busy}>{en ? "Delete" : "Hapus"}</button></div>
     </header>
 
@@ -231,8 +528,8 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
 
     <nav className="tp-tabs" aria-label="TP Local File sections">
       {([[
-        "sources", en ? "1. Source documents" : "1. Dokumen sumber"
-      ], ["profile", en ? "2. Company profile" : "2. Profil perusahaan"], ["transactions", en ? "3. Transactions & method" : "3. Transaksi & metode"], ["readiness", en ? "4. Generation readiness" : "4. Kesiapan generasi"], ["review", en ? "5. Advisor review" : "5. Review advisor"]] as Array<[WorkspaceTab, string]>).map(([key, label]) => <button key={key} className={tab === key ? "active" : ""} onClick={() => setTab(key)}>{label}</button>)}
+        "manual", en ? "1. Manual workflow" : "1. Alur manual"
+      ], ["sources", en ? "2. Source documents" : "2. Dokumen sumber"], ["profile", en ? "3. Company profile" : "3. Profil perusahaan"], ["transactions", en ? "4. Transactions & method" : "4. Transaksi & metode"], ["readiness", en ? "5. Generation readiness" : "5. Kesiapan generasi"], ["agents", en ? "6. Agent workflow" : "6. Workflow agent"], ["review", en ? "7. Advisor review" : "7. Review advisor"]] as Array<[WorkspaceTab, string]>).map(([key, label]) => <button key={key} className={tab === key ? "active" : ""} onClick={() => { setTab(key); if (key === "agents") void loadAgentPipeline(); }}>{label}</button>)}
     </nav>
 
     <div className={`tp-research-control ${externalResearchConfigured ? "ready" : "unavailable"}`}>
@@ -246,6 +543,36 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
     {status && <div className="status-banner success compact-status">{status}</div>}
     {error && <div className="status-banner error compact-status">{error}</div>}
 
+    {tab === "manual" && <ManualTpWorkflow
+      language={language}
+      project={project}
+      steps={manualSteps}
+      step={manualStep}
+      busy={busy}
+      readiness={readiness}
+      evidenceForm={{
+        title: manualEvidenceTitle,
+        kind: manualEvidenceKind,
+        reference: manualEvidenceReference,
+        locator: manualEvidenceLocator,
+        excerpt: manualEvidenceExcerpt,
+        paths: manualEvidencePaths
+      }}
+      onStepChange={setManualStep}
+      onUpdateState={updateState}
+      onEvidenceTitleChange={setManualEvidenceTitle}
+      onEvidenceKindChange={setManualEvidenceKind}
+      onEvidenceReferenceChange={setManualEvidenceReference}
+      onEvidenceLocatorChange={setManualEvidenceLocator}
+      onEvidenceExcerptChange={setManualEvidenceExcerpt}
+      onEvidencePathsChange={setManualEvidencePaths}
+      onAddEvidence={() => void addManualEvidence()}
+      onRemoveEvidence={(evidenceId) => void removeManualEvidence(evidenceId)}
+      onSaveStep={(nextStep) => void saveManualStep(nextStep)}
+      onReviewGaps={() => setTab("readiness")}
+      onStartAgents={() => void startAgentPipeline()}
+    />}
+
     {tab === "sources" && <div className="tp-tab-panel sources">
       <div className="tp-upload-strip">
         <label><span>{en ? "Document category" : "Kategori dokumen"}</span><select value={documentKind} onChange={(event) => setDocumentKind(event.target.value as TpSourceDocument["kind"])}>{tpDocumentKinds.map((kind) => <option key={kind.id} value={kind.id}>{en ? kind.en : kind.idLabel}</option>)}</select></label>
@@ -255,8 +582,8 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
       <ScopeSelector language={language} auto={autoDetectScopes} selected={selectedScopes} onAutoChange={setAutoDetectScopes} onChange={setSelectedScopes} compact />
       <div className="tp-document-list">
         {project.documents.length ? project.documents.map((document) => <article key={document.id}>
-          <div><strong>{document.filename}</strong><span>{tpDocumentKinds.find((kind) => kind.id === document.kind)?.[en ? "en" : "idLabel"]}</span>{Boolean(document.detectedScopes?.length) && <div className="tp-detected-scopes">{document.detectedScopes?.map((scope) => <span key={scope}>{en ? tpExtractionScopes.find((item) => item.id === scope)?.en : tpExtractionScopes.find((item) => item.id === scope)?.idLabel}</span>)}</div>}</div>
-          <div><span className={`tp-status ${document.status}`}>{document.status}</span><small>{document.extractionMessage || (en ? "Waiting for extraction" : "Menunggu ekstraksi")}</small></div>
+          <div><strong>{document.filename}</strong><span>{tpDocumentKinds.find((kind) => kind.id === document.kind)?.[en ? "en" : "idLabel"]}</span><a href={`/api/tp-local-files/${encodeURIComponent(project.id)}/documents/${encodeURIComponent(document.id)}`} target="_blank" rel="noreferrer">{en ? "Open authorized source" : "Buka sumber terotorisasi"}</a>{Boolean(document.detectedScopes?.length) && <div className="tp-detected-scopes">{document.detectedScopes?.map((scope) => <span key={scope}>{en ? tpExtractionScopes.find((item) => item.id === scope)?.en : tpExtractionScopes.find((item) => item.id === scope)?.idLabel}</span>)}</div>}</div>
+          <div><span className={`tp-status ${document.status}`}>{document.status}</span><small>{document.extractionMessage || (en ? "Waiting for extraction" : "Menunggu ekstraksi")}</small>{document.status !== "extracted" && <button className="table-button" onClick={() => void retryDocumentExtraction(document.id)} disabled={busy}>{en ? "Retry extraction" : "Ulangi ekstraksi"}</button>}</div>
         </article>) : <div className="empty-state compact"><strong>{en ? "No source documents yet." : "Belum ada dokumen sumber."}</strong><span>{en ? "A company profile is a good first document." : "Profil perusahaan adalah dokumen awal yang baik."}</span></div>}
       </div>
     </div>}
@@ -326,6 +653,43 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
       <div className="tp-sticky-actions"><button className="table-button" onClick={() => setTab("sources")}>{en ? "Add source document" : "Tambah dokumen sumber"}</button><button className="table-button" onClick={() => setTab("transactions")}>{en ? "Complete advisor inputs" : "Lengkapi input advisor"}</button><button className="primary-button" onClick={analyzeProject} disabled={busy}>{en ? "Generate advisor working draft" : "Buat draft kerja advisor"}</button></div>
     </div>}
 
+    {tab === "agents" && <div className="tp-tab-panel tp-agent-workflow">
+      <div className="tp-readiness-intro">
+        <div><h3>{en ? "Evidence-first TP agent workflow" : "Workflow agent TP berbasis bukti"}</h3><p>{en ? "Each specialist works from a stored project snapshot. AI may extract, research, challenge, and draft; deterministic gates control progression and a human remains responsible for final approval." : "Setiap spesialis bekerja dari snapshot proyek yang tersimpan. AI dapat mengekstrak, meneliti, menguji, dan menyusun; quality gate deterministik mengontrol progres dan manusia tetap bertanggung jawab atas persetujuan final."}</p></div>
+        <div className={`tp-readiness-callout ${agentPlan?.canFinalize ? "ready" : "warning"}`}><strong>{agentPlan?.canFinalize ? (en ? "Eligible for finalization" : "Memenuhi syarat finalisasi") : `${agentPlan?.blockers.length || 0} ${en ? "blocking issue(s)" : "blocker"}`}</strong><span>{en ? "A gap-marked working draft may be produced before final approval." : "Draft kerja dengan penanda gap dapat dibuat sebelum persetujuan final."}</span></div>
+      </div>
+      <div className="tp-agent-grid">
+        {tpAgentDefinitions.map((definition) => {
+          const latest = latestAgentRun(agentRuns, definition.stage);
+          const planned = agentPlan?.stages.find((item) => item.stage === definition.stage);
+          const displayedStatus = latest?.status || planned?.status || "pending";
+          return <article key={definition.stage} className={`tp-agent-card status-${displayedStatus}`}>
+            <header><div><small>{definition.stage.replaceAll("_", " ")}</small><strong>{definition.name}</strong></div><span>{displayedStatus.replaceAll("_", " ")}</span></header>
+            <p>{definition.objective}</p>
+            {latest?.lastError?.message && <div className="tp-agent-error">{latest.lastError.message}</div>}
+            {planned?.recommendedActions?.[0] && <small>{planned.recommendedActions[0]}</small>}
+          </article>;
+        })}
+      </div>
+      <section className="tp-manual-research">
+        <header><div><h3>{en ? "Add manual research" : "Tambahkan riset manual"}</h3><p>{en ? "Record a source found outside the AI workflow. It remains discovery-only until the Verification Agent or an advisor validates the exact claim." : "Catat sumber yang ditemukan di luar workflow AI. Sumber tetap berstatus discovery-only sampai klaimnya diverifikasi oleh Agent Verifikasi atau advisor."}</p></div></header>
+        <div className="tp-form-grid three">
+          <label className="tp-field"><span>{en ? "Source type" : "Jenis sumber"}</span><select value={manualSourceType} onChange={(event) => setManualSourceType(event.target.value as typeof manualSourceType)}><option value="official">{en ? "Official / regulation" : "Resmi / regulasi"}</option><option value="industry">{en ? "Industry" : "Industri"}</option><option value="comparable_candidate">{en ? "Comparable candidate" : "Kandidat pembanding"}</option></select></label>
+          <Field label={en ? "Source title" : "Judul sumber"} value={manualSourceTitle} onChange={setManualSourceTitle} />
+          <Field label="URL" value={manualSourceUrl} onChange={setManualSourceUrl} />
+        </div>
+        <Area label={en ? "Supporting excerpt / note" : "Kutipan pendukung / catatan"} value={manualSourceSnippet} onChange={setManualSourceSnippet} />
+        <button className="table-button" onClick={addManualResearchSource} disabled={busy || !manualSourceTitle.trim() || !manualSourceUrl.trim()}>{en ? "Save manual source" : "Simpan sumber manual"}</button>
+      </section>
+      <section className="tp-manual-research">
+        <header><div><h3>{en ? "Human version approval" : "Persetujuan versi oleh manusia"}</h3><p>{en ? "Approval is bound to the exact assembled version and is invalidated by any later project change." : "Persetujuan terikat pada versi hasil assembly yang tepat dan tidak berlaku untuk perubahan proyek berikutnya."}</p></div></header>
+        <Area label={en ? "Reviewer notes" : "Catatan reviewer"} value={approvalNotes} onChange={setApprovalNotes} />
+        <div className="tp-agent-review-actions"><button className="primary-button" onClick={() => void recordHumanReview("approved")} disabled={busy || !qaEligibleForApproval || agentPlan?.canFinalize === true}>{en ? "Approve exact QA version" : "Setujui versi QA ini"}</button><button className="table-button" onClick={() => void recordHumanReview("changes_requested")} disabled={busy || !agentRuns.some((run) => run.stage === "assembly" && run.status === "succeeded")}>{en ? "Request changes" : "Minta perubahan"}</button><button className="table-button danger" onClick={() => void recordHumanReview("rejected")} disabled={busy || !agentRuns.some((run) => run.stage === "assembly" && run.status === "succeeded")}>{en ? "Reject version" : "Tolak versi"}</button></div>
+      </section>
+      {agentPlan?.blockers?.length ? <section className="tp-agent-blockers"><h3>{en ? "Open blocking issues" : "Blocker yang masih terbuka"}</h3><ul>{agentPlan.blockers.slice(0, 12).map((item) => <li key={item.id}><strong>{item.title}</strong><span>{item.description}</span></li>)}</ul></section> : null}
+      <div className="tp-sticky-actions"><button className="primary-button" onClick={startAgentPipeline} disabled={busy || (!project.documents.length && !project.state.manualEvidence.length)}>{en ? "Start / resume agent workflow" : "Mulai / lanjutkan workflow agent"}</button><button className="table-button" onClick={() => void runNextAgent()} disabled={busy || !agentRuns.some((run) => ["queued", "retry_wait"].includes(run.status))}>{en ? "Run next agent now" : "Jalankan agent berikutnya"}</button><button className="table-button" onClick={() => void loadAgentPipeline()} disabled={busy}>{en ? "Refresh progress" : "Perbarui progres"}</button><button className="table-button danger" onClick={cancelAgentPipeline} disabled={busy || !agentRuns.some((run) => ["queued", "retry_wait", "running"].includes(run.status))}>{en ? "Cancel active runs" : "Batalkan proses aktif"}</button></div>
+    </div>}
+
     {tab === "review" && <div className="tp-tab-panel review">
       <div className="tp-review-summary"><div><span>{en ? "Completeness" : "Kelengkapan"}</span><strong>{completeness}%</strong></div><div><span>{en ? "Documents" : "Dokumen"}</span><strong>{project.documents.length}</strong></div><div><span>{en ? "Final checks" : "Pemeriksaan final"}</span><strong>{readiness?.blockers.length || 0}</strong></div></div>
       {!project.state.analysis.executiveSummary && <div className="empty-state compact"><strong>{en ? "Advisor analysis has not been run." : "Analisis advisor belum dijalankan."}</strong><button className="primary-button" onClick={analyzeProject} disabled={busy}>{en ? "Run analysis" : "Jalankan analisis"}</button></div>}
@@ -343,9 +707,111 @@ export default function TpLocalFilePanel({ language, modelChoice }: { language: 
         <ListSection title={en ? "Likely counterarguments" : "Counterargument yang mungkin"} items={project.state.analysis.counterarguments} />
         <ListSection title={en ? "Sequenced action plan" : "Rencana tindakan berurutan"} items={project.state.analysis.actionPlan} />
       </div>}
-      <div className="tp-sticky-actions"><button className="primary-button" onClick={analyzeProject} disabled={busy}>{en ? "Update analysis" : "Perbarui analisis"}</button><a className="primary-button secondary-button" href={`/api/tp-local-files/${encodeURIComponent(project.id)}/export?language=${language}`}>{en ? "Download Word Local File" : "Unduh Word Local File"}</a></div>
+      <div className="tp-sticky-actions"><button className="primary-button" onClick={analyzeProject} disabled={busy}>{en ? "Update analysis" : "Perbarui analisis"}</button><a className="primary-button secondary-button" href={`/api/tp-local-files/${encodeURIComponent(project.id)}/export?language=${language}`}>{en ? "Download current working draft" : "Unduh draft kerja terkini"}</a>{approvedDocumentVersion && <a className="primary-button secondary-button" href={`/api/tp-local-files/${encodeURIComponent(project.id)}/export?language=${language}&version=${encodeURIComponent(approvedDocumentVersion)}`}>{en ? "Download approved QA version" : "Unduh versi QA yang disetujui"}</a>}</div>
     </div>}
   </section>;
+}
+
+function ManualTpWorkflow({
+  language, project, steps, step, busy, readiness, evidenceForm,
+  onStepChange, onUpdateState, onEvidenceTitleChange, onEvidenceKindChange,
+  onEvidenceReferenceChange, onEvidenceLocatorChange, onEvidenceExcerptChange,
+  onEvidencePathsChange, onAddEvidence, onRemoveEvidence, onSaveStep,
+  onReviewGaps, onStartAgents
+}: {
+  language: Language;
+  project: TpLocalFileProject;
+  steps: Array<{ title: string; note: string }>;
+  step: number;
+  busy: boolean;
+  readiness: ReturnType<typeof tpGenerationReadiness> | null;
+  evidenceForm: { title: string; kind: TpManualEvidence["sourceKind"]; reference: string; locator: string; excerpt: string; paths: string };
+  onStepChange: (step: number) => void;
+  onUpdateState: (patch: Partial<TpProjectState>) => void;
+  onEvidenceTitleChange: (value: string) => void;
+  onEvidenceKindChange: (value: TpManualEvidence["sourceKind"]) => void;
+  onEvidenceReferenceChange: (value: string) => void;
+  onEvidenceLocatorChange: (value: string) => void;
+  onEvidenceExcerptChange: (value: string) => void;
+  onEvidencePathsChange: (value: string) => void;
+  onAddEvidence: () => void;
+  onRemoveEvidence: (evidenceId: string) => void;
+  onSaveStep: (nextStep?: number) => void;
+  onReviewGaps: () => void;
+  onStartAgents: () => void;
+}) {
+  const en = language === "en";
+  const state = project.state;
+  const completed = steps.filter((_, index) => manualStepComplete(state, index)).length;
+  return <div className="tp-tab-panel tp-manual-wizard">
+    <aside className="tp-manual-steps">
+      <header><strong>{en ? "Manual TP Doc" : "TP Doc Manual"}</strong><span>{completed}/{steps.length} {en ? "steps complete" : "tahap lengkap"}</span></header>
+      <progress max={steps.length} value={completed} />
+      {steps.map((entry, index) => <button key={entry.title} className={`${step === index ? "active" : ""} ${manualStepComplete(state, index) ? "complete" : ""}`} onClick={() => onStepChange(index)}><b>{index + 1}</b><span><strong>{entry.title}</strong><small>{entry.note}</small></span></button>)}
+    </aside>
+    <div className="tp-manual-stage">
+      <header><div><span>{en ? "Manual step" : "Tahap manual"} {step + 1}/{steps.length}</span><h3>{steps[step]?.title}</h3><p>{steps[step]?.note}</p></div><span className={`tp-manual-stage-status ${manualStepComplete(state, step) ? "complete" : "open"}`}>{manualStepComplete(state, step) ? (en ? "Complete" : "Lengkap") : (en ? "In progress" : "Belum lengkap")}</span></header>
+
+      {step === 0 && <div className="tp-manual-stage-body">
+        <div className="tp-form-grid three"><Field label={en ? "Legal company name" : "Nama legal perusahaan"} value={state.companyName} onChange={(companyName) => onUpdateState({ companyName })} /><Field label={en ? "Short name" : "Nama singkat"} value={state.companyShortName} onChange={(companyShortName) => onUpdateState({ companyShortName })} /><Field label="NPWP" value={state.npwp} onChange={(npwp) => onUpdateState({ npwp })} /><Field label={en ? "Fiscal year" : "Tahun pajak"} value={state.fiscalYear} onChange={(fiscalYear) => onUpdateState({ fiscalYear })} /><Field label={en ? "Parent company" : "Entitas induk"} value={state.parentCompany} onChange={(parentCompany) => onUpdateState({ parentCompany })} /><Field label={en ? "Business group" : "Grup usaha"} value={state.parentGroup} onChange={(parentGroup) => onUpdateState({ parentGroup })} /></div>
+        <Area label={en ? "Registered address" : "Alamat terdaftar"} value={state.companyAddress} onChange={(companyAddress) => onUpdateState({ companyAddress })} />
+        <Area label={en ? "Establishment and legal information" : "Informasi pendirian dan legal"} value={state.establishmentInfo} onChange={(establishmentInfo) => onUpdateState({ establishmentInfo })} />
+      </div>}
+
+      {step === 1 && <div className="tp-manual-stage-body">
+        <div className="tp-form-grid three"><Field label={en ? "Brand" : "Merek"} value={state.brandName} onChange={(brandName) => onUpdateState({ brandName })} /><Field label={en ? "Employees" : "Jumlah pegawai"} value={state.employeeCount} onChange={(employeeCount) => onUpdateState({ employeeCount })} /><Field label={en ? "Ownership source reference" : "Referensi sumber kepemilikan"} value={state.shareholdersSource} onChange={(shareholdersSource) => onUpdateState({ shareholdersSource })} /></div>
+        <Area label={en ? "Business activities" : "Kegiatan usaha"} value={state.businessActivities} onChange={(businessActivities) => onUpdateState({ businessActivities })} />
+        <Area label={en ? "Business strategy" : "Strategi bisnis"} value={state.businessStrategy} onChange={(businessStrategy) => onUpdateState({ businessStrategy })} />
+        <Area label={en ? "Restructuring during the year" : "Restrukturisasi selama tahun berjalan"} value={state.businessRestructuring} onChange={(businessRestructuring) => onUpdateState({ businessRestructuring })} />
+        <Area label={en ? "Organization and reporting lines" : "Organisasi dan garis pelaporan"} value={state.organizationStructure} onChange={(organizationStructure) => onUpdateState({ organizationStructure })} />
+        <EditableShareholders language={language} rows={state.shareholders} onChange={(shareholders) => onUpdateState({ shareholders })} />
+        <EditableManagement language={language} rows={state.management} onChange={(management) => onUpdateState({ management })} />
+        <EditableAffiliates language={language} rows={state.affiliatedParties} onChange={(affiliatedParties) => onUpdateState({ affiliatedParties })} />
+      </div>}
+
+      {step === 2 && <div className="tp-manual-stage-body">
+        <div className="tp-form-grid"><Field label={en ? "Transaction category / delineation" : "Kategori / delineasi transaksi"} value={state.transactionType} onChange={(transactionType) => onUpdateState({ transactionType })} /><Field label={en ? "Pricing mechanism" : "Mekanisme penetapan harga"} value={state.pricingPolicy} onChange={(pricingPolicy) => onUpdateState({ pricingPolicy })} /></div>
+        <Area label={en ? "Background and commercial rationale" : "Latar belakang dan rasional komersial"} value={state.backgroundTransaction} onChange={(backgroundTransaction) => onUpdateState({ backgroundTransaction })} />
+        <Area label={en ? "Controlled transaction details" : "Detail transaksi afiliasi"} value={state.transactionDetails} onChange={(transactionDetails) => onUpdateState({ transactionDetails })} />
+        <Area label={en ? "Supply chain and transaction flow" : "Rantai pasok dan alur transaksi"} value={state.supplyChainManagement} onChange={(supplyChainManagement) => onUpdateState({ supplyChainManagement })} />
+        <EditableTransactions language={language} rows={state.affiliatedTransactions} onChange={(affiliatedTransactions) => onUpdateState({ affiliatedTransactions })} />
+      </div>}
+
+      {step === 3 && <div className="tp-manual-stage-body">
+        <div className="tp-manual-guidance"><strong>{en ? "Describe actual conduct, not contract labels only." : "Uraikan perilaku aktual, bukan hanya label kontrak."}</strong><span>{en ? "Keep entity-level and transaction-level FAR distinct where their characterizations differ." : "Pisahkan FAR tingkat entitas dan tingkat transaksi bila karakterisasinya berbeda."}</span></div>
+        <Area label={en ? "Functions performed" : "Fungsi yang dilakukan"} value={state.farAnalysis.functionsPerformed} onChange={(functionsPerformed) => onUpdateState({ farAnalysis: { ...state.farAnalysis, functionsPerformed } })} />
+        <Area label={en ? "Assets used" : "Aset yang digunakan"} value={state.farAnalysis.assetsUsed} onChange={(assetsUsed) => onUpdateState({ farAnalysis: { ...state.farAnalysis, assetsUsed } })} />
+        <Area label={en ? "Risks assumed and controlled" : "Risiko yang ditanggung dan dikendalikan"} value={state.farAnalysis.risksAssumed} onChange={(risksAssumed) => onUpdateState({ farAnalysis: { ...state.farAnalysis, risksAssumed } })} />
+        <Area label={en ? "Contractual terms" : "Ketentuan kontraktual"} value={state.farAnalysis.contractualTerms} onChange={(contractualTerms) => onUpdateState({ farAnalysis: { ...state.farAnalysis, contractualTerms } })} />
+        <Area label={en ? "Economic circumstances" : "Kondisi ekonomi"} value={state.farAnalysis.economicCircumstances} onChange={(economicCircumstances) => onUpdateState({ farAnalysis: { ...state.farAnalysis, economicCircumstances } })} />
+        <Area label={en ? "Intangibles used / DEMPE observations" : "Aset tidak berwujud / observasi DEMPE"} value={state.farAnalysis.intangiblesUsed} onChange={(intangiblesUsed) => onUpdateState({ farAnalysis: { ...state.farAnalysis, intangiblesUsed } })} />
+        <Area label={en ? "Service benefit, duplication, and shareholder-activity test" : "Uji manfaat jasa, duplikasi, dan shareholder activity"} value={state.farAnalysis.serviceBenefitTest} onChange={(serviceBenefitTest) => onUpdateState({ farAnalysis: { ...state.farAnalysis, serviceBenefitTest } })} />
+      </div>}
+
+      {step === 4 && <div className="tp-manual-stage-body">
+        <div className="tp-form-grid three"><Field label={en ? "Selected method" : "Metode terpilih"} value={state.selectedMethod} onChange={(selectedMethod) => onUpdateState({ selectedMethod })} /><Field label="PLI" value={state.selectedPli} onChange={(selectedPli) => onUpdateState({ selectedPli })} /><Field label={en ? "Tested party" : "Pihak yang diuji"} value={state.testedParty} onChange={(testedParty) => onUpdateState({ testedParty })} /><Field label={en ? "Analysis period" : "Periode analisis"} value={state.analysisPeriod} onChange={(analysisPeriod) => onUpdateState({ analysisPeriod })} /></div>
+        <Area label={en ? "Comparability factors and method rationale" : "Faktor kesebandingan dan alasan pemilihan metode"} value={state.comparabilityFactors} onChange={(comparabilityFactors) => onUpdateState({ comparabilityFactors })} />
+        <EditableSearchCriteria language={language} rows={state.searchCriteriaResults} onChange={(searchCriteriaResults) => onUpdateState({ searchCriteriaResults })} />
+        <EditableComparables language={language} rows={state.comparableCompanies} onChange={(comparableCompanies) => onUpdateState({ comparableCompanies })} />
+        <EditableRejectionMatrix language={language} rows={state.rejectionMatrix} onChange={(rejectionMatrix) => onUpdateState({ rejectionMatrix })} />
+      </div>}
+
+      {step === 5 && <div className="tp-manual-stage-body">
+        <div className="tp-financial-comparison"><section><h3>{en ? "Current year" : "Tahun berjalan"}</h3><div className="tp-form-grid two-compact">{Object.entries(state.financialData).map(([key, entry]) => <Field key={key} label={financialLabel(key, language)} value={entry} onChange={(value) => onUpdateState({ financialData: { ...state.financialData, [key]: value } })} />)}</div></section><section><h3>{en ? "Prior year" : "Tahun sebelumnya"}</h3><div className="tp-form-grid two-compact">{Object.entries(state.financialDataPrior).map(([key, entry]) => <Field key={key} label={financialLabel(key, language)} value={entry} onChange={(value) => onUpdateState({ financialDataPrior: { ...state.financialDataPrior, [key]: value } })} />)}</div></section></div>
+        <div className="tp-form-grid four-compact"><Field label="Q1" value={state.quartileRange.q1} onChange={(q1) => onUpdateState({ quartileRange: { ...state.quartileRange, q1 } })} /><Field label="Median" value={state.quartileRange.median} onChange={(median) => onUpdateState({ quartileRange: { ...state.quartileRange, median } })} /><Field label="Q3" value={state.quartileRange.q3} onChange={(q3) => onUpdateState({ quartileRange: { ...state.quartileRange, q3 } })} /><Field label={en ? "Tested result" : "Hasil pihak diuji"} value={state.testedPartyRatio} onChange={(testedPartyRatio) => onUpdateState({ testedPartyRatio })} /></div>
+        <Area label={en ? "Non-financial events affecting price or profit" : "Peristiwa nonkeuangan yang memengaruhi harga atau laba"} value={state.nonFinancialEvents} onChange={(nonFinancialEvents) => onUpdateState({ nonFinancialEvents })} />
+      </div>}
+
+      {step === 6 && <div className="tp-manual-stage-body">
+        <div className="tp-manual-guidance warning"><strong>{en ? "Manual input is not self-verifying." : "Input manual tidak memverifikasi dirinya sendiri."}</strong><span>{en ? "Register where each material fact came from. It remains unverified until the verification stage or human reviewer confirms it." : "Catat asal setiap fakta material. Statusnya tetap belum terverifikasi sampai tahap verifikasi atau reviewer manusia mengonfirmasinya."}</span></div>
+        <section className="tp-manual-evidence-form"><header><div><h3>{en ? "Register manual evidence" : "Registrasikan bukti manual"}</h3><p>{en ? "Examples: management interview, ledger reference, agreement clause, or calculation working paper." : "Contoh: wawancara manajemen, referensi ledger, klausul perjanjian, atau working paper perhitungan."}</p></div></header><div className="tp-form-grid three"><Field label={en ? "Evidence title" : "Judul bukti"} value={evidenceForm.title} onChange={onEvidenceTitleChange} /><label className="tp-field"><span>{en ? "Source kind" : "Jenis sumber"}</span><select value={evidenceForm.kind} onChange={(event) => onEvidenceKindChange(event.target.value as TpManualEvidence["sourceKind"])}><option value="management_interview">{en ? "Management interview" : "Wawancara manajemen"}</option><option value="ledger_reference">{en ? "Ledger reference" : "Referensi ledger"}</option><option value="agreement_reference">{en ? "Agreement reference" : "Referensi perjanjian"}</option><option value="manual_calculation">{en ? "Manual calculation" : "Perhitungan manual"}</option><option value="other">{en ? "Other" : "Lainnya"}</option></select></label><Field label={en ? "Reference / owner" : "Referensi / pemilik data"} value={evidenceForm.reference} onChange={onEvidenceReferenceChange} /><Field label={en ? "Locator / interview question / GL account" : "Lokator / pertanyaan / akun GL"} value={evidenceForm.locator} onChange={onEvidenceLocatorChange} /><Field label={en ? "Supported field paths, comma separated" : "Field path yang didukung, pisahkan koma"} value={evidenceForm.paths} onChange={onEvidencePathsChange} /></div><Area label={en ? "Exact excerpt, response, or calculation note" : "Kutipan, jawaban, atau catatan perhitungan"} value={evidenceForm.excerpt} onChange={onEvidenceExcerptChange} /><small>{en ? "Examples: companyName, affiliatedTransactions, farAnalysis.functionsPerformed, financialData.revenue" : "Contoh: companyName, affiliatedTransactions, farAnalysis.functionsPerformed, financialData.revenue"}</small><button className="table-button" onClick={onAddEvidence} disabled={busy}>{en ? "Add to evidence register" : "Tambahkan ke register bukti"}</button></section>
+        <div className="tp-manual-evidence-list">{state.manualEvidence.length ? state.manualEvidence.map((evidence) => <article key={evidence.id}><div><strong>{evidence.title}</strong><span>{evidence.sourceKind.replaceAll("_", " ")} · {evidence.reference || (en ? "no reference" : "tanpa referensi")}</span><small>{evidence.fieldPaths.join(", ")}</small><p>{evidence.excerpt}</p></div><button className="table-button danger" onClick={() => onRemoveEvidence(evidence.id)} disabled={busy}>{en ? "Remove" : "Hapus"}</button></article>) : <div className="empty-state compact"><strong>{en ? "No manual evidence registered." : "Belum ada bukti manual."}</strong><span>{en ? "At least one sourced fact is required to start the agent workflow without a document." : "Minimal satu fakta bersumber diperlukan untuk memulai workflow agen tanpa dokumen."}</span></div>}</div>
+        {readiness && <div className={`tp-readiness-callout ${readiness.blockers.length ? "warning" : "ready"}`}><strong>{readiness.blockers.length ? `${readiness.blockers.length} ${en ? "mandatory item(s) remain" : "item wajib tersisa"}` : (en ? "Manual inputs are ready for agent review" : "Input manual siap direview agen")}</strong><span>{en ? "The agent workflow will still verify evidence, draft, assemble, and run QA." : "Workflow agen tetap akan melakukan verifikasi bukti, drafting, assembly, dan QA."}</span></div>}
+      </div>}
+
+      <footer className="tp-manual-navigation"><button className="table-button" onClick={() => onSaveStep(step - 1)} disabled={busy || step === 0}>{en ? "Save & back" : "Simpan & kembali"}</button>{step < steps.length - 1 ? <button className="primary-button" onClick={() => onSaveStep(step + 1)} disabled={busy}>{en ? "Save & continue" : "Simpan & lanjut"}</button> : <><button className="table-button" onClick={onReviewGaps} disabled={busy}>{en ? "Review all gaps" : "Review seluruh gap"}</button><button className="primary-button" onClick={onStartAgents} disabled={busy || !state.manualEvidence.length || !state.companyName || !state.fiscalYear}>{en ? "Save and start TP agents" : "Simpan dan jalankan agen TP"}</button></>}</footer>
+    </div>
+  </div>;
 }
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {

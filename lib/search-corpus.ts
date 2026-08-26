@@ -93,6 +93,8 @@ export function regulationToSearchDocuments(record: Regulation): SearchDocument[
   const sourceUrl = record.officialPdfUrl || record.sourceUrl || record.pdfUrl || "";
   const official = isAllowedOfficialRegulationUrl(sourceUrl);
   const extraction = record.extraction;
+  const effectiveTo = [...(extraction?.relations || []), ...(record.relations || [])]
+    .find((relation) => relation.type === "revoked_by" && relation.effectiveDate)?.effectiveDate;
   const knownStatus = extraction?.legalStatus && extraction.legalStatus !== "unknown";
   const base = {
     corpus: "regulation" as const,
@@ -104,9 +106,13 @@ export function regulationToSearchDocuments(record: Regulation): SearchDocument[
     visibility: "public" as const,
     metadata: {
       topic: record.topic || "general",
+      topicLabel: record.topic === "vat" ? "PPN" : record.topic === "income_tax" ? "PPh" : record.topic === "transfer_pricing" ? "Transfer pricing" : "Umum",
       canonicalKey: canonicalId,
       legalStatus: extraction?.legalStatus || "unknown",
-      effectiveDate: extraction?.effectiveDate || ""
+      effectiveDate: extraction?.effectiveDate || "",
+      year: Number(String(record.citation || record.title).match(/\b((?:19|20)\d{2})\b/)?.[1] || 0),
+      sourcePageUrl: record.sourceUrl || "",
+      pdfUrl: record.storedPdfUrl || record.officialPdfUrl || record.pdfUrl || ""
     }
   };
   const provisions = extraction?.keyProvisions?.filter((provision) => provision.text.trim()) || [];
@@ -118,7 +124,8 @@ export function regulationToSearchDocuments(record: Regulation): SearchDocument[
       body: compact([extraction?.summary, provision.text]),
       locator: { page: provision.page, section: provision.article },
       status: hasImmutableHash && (provision.page || provision.article) ? "verified" as const : "review_required" as const,
-      effectiveFrom: extraction?.effectiveDate
+      effectiveFrom: extraction?.effectiveDate,
+      effectiveTo
     }));
   }
   return [
@@ -126,7 +133,9 @@ export function regulationToSearchDocuments(record: Regulation): SearchDocument[
       ...base,
       id: `regulation:${canonicalId}:summary`,
       body: compact([record.focus, record.content, extraction?.summary]),
-      status: "review_required"
+      status: "review_required",
+      effectiveFrom: extraction?.effectiveDate,
+      effectiveTo
     }
   ];
 }

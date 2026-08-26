@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     if (!body || typeof body !== "object" || Array.isArray(body)) return errorResponse("Request body harus berupa object.");
     const kind = String(body.kind || "") as ReviewKind;
     const id = String(body.id || "").trim();
-    if (!["node", "edge", "citation", "queue"].includes(kind) || !id) return errorResponse("kind dan id review wajib diisi.");
+    if (!["node", "edge", "citation", "document", "queue"].includes(kind) || !id) return errorResponse("kind dan id review wajib diisi.");
 
     const item = await reviewItem(kind, id);
     if (!item) return errorResponse("Item review tidak ditemukan atau bukan bagian dari queue.", 404);
