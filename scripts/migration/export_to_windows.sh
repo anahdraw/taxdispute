@@ -36,7 +36,9 @@ mkdir -p "$DEST/source" "$DEST/data/peraturan-pipeline" \
   "$DEST/data/TaxDisputeC" "$DEST/handoff"
 
 echo "[1/7] Membuat Git bundle source AA-Jurist…"
-git -C "$REPO_ROOT" bundle create "$DEST/source/AAJurist-source.bundle" --all
+# Hanya branch utama. `--all` juga membawa ref internal Codex/turn-diffs yang
+# tidak diperlukan untuk serah-terima dan dapat mengungkap metadata sesi lokal.
+git -C "$REPO_ROOT" bundle create "$DEST/source/AAJurist-source.bundle" main
 cp "$REPO_ROOT/.env.example" "$DEST/handoff/env.example"
 cp "$REPO_ROOT/docs/WINDOWS_MIGRATION_HANDOFF_2026-08-26.md" "$DEST/handoff/README-WINDOWS.md"
 cp "$REPO_ROOT/scripts/migration/restore_on_windows.ps1" "$DEST/handoff/restore_on_windows.ps1"
